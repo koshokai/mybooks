@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f3ede0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>色 · 中国传统色</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%239D2933'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23f6efe2' font-family='serif'%3E色%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 背景：颗粒与墨云 -->
+  <canvas id="fx" class="fx" aria-hidden="true"></canvas>
+  <div class="paper" aria-hidden="true"></div>
+
+  <!-- 顶栏 -->
+  <header class="top">
+    <a class="back" href="../../index.html" aria-label="返回角色选择">← 返回 <b>色</b></a>
+    <div class="top-title">中国传统色<span id="counter">01 / 85</span></div>
+    <nav class="top-actions">
+      <button class="pill" id="btnToday" title="今日之色">今日</button>
+      <button class="pill" id="btnMap" title="色谱总览">色谱</button>
+    </nav>
+  </header>
+
+  <!-- 筛选 -->
+  <div class="filters" id="filters" role="toolbar" aria-label="筛选"></div>
+
+  <!-- 主视图：一色一屏 -->
+  <main class="track" id="track" aria-live="polite"></main>
+
+  <!-- 右侧色带索引 -->
+  <aside class="rail" id="rail" aria-label="颜色索引"></aside>
+
+  <!-- 滑动提示 -->
+  <div class="hint" id="hint"><span>上下滑动 · 换一种颜色</span><i></i></div>
+
+  <!-- 色谱总览 -->
+  <section class="atlas" id="atlas" hidden aria-label="色谱">
+    <div class="atlas-head">
+      <h2>色 谱</h2>
+      <div class="seg" role="tablist">
+        <button class="on" data-mode="wheel" role="tab">色轮</button>
+        <button data-mode="grid" role="tab">色系</button>
+      </div>
+      <button class="x" id="atlasClose" aria-label="关闭">×</button>
+    </div>
+    <div class="atlas-body">
+      <div class="wheel-wrap" id="wheelWrap">
+        <div class="wheel" id="wheel">
+          <div class="wheel-core" id="wheelCore"><b>色</b><small>按色相排列</small></div>
+        </div>
+      </div>
+      <div class="grid" id="grid" hidden></div>
+    </div>
+  </section>
+
+  <!-- 详情 -->
+  <section class="sheet" id="sheet" hidden aria-label="颜色详情">
+    <div class="sheet-scrim" data-close></div>
+    <div class="sheet-panel" id="sheetPanel">
+      <div class="sheet-grip" data-close></div>
+      <button class="x" data-close aria-label="关闭">×</button>
+      <div id="sheetBody"></div>
+    </div>
+  </section>
+
+  <!-- 色卡预览 -->
+  <section class="poster" id="poster" hidden aria-label="色卡">
+    <div class="poster-inner">
+      <img id="posterImg" alt="色卡预览" />
+      <div class="poster-actions">
+        <a class="btn solid" id="posterDl" download="色卡.png">保存图片</a>
+        <button class="btn" id="posterClose">关闭</button>
+      </div>
+      <p class="poster-tip">手机上也可长按图片保存</p>
+    </div>
+  </section>
+
+  <!-- 开场：墨色晕染 -->
+  <section class="intro" id="intro">
+    <canvas id="ink"></canvas>
+    <div class="intro-text">
+      <h1 class="intro-glyph">色</h1>
+      <p class="intro-sub">中 国 传 统 色</p>
+      <p class="intro-today" id="introToday"></p>
+      <button class="intro-go" id="introGo">入 色</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
