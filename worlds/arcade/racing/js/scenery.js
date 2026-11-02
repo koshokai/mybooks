@@ -26,9 +26,9 @@ function rockGeometry(seed, detail = 2) {
     v.y *= 0.82;
     p.setXYZ(i, v.x, v.y, v.z);
   }
-  const ng = g.toNonIndexed();
+  const ng = g.index ? g.toNonIndexed() : g;
   ng.computeVertexNormals();
-  g.dispose();
+  if (ng !== g) g.dispose();
   return ng;
 }
 
@@ -81,7 +81,7 @@ function planet(radius, colA, colB, colAtm, sunDir, seed, bands = 7) {
         float lit = smoothstep(-0.15, 0.6, dl);
         vec3 V = normalize(cameraPosition - vW);
         float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-        col = col * (0.04 + lit * 1.1) + uAtm * rim * (0.25 + lit * 1.4);
+        col = col * (0.02 + lit * 0.42) + uAtm * rim * (0.12 + lit * 0.75);
         gl_FragColor = vec4(col, 1.0);
       }`,
   });

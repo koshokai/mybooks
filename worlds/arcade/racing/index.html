@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#03050d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>速 · 星际竞速</title>
+  <meta name="description" content="星际竞速 —— 原创反重力飞船竞速：在漂浮于深空的霓虹赛道上漂移蓄能、冲刺加速，和五名对手争夺第一。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2303050d'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%234de8ff' font-family='serif' font-weight='900'%3E%E9%80%9F%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="racing.css" />
+  <script type="importmap">{"imports":{"three":"../../../shared/vendor/three/three.module.min.js","three/addons/":"../../../shared/vendor/three/addons/"}}</script>
+</head>
+<body>
+  <canvas id="cv" aria-label="星际竞速游戏画面"></canvas>
+  <div id="cut" aria-hidden="true"></div>
+
+  <!-- ========== 标题 ========== -->
+  <section id="scr-title" class="screen">
+    <a class="back" href="../index.html">← 游戏厅</a>
+    <button class="icon-btn snd-toggle top-right" type="button" aria-label="音效开关"><span class="snd-on">♪</span><span class="snd-off">✕</span></button>
+    <div class="title-wrap">
+      <div class="glyph" aria-hidden="true">速</div>
+      <h1 class="game-name">星际竞速</h1>
+      <p class="game-en">STAR · RACER</p>
+      <p class="game-sub">悬浮飞船 · 霓虹赛道 · 漂移蓄能</p>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" data-go="race"><span class="bi">▶</span> 开始比赛</button>
+        <div class="row">
+          <button class="btn btn-line" type="button" data-go="trial">计时赛</button>
+          <button class="btn btn-line" type="button" data-go="garage">机库</button>
+        </div>
+        <button class="btn btn-text" type="button" data-go="help">玩法说明</button>
+      </div>
+      <p class="dust-line" title="万象游戏厅共享星尘"><i>✦</i> 星尘 <b class="dust-val">0</b></p>
+    </div>
+    <p class="title-foot"><span class="kb-only">← → 转向 · Shift 漂移 · E 加速</span><span class="touch-only">按住左右半屏转向 · 漂移蓄能 · 加速冲刺</span></p>
+  </section>
+
+  <!-- ========== 选择赛道 ========== -->
+  <section id="scr-select" class="screen">
+    <header class="bar">
+      <button class="icon-btn" type="button" data-go="title" aria-label="返回">←</button>
+      <div class="bar-title"><b id="sel-title">选择赛道</b><span id="sel-mode">GRAND PRIX</span></div>
+      <div class="mode-switch" role="tablist">
+        <button type="button" data-mode="race" class="on">大奖赛</button>
+        <button type="button" data-mode="trial">计时赛</button>
+      </div>
+    </header>
+    <div class="cards" id="cards"></div>
+    <footer class="sel-foot">
+      <p class="sel-hint" id="sel-hint"></p>
+      <button class="btn btn-primary" type="button" id="btn-go"><span class="bi">▶</span> 出发</button>
+    </footer>
+  </section>
+
+  <!-- ========== 机库 ========== -->
+  <section id="scr-garage" class="screen">
+    <header class="bar">
+      <button class="icon-btn" type="button" data-go="title" aria-label="返回">←</button>
+      <div class="bar-title"><b>机库</b><span>HANGAR · 流光号</span></div>
+      <div class="dust-chip" title="万象游戏厅共享星尘"><i>✦</i> <b class="dust-val">0</b></div>
+    </header>
+    <div class="garage-panel">
+      <div class="paint-head"><b id="g-name">极光白</b><span id="g-en">AURORA</span></div>
+      <div class="swatches" id="swatches"></div>
+      <div class="g-row">
+        <p class="g-note" id="g-note"></p>
+        <button class="btn btn-primary" type="button" id="g-action">已装备</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HUD ========== -->
+  <div id="hud" class="hud">
+    <div class="hud-tl">
+      <button class="icon-btn" id="btn-pause" type="button" aria-label="暂停">❚❚</button>
+      <div class="pos"><b id="h-pos">6</b><span id="h-posof">/6</span><small>名次</small></div>
+    </div>
+    <div class="hud-tc">
+      <div class="lapline"><span class="lap"><small>圈</small><b id="h-lap">1</b><i id="h-lapof">/3</i></span><span class="time" id="h-time">0:00.00</span></div>
+      <div class="laps"><span>本圈 <b id="h-lt">0:00.0</b></span><span>最快 <b id="h-best">--:--</b></span></div>
+      <div class="delta" id="h-delta"></div>
+    </div>
+    <canvas id="minimap" class="minimap" aria-hidden="true"></canvas>
+    <div class="hud-bc">
+      <div class="speed"><b id="h-speed">0</b><small>KM/H</small></div>
+      <div class="speedbar"><i id="h-sbar"></i></div>
+      <div class="energy" id="h-energy" title="能量：漂移蓄能，按 E 加速"><i></i><i></i><i></i></div>
+      <div class="energy-label"><span>能量</span><small class="kb-only">Shift 漂移蓄能 · E 冲刺</small><small class="touch-only">漂移蓄能 · 点加速冲刺</small></div>
+    </div>
+    <div class="tags"><span id="tag-slip">尾流</span><span id="tag-drift">漂移</span></div>
+    <div id="h-msg" class="msg"></div>
+    <div id="h-count" class="count"></div>
+  </div>
+
+  <!-- ========== 触屏控制 ========== -->
+  <div id="touch" class="touch">
+    <div class="tz tz-l"><i>‹</i></div>
+    <div class="tz tz-r"><i>›</i></div>
+    <div class="tbtns">
+      <button id="t-drift" class="tbtn" type="button">漂移</button>
+      <button id="t-boost" class="tbtn tbtn-boost" type="button">加速<em id="t-boost-n">0</em></button>
+    </div>
+  </div>
+
+  <!-- ========== 暂停 ========== -->
+  <div class="modal" id="m-pause">
+    <div class="card">
+      <a class="back back-in" href="../index.html">← 游戏厅</a>
+      <h2>暂停</h2>
+      <p class="card-sub" id="pause-sub"></p>
+      <div class="col-btns">
+        <button class="btn btn-primary" type="button" data-act="resume">继续比赛</button>
+        <button class="btn btn-line" type="button" data-act="restart">重新开始</button>
+        <button class="btn btn-line" type="button" data-act="quit">退出比赛</button>
+        <div class="toggles">
+          <button class="chip snd-toggle" type="button"><span class="snd-on">音效 开</span><span class="snd-off">音效 关</span></button>
+          <button class="chip" type="button" id="music-toggle">音乐 开</button>
+          <button class="chip" type="button" id="cam-toggle">镜头 近</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 结算 ========== -->
+  <div class="modal" id="m-result">
+    <div class="card result">
+      <p class="card-eyebrow" id="r-eyebrow">霓虹星港 · 大奖赛</p>
+      <div class="r-place" id="r-place"><b>1</b><span>ST</span></div>
+      <h2 id="r-title">星际冠军</h2>
+      <div class="r-stats">
+        <div><small>总用时</small><b id="r-total">0:00.00</b></div>
+        <div><small>最快单圈</small><b id="r-lap">0:00.00</b></div>
+      </div>
+      <ol class="r-table" id="r-table"></ol>
+      <div class="r-dust" id="r-dust"></div>
+      <div class="row-btns">
+        <button class="btn btn-line" type="button" data-act="garage">机库</button>
+        <button class="btn btn-line" type="button" data-act="menu">赛道</button>
+        <button class="btn btn-primary grow" type="button" data-act="again">再来一次</button>
+      </div>
+      <button class="btn btn-text r-next" type="button" data-act="next" id="r-next">下一条赛道 →</button>
+    </div>
+  </div>
+
+  <!-- ========== 玩法 ========== -->
+  <div class="modal" id="m-help">
+    <div class="card help">
+      <h2>玩法说明</h2>
+      <p class="card-sub">三圈定胜负。飞船会自动前进，你只需要走好线路。</p>
+      <ul class="help-list">
+        <li><b>转向</b><span class="kb-only"><kbd>←</kbd><kbd>→</kbd> 或 <kbd>A</kbd><kbd>D</kbd></span><span class="touch-only">按住屏幕左半边 / 右半边</span></li>
+        <li><b>漂移</b><span class="kb-only">转弯时按住 <kbd>Shift</kbd> 或 <kbd>空格</kbd></span><span class="touch-only">转向时点一下「漂移」，松开方向结束</span></li>
+        <li><b>能量</b><span>漂移越久、角度越大，蓄能越快（最多三格）；长漂移松开会小幅弹射</span></li>
+        <li><b>冲刺</b><span class="kb-only"><kbd>E</kbd> 或 <kbd>Enter</kbd> 消耗一格能量</span><span class="touch-only">点「加速」消耗一格能量</span></li>
+        <li><b>加速带</b><span>驶过路面上的箭头光带即可免费提速</span></li>
+        <li><b>尾流</b><span>紧跟在对手正后方会获得额外速度</span></li>
+        <li><b>完美起步</b><span>倒计时最后一瞬按下冲刺键</span></li>
+        <li class="kb-only"><b>其他</b><span><kbd>↓</kbd> 减速 · <kbd>C</kbd> 切换镜头 · <kbd>Esc</kbd> 暂停 · <kbd>M</kbd> 静音</span></li>
+      </ul>
+      <button class="btn btn-primary" type="button" data-act="close">明白了</button>
+    </div>
+  </div>
+
+  <!-- ========== 加载 ========== -->
+  <div id="loading" class="show">
+    <div class="ld-glyph">速</div>
+    <p class="ld-text" id="ld-text">正在点亮赛道…</p>
+    <div class="ld-bar"><i></i></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p style="position:fixed;inset:0;display:grid;place-items:center;color:#fff">需要开启 JavaScript 才能游玩。</p></noscript>
+
+  <script src="../../../shared/arcade.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -108,7 +108,7 @@ export const TRACKS = [
       sky: '#030616', neb1: '#1d4fb8', neb2: '#c03aa0', neb3: '#0aa6b8',
       sun: '#cfeaff', sunDir: [0.5, 0.35, -0.8], hemi: ['#5a7cc8', '#1a0f2a'],
     },
-    scenery: 'harbor', music: 0, aiSkill: [0.885, 0.93],
+    scenery: 'harbor', music: 0, aiSkill: [0.87, 0.96],
   },
   {
     id: 'ember', name: '赤炎环带', en: 'CRIMSON BELT', diff: 2, laps: 3, width: 27,
@@ -142,7 +142,7 @@ export const TRACKS = [
       sky: '#0a0306', neb1: '#a8331c', neb2: '#e0902a', neb3: '#6a1a5a',
       sun: '#ffd2a0', sunDir: [-0.6, 0.25, -0.7], hemi: ['#c86a3a', '#2a0a10'],
     },
-    scenery: 'ember', music: 1, aiSkill: [0.915, 0.965],
+    scenery: 'ember', music: 1, aiSkill: [0.92, 1.0],
   },
   {
     id: 'abyss', name: '幽冥视界', en: 'VOID HORIZON', diff: 3, laps: 3, width: 25,
@@ -172,7 +172,7 @@ export const TRACKS = [
       sky: '#030208', neb1: '#4a1aa0', neb2: '#127a7a', neb3: '#a01a6a',
       sun: '#e0d0ff', sunDir: [0.2, 0.6, 0.75], hemi: ['#7a5ac8', '#0a0618'],
     },
-    scenery: 'abyss', music: 2, aiSkill: [0.94, 0.99],
+    scenery: 'abyss', music: 2, aiSkill: [0.94, 1.02],
   },
 ];
 

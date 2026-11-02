@@ -61,7 +61,7 @@ export class World {
     this.composer = new EffectComposer(renderer, rt);
     this.renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(this.renderPass);
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.55, 0.62);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.62, 0.42, 0.74);
     if (quality.bloomScale < 1) {
       const orig = this.bloom.setSize.bind(this.bloom);
       this.bloom.setSize = (w, h) => orig(Math.max(64, Math.round(w * quality.bloomScale)), Math.max(64, Math.round(h * quality.bloomScale)));
@@ -149,7 +149,7 @@ export class World {
           float st = stars(d, 300.0, 0.86) * 0.55 + stars(d, 140.0, 0.93) * 0.9;
           col += vec3(st) * mix(vec3(1.0, 0.86, 0.72), vec3(0.72, 0.84, 1.0), hash(floor(d * 140.0)));
           float sdot = max(dot(d, normalize(uSunDir)), 0.0);
-          col += uSun * (pow(sdot, 900.0) * 30.0 + pow(sdot, 60.0) * 0.6 + pow(sdot, 8.0) * 0.12);
+          col += uSun * (pow(sdot, 1600.0) * 7.0 + pow(sdot, 120.0) * 0.3 + pow(sdot, 10.0) * 0.06);
           gl_FragColor = vec4(col, 1.0);
         }`,
     });

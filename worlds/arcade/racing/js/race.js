@@ -148,8 +148,8 @@ export class Race {
         if (ox < os * 0.9) {
           // 侧面碰撞：横向推开
           a.x += sx * ox * 0.5; b.x -= sx * ox * 0.5;
-          const rel = (a.vp - b.vp);
-          a.vp = -sx * Math.abs(rel) * 0.15 + sx * 3; b.vp = sx * Math.abs(rel) * 0.15 - sx * 3;
+          const rel = Math.abs(a.vp - b.vp);
+          a.vp = sx * (2.5 + rel * 0.3); b.vp = -sx * (2.5 + rel * 0.3);
           a.yawRate += sx * 0.25; b.yawRate -= sx * 0.25;
         } else {
           // 追尾：后车减速、前车略加速
@@ -192,6 +192,7 @@ export class Race {
       }
       // 圈数
       const lapNow = Math.floor(r.dist / L);
+      if (lapNow > r.lap && r.dist > 0 && r.finished) { r.lap = lapNow; continue; }
       if (lapNow > r.lap && r.dist > 0) {
         r.lap = lapNow;
         const lt = now - r.lapStart;

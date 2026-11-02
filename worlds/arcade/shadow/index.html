@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#05050a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>影 · 暗域</title>
+  <meta name="description" content="暗域 · Umbra Station —— 一款原创的潜行逃生小游戏：在漂流的废弃空间站里修复信标，躲开提灯的守夜者，乘逃生舱离开。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307060c'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23b48cff' font-family='serif'%3E%E5%BD%B1%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="cv" aria-label="游戏画面"></canvas>
+
+  <!-- ========== 标题 ========== -->
+  <section id="scr-title" class="screen show">
+    <div class="title-shade" aria-hidden="true"></div>
+    <a class="back" href="../index.html">← 游戏厅</a>
+    <button class="icon-btn snd-btn top-right" type="button" aria-label="音效开关">
+      <svg class="snd-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/></svg>
+      <svg class="snd-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+    </button>
+    <div class="title-wrap">
+      <div class="glyph" aria-hidden="true">影</div>
+      <h1 class="name">暗域</h1>
+      <p class="en">UMBRA STATION</p>
+      <p class="sub">漂流的废弃空间站里，有什么东西提着灯在走。<br />修复信标，启动逃生舱——别被它看见。</p>
+      <div class="diff" role="radiogroup" aria-label="难度">
+        <button type="button" role="radio" data-diff="easy">轻松</button>
+        <button type="button" role="radio" data-diff="normal">标准</button>
+        <button type="button" role="radio" data-diff="nightmare">噩梦</button>
+      </div>
+      <p class="diff-desc" id="diff-desc"></p>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-start" type="button">进入暗域</button>
+        <button class="btn btn-line" id="btn-daily" type="button">每日站点 <small id="daily-date"></small></button>
+        <small class="daily-best" id="daily-best"></small>
+      </div>
+      <div class="meta">
+        <span id="t-dust" title="万象游戏厅共享星尘"></span>
+        <span id="t-best"></span>
+      </div>
+      <div class="links">
+        <button class="btn-text" id="btn-howto" type="button">玩法说明</button>
+        <i aria-hidden="true">·</i>
+        <button class="btn-text" id="btn-ach" type="button">成就 <b id="ach-count"></b></button>
+      </div>
+    </div>
+    <p class="foot">原创作品 · 画面与声音均由程序实时生成 · 建议戴上耳机</p>
+  </section>
+
+  <!-- ========== 开场字幕 ========== -->
+  <div id="intro" class="intro" aria-live="polite"><small id="intro-a"></small><b id="intro-b"></b><p id="intro-c"></p></div>
+
+  <!-- ========== HUD ========== -->
+  <div id="hud" class="hud">
+    <div class="hud-l">
+      <button class="icon-btn" id="btn-pause" type="button" aria-label="暂停">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </button>
+      <div class="visor-box"><small>面罩</small><div class="visor" id="visor"><i class="on"></i><i class="on"></i></div></div>
+    </div>
+    <div class="hud-c">
+      <div class="obj" id="obj"></div>
+      <div class="pips" id="pips"></div>
+      <div class="eye calm" id="eye">
+        <svg viewBox="0 0 32 24" width="38" height="28" aria-hidden="true">
+          <defs><clipPath id="eyeclip"><use href="#eye-lid" /></clipPath></defs>
+          <path id="eye-lid" class="lid" d="M2 12 Q16 12 30 12 Q16 12 2 12Z" />
+          <g clip-path="url(#eyeclip)"><circle class="iris" cx="16" cy="12" r="6.6" /><circle class="pupil" cx="16" cy="12" r="2.3" /></g>
+          <path class="outline" d="M2 12 Q16 -4 30 12 Q16 28 2 12Z" />
+        </svg>
+        <span id="eye-txt"></span>
+      </div>
+    </div>
+    <div class="hud-r">
+      <canvas id="mini" width="264" height="200" aria-label="小地图（点击隐藏）" title="小地图 · M 键开关"></canvas>
+    </div>
+  </div>
+  <div id="tray" class="tray" aria-hidden="true">
+    <div class="tool" id="tool-flare"><kbd>Q</kbd><span>照明弹</span><b id="flare-n">2</b></div>
+    <div class="tool" id="tool-scan"><kbd>F</kbd><span>扫描</span><i class="cd" id="scan-cd"></i></div>
+    <div class="tool" id="tool-torch"><kbd>R</kbd><span>手电</span></div>
+    <div class="tool"><kbd>E</kbd><span>互动 · 躲藏</span></div>
+    <div class="tool"><kbd>Shift</kbd><span>冲刺</span></div>
+  </div>
+  <div id="prompt" class="prompt"></div>
+  <div id="calib" class="calib">
+    <p><b>相位校准</b><span class="calib-k desk">两道波形重合时，再按一次 <kbd>E</kbd></span><span class="calib-k mob">两道波形重合时，再点一次「互动」</span></p>
+    <canvas id="calib-cv"></canvas>
+  </div>
+  <div id="vent-ov" class="vent-ov"><span>在通风管里爬行……</span><i></i></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="hint" class="hint"></div>
+  <div id="ach-pop" class="ach-pop" role="status" aria-live="polite"></div>
+
+  <!-- ========== 触屏操作 ========== -->
+  <div id="touch" class="touch">
+    <div class="stick" id="stick"><div class="stick-base"></div><div class="stick-knob"></div></div>
+    <button class="tbtn t-act" id="b-act" type="button" aria-label="互动"><span>互动</span></button>
+    <button class="tbtn t-run" id="b-run" type="button" aria-label="冲刺"><span>冲刺</span></button>
+    <button class="tbtn t-flare" id="b-flare" type="button" aria-label="照明弹"><span>照明弹</span><b>2</b></button>
+    <button class="tbtn t-scan" id="b-scan" type="button" aria-label="扫描"><span>扫描</span></button>
+    <button class="tbtn t-torch" id="b-torch" type="button" aria-label="手电开关"><span>手电</span></button>
+  </div>
+
+  <div id="fade" class="fade"></div>
+
+  <!-- ========== 弹窗 ========== -->
+  <div class="modal" id="m-pause">
+    <div class="card">
+      <a class="back back-in" href="../index.html">← 游戏厅</a>
+      <h2>暂停</h2>
+      <p class="card-sub" id="pause-sub"></p>
+      <div class="col-btns">
+        <button class="btn btn-primary" data-act="resume" type="button">继续</button>
+        <button class="btn btn-line" data-act="retry" type="button">重新开始本站点</button>
+        <button class="btn btn-line" data-act="howto" type="button">玩法说明</button>
+        <button class="btn btn-line" data-act="title" type="button">返回标题</button>
+        <button class="btn btn-text snd-btn" type="button"><span class="snd-on">声音：开</span><span class="snd-off">声音：关</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-result">
+    <div class="card result">
+      <p class="card-eyebrow" id="r-eyebrow"></p>
+      <h2 id="r-title"></h2>
+      <p class="card-sub" id="r-sub"></p>
+      <div class="r-time"><b id="r-time">0:00</b><small id="r-timelabel"></small></div>
+      <div class="r-stats" id="r-stats"></div>
+      <p class="r-dust" id="r-dust"></p>
+      <p class="r-parts" id="r-parts"></p>
+      <div class="r-ach" id="r-ach"></div>
+      <div class="row-btns">
+        <button class="btn btn-line" data-act="title" type="button">标题</button>
+        <button class="btn btn-line" data-act="retry" type="button">同一站点</button>
+        <button class="btn btn-primary grow" data-act="new" type="button">新的站点 →</button>
+      </div>
+      <a class="back-link" href="../index.html">← 返回游戏厅</a>
+    </div>
+  </div>
+
+  <div class="modal" id="m-howto">
+    <div class="card howto">
+      <button class="icon-btn close" data-close type="button" aria-label="关闭">✕</button>
+      <h2>玩法说明</h2>
+      <ol class="rules">
+        <li><b>目标</b>　找到并修复全部<span class="v">信标</span>，逃生舱随即解锁；赶到逃生舱就算逃脱。</li>
+        <li><b>修复</b>　在信标旁按住互动。中途会出现<span class="v">相位校准</span>：两道波形重合的瞬间再按一次。失败会爆出火花——它会听见。</li>
+        <li><b>守夜者</b>　它提着一盏灯巡逻。被它的光束照到，眼睛图标会慢慢睁开；完全睁开就会追你。它会扑击，被抓到两次就输了。</li>
+        <li><b>声音</b>　奔跑、扫描、修复、开门都会发出声响。冲刺很快，但它听得见。</li>
+        <li><b>躲藏</b>　储物柜可以躲藏——只要它<span class="v">没看见你进去</span>。通风管能把你送到站内另一头。</li>
+        <li><b>道具</b>　照明弹能让它短暂失明；扫描会显示信标位置，但会暴露你。关掉手电更难被发现。</li>
+      </ol>
+      <div class="keys">
+        <div class="kcol"><h3>键盘 · 鼠标</h3>
+          <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动　<b>鼠标</b> 手电方向</p>
+          <p><kbd>Shift</kbd> 冲刺　<kbd>E</kbd> 互动 / 躲藏</p>
+          <p><kbd>Q</kbd> 照明弹　<kbd>F</kbd> 扫描　<kbd>R</kbd> 手电</p>
+          <p><kbd>M</kbd> 小地图　<kbd>Esc</kbd> 暂停</p>
+        </div>
+        <div class="kcol"><h3>触屏</h3>
+          <p>左侧<b>摇杆</b>移动，手电朝向移动方向</p>
+          <p>右侧空白处<b>拖动</b>可单独瞄准</p>
+          <p>右下按钮：互动、冲刺、照明弹（自动瞄准它）、扫描、手电</p>
+        </div>
+      </div>
+      <button class="btn-text" id="btn-tut-reset" type="button">重新显示新手提示</button>
+    </div>
+  </div>
+
+  <div class="modal" id="m-ach">
+    <div class="card howto">
+      <button class="icon-btn close" data-close type="button" aria-label="关闭">✕</button>
+      <h2>成就</h2>
+      <ul class="ach-list" id="ach-list"></ul>
+    </div>
+  </div>
+
+  <script src="../../../shared/arcade.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -81,8 +81,8 @@ export class Racer {
     if (this.drifting) {
       const d = this.drifting;
       const sd = clamp(this.steer * d, -1, 1);
-      target = d * yawCap * (1.08 + 0.5 * sd);
-      grip = 2.5; scrub = 0.045;
+      target = d * yawCap * (0.88 + 0.55 * sd);
+      grip = 3.4; scrub = 0.045;
       // 充能：角度越大、速度越快充得越快
       const charge = (0.24 + 0.2 * Math.max(0, sd)) * clamp(speed / this.topSpeed, 0.4, 1.1);
       const before = Math.floor(this.energy);
@@ -91,7 +91,9 @@ export class Racer {
       this.stats.driftTime += dt;
     } else {
       target = this.steer * yawCap;
-      grip = 9.5; scrub = 0.085;
+      // 漂移结束后抓地力逐渐恢复，避免甩尾
+      this.gripT = (this.gripT || 0) + dt;
+      grip = 3.4 + 6.1 * Math.min(1, this.gripT / 0.4); scrub = 0.085;
     }
     target -= this.psi * this.assist;
     this.yawRate += (target - this.yawRate) * (1 - Math.exp(-9 * dt));
@@ -201,6 +203,14 @@ export class Racer {
     if (!this.drifting) return;
     const t = this.driftT;
     this.drifting = 0;
+    this.gripT = 0;
+    // 出弯辅助：机头向实际运动方向回正一半
+    const slip = Math.atan2(this.vp, Math.max(1, this.vf));
+    const rot = slip * 0.55;
+    const c = Math.cos(rot), s = Math.sin(rot);
+    const vf = this.vf * c + this.vp * s, vp = -this.vf * s + this.vp * c;
+    this.psi += rot; this.vf = vf; this.vp = vp;
+    this.yawRate *= 0.4;
     this.stats.maxDrift = Math.max(this.stats.maxDrift, t);
     if (reward && t > 0.7) {
       this.kickT = Math.min(1.2, 0.4 + (t - 0.7) * 0.35);

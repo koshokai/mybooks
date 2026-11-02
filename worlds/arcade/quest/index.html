@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0b0605" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>征 · 远征</title>
+  <meta name="description" content="远征 —— 原创奇幻动作角色扮演生存游戏。群星坠落，唤醒了沉睡的魔物。选择英雄，升级法术与天赋，击败三位首领。" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="cv" aria-label="游戏画面"></canvas>
+
+  <!-- ========== 标题 ========== -->
+  <section id="scr-title" class="screen show" aria-label="标题">
+    <a class="back" href="../index.html">← 游戏厅</a>
+    <button class="icon-btn top-right sound-btn" id="btn-sound" type="button" aria-label="音效开关"><span class="snd-on">♪</span><span class="snd-off">♪̸</span></button>
+    <div class="title-wrap">
+      <div class="glyph-wrap" aria-hidden="true">
+        <div class="glyph-ring"></div>
+        <div class="glyph-ring r2"></div>
+        <div class="glyph">征</div>
+      </div>
+      <h1 class="game-name">远征</h1>
+      <p class="game-en">STARFALL EXPEDITION</p>
+      <p class="game-sub">群星坠落，沉睡的魔物在星陨之地苏醒。<br />持刃、执星、挽弓——踏过烬原、霜林与星陨深渊。</p>
+      <div class="actions">
+        <button class="btn btn-primary big" id="btn-play" type="button">开始远征</button>
+        <div class="row">
+          <button class="btn btn-line" id="btn-runes" type="button">符文盘</button>
+          <button class="btn btn-line" id="btn-help" type="button">玩法</button>
+        </div>
+      </div>
+      <p class="title-meta"><span class="dust-pill" id="t-dust" title="万象游戏厅共享星尘"></span><span id="t-best"></span></p>
+    </div>
+    <p class="title-foot">原创作品 · 画面全部由程序绘制 · 音效实时合成</p>
+  </section>
+
+  <!-- ========== 英雄选择 ========== -->
+  <section id="scr-select" class="screen" aria-label="选择英雄">
+    <header class="sc-head">
+      <button class="icon-btn" id="sel-back" type="button" aria-label="返回">←</button>
+      <div class="sc-title"><b>选择英雄</b><span>CHOOSE YOUR HERO</span></div>
+      <div class="dust-pill" id="sel-dust"></div>
+    </header>
+    <div class="sel-body">
+      <div class="heroes" id="heroes"></div>
+      <div class="hero-info" id="hero-info"></div>
+    </div>
+    <footer class="sel-foot">
+      <div class="modes" id="modes" role="radiogroup" aria-label="模式">
+        <button class="mode" data-mode="normal" type="button"><b>远征</b><small>约 10 分钟 · 三程三首领</small></button>
+        <button class="mode" data-mode="quick" type="button"><b>速战</b><small>约 5 分钟 · 节奏加倍</small></button>
+      </div>
+      <button class="btn btn-primary big" id="btn-go" type="button">出征</button>
+    </footer>
+  </section>
+
+  <!-- ========== 符文盘 ========== -->
+  <section id="scr-runes" class="screen" aria-label="符文盘">
+    <header class="sc-head">
+      <button class="icon-btn" id="runes-back" type="button" aria-label="返回">←</button>
+      <div class="sc-title"><b>符文盘</b><span>RUNE BOARD</span></div>
+      <div class="dust-pill" id="runes-dust"></div>
+    </header>
+    <div class="runes-scroll">
+      <p class="runes-sub">星尘是万象游戏厅的共享财富。将它镌刻成符文，所有英雄都会永久变强。</p>
+      <div class="runes" id="runes"></div>
+      <div class="runes-unlock" id="runes-unlock"></div>
+      <button class="btn btn-text" id="runes-reset" type="button">重置符文（全额返还星尘）</button>
+    </div>
+  </section>
+
+  <!-- ========== 结算 ========== -->
+  <section id="scr-sum" class="screen" aria-label="结算">
+    <div class="sum-scroll">
+      <div class="sum-card" id="sum-card">
+        <p class="eyebrow" id="sum-eyebrow"></p>
+        <h2 id="sum-title"></h2>
+        <p class="sum-sub" id="sum-sub"></p>
+        <div class="sum-stats" id="sum-stats"></div>
+        <div class="sum-cols">
+          <div class="sum-block"><h3>伤害来源</h3><div id="sum-dmg"></div></div>
+          <div class="sum-block"><h3>本局构筑</h3><div class="sum-build" id="sum-build"></div></div>
+        </div>
+        <div class="sum-dust" id="sum-dust"></div>
+        <div class="sum-ach" id="sum-ach"></div>
+        <div class="row-btns">
+          <button class="btn btn-line" data-act="title" type="button">返回</button>
+          <button class="btn btn-line" data-act="select" type="button">换英雄</button>
+          <button class="btn btn-primary grow" data-act="again" type="button">再战</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 游戏内界面 ========== -->
+  <div id="hud" class="hud">
+    <button class="icon-btn" id="btn-pause" type="button" aria-label="暂停">❚❚</button>
+  </div>
+  <div id="touch-ui" class="touch-ui">
+    <button id="btn-dash" class="tbtn dash" type="button" aria-label="闪避"><i class="cd"></i><b>闪</b><span>闪避</span></button>
+    <button id="btn-skill" class="tbtn skill" type="button" aria-label="技能"><i class="cd"></i><b id="skill-glyph">技</b><span>技能</span></button>
+  </div>
+
+  <div id="ov-level" class="overlay" aria-live="polite">
+    <div class="lv-head"><p class="lv-eyebrow" id="lv-sub"></p><h2 id="lv-title">升级</h2></div>
+    <div class="cards" id="cards"></div>
+    <div class="lv-foot">
+      <button class="btn btn-line sm" id="btn-reroll" type="button">重铸 <small id="reroll-n"></small></button>
+      <span class="lv-hint">按 1 / 2 / 3 选择 · R 重铸</span>
+    </div>
+  </div>
+
+  <div class="modal" id="m-pause">
+    <div class="card">
+      <a class="back back-in" href="../index.html">← 游戏厅</a>
+      <h2>暂停</h2>
+      <p class="card-sub" id="pause-sub"></p>
+      <div class="pause-build" id="pause-build"></div>
+      <div class="toggles" id="toggles"></div>
+      <div class="col-btns">
+        <button class="btn btn-primary" data-act="resume" type="button">继续</button>
+        <div class="row">
+          <button class="btn btn-line" data-act="restart" type="button">重新开始</button>
+          <button class="btn btn-line" data-act="quit" type="button">结束远征</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-help">
+    <div class="card wide">
+      <button class="icon-btn close" data-act="close" type="button" aria-label="关闭">✕</button>
+      <h2>玩法</h2>
+      <div class="help-grid">
+        <div>
+          <h3>操作</h3>
+          <ul class="keys">
+            <li><span class="k">WASD / 方向键</span>移动</li>
+            <li><span class="k">鼠标</span>瞄准（按 F 切换自动瞄准）</li>
+            <li><span class="k">Q / 鼠标右键</span>释放英雄技能</li>
+            <li><span class="k">空格</span>闪避，短暂无敌</li>
+            <li><span class="k">Esc</span>暂停</li>
+            <li><span class="k">手机</span>左侧拖动为摇杆，自动瞄准，右下角「技能」「闪避」</li>
+          </ul>
+          <h3>远征</h3>
+          <ul class="rules">
+            <li>英雄会自动攻击。击败魔物掉落<b>星晶</b>，攒满经验即可升级，三选一。</li>
+            <li>每一程的尽头都有<b>首领</b>随坠星降临：留意地面的预警圈与冲锋线，用闪避穿过攻击。</li>
+            <li><b>精英</b>身披护盾，击碎后会眩晕并受到额外伤害，击败后掉落<b>星辰宝匣</b>。</li>
+            <li>击败第三位首领「渊曜」即远征告捷。<b>速战</b>模式节奏加倍，适合碎片时间。</li>
+            <li>每局获得<b>星尘</b>（游戏厅通用），可在「符文盘」镌刻永久强化。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>进化图鉴 <small>法术满级 + 对应天赋</small></h3>
+          <div class="evo-list" id="evo-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="boss-card" class="boss-card" aria-live="polite"><small></small><b></b><p></p></div>
+  <div id="banner" class="banner" aria-live="polite"><b></b><small></small></div>
+  <div id="toast" class="toast" role="status"><span class="ic">✦</span><span class="tx"><small></small><b></b></span></div>
+
+  <script src="../../../shared/arcade.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

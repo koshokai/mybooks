@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#06050c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>驰 · 星环列车</title>
+  <meta name="description" content="星环列车——在环绕星球的货运轨道上奔跑、跳跃、滑铲的原创 3D 跑酷小游戏。" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- 字体异步加载：加载不到时直接用系统衬线体，不阻塞页面 -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">{"imports":{"three":"../../../shared/vendor/three/three.module.min.js","three/addons/":"../../../shared/vendor/three/addons/"}}</script>
+</head>
+<body class="is-loading">
+  <canvas id="gl" aria-label="星环列车游戏画面"></canvas>
+
+  <!-- 加载 -->
+  <div id="loading" aria-live="polite">
+    <b class="ld-glyph">驰</b>
+    <span class="ld-text">正在铺设星环轨道</span>
+    <i class="ld-bar"><i></i></i>
+  </div>
+
+  <!-- ========== 标题 ========== -->
+  <section id="title" class="screen">
+    <a class="back" href="../index.html">← 游戏厅</a>
+    <button class="icon-btn mute-btn top-right" type="button" aria-label="声音开关">
+      <svg class="snd-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+      <svg class="snd-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+    </button>
+
+    <div class="t-main">
+      <div class="t-glyph" aria-hidden="true">驰</div>
+      <h1 class="t-name">星环列车</h1>
+      <p class="t-en">RING&nbsp;·&nbsp;RAIL</p>
+      <p class="t-sub">快递机器人<b>小轨</b>接下一单星尘包裹，<br />沿着环绕星球的货运轨道一路狂奔。</p>
+      <button id="btn-start" class="btn btn-primary" type="button"><span>发车</span><small>开始奔跑</small></button>
+      <div class="t-stats">
+        <div><small>星尘</small><b id="t-dust">0</b></div>
+        <div><small>最高分</small><b id="t-best">—</b></div>
+        <div><small>永久倍率</small><b id="t-mult">×1</b></div>
+      </div>
+    </div>
+
+    <aside class="t-side">
+      <div class="card missions">
+        <h3>今日任务 <small>每完成一个，永久倍率 +1</small></h3>
+        <ol id="t-missions" class="m-list"></ol>
+      </div>
+      <div class="card howto">
+        <h3>操作</h3>
+        <div class="keys">
+          <span><kbd>←</kbd><kbd>→</kbd>变道</span>
+          <span><kbd>↑</kbd><kbd>空格</kbd>跳跃</span>
+          <span><kbd>↓</kbd>滑铲 / 急降</span>
+          <span><kbd>P</kbd>暂停</span>
+        </div>
+        <div class="swipes"><i class="sw sw-l"></i><i class="sw sw-r"></i><i class="sw sw-u"></i><i class="sw sw-d"></i><span>手机：在屏幕上 左 / 右 / 上 / 下 滑动</span></div>
+        <p class="tips">跳过 <em>警示栏</em>，滑过 <em>信号门架</em>，躲开 <em>货柜</em> 与亮红灯的 <em>迎面穿梭车</em>；顺着坡道冲上车顶，能捡到更多星尘。</p>
+      </div>
+    </aside>
+    <p class="t-foot">原创小游戏 · 画面与音效均由程序实时生成</p>
+  </section>
+
+  <!-- ========== HUD ========== -->
+  <div id="hud" aria-hidden="true">
+    <button id="btn-pause" class="icon-btn" type="button" aria-label="暂停">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>
+    </button>
+    <div class="h-score"><b id="h-score">0</b><small id="h-dist">0 米</small></div>
+    <div class="h-right">
+      <div class="h-dust"><i>✦</i><b id="h-dust">0</b></div>
+      <div class="h-mult" id="h-mult">×1</div>
+    </div>
+    <div class="h-pw" id="h-pw"></div>
+    <div class="h-warn" id="h-warn"><b>!</b><span>迎面来车</span></div>
+    <div class="h-stumble" id="h-stumble">再撞一次就要翻车了！</div>
+  </div>
+  <div id="banner" aria-live="polite"><small></small><b></b><i></i></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="popups"></div>
+  <div id="count"></div>
+
+  <!-- ========== 暂停 ========== -->
+  <div class="modal" id="m-pause">
+    <div class="card dlg">
+      <a class="back back-in" href="../index.html">← 游戏厅</a>
+      <p class="eyebrow">PAUSED</p>
+      <h2>暂停</h2>
+      <p class="dlg-sub" id="pause-sub"></p>
+      <ol class="m-list compact" id="p-missions"></ol>
+      <div class="col-btns">
+        <button class="btn btn-primary" data-act="resume" type="button">继续奔跑</button>
+        <button class="btn btn-line" data-act="restart" type="button">重新开始</button>
+        <button class="btn btn-line" data-act="home" type="button">返回标题</button>
+        <button class="btn btn-text mute-btn" type="button"><span class="snd-on">声音：开</span><span class="snd-off">声音：关</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 续航（复活） ========== -->
+  <div class="modal" id="m-revive">
+    <div class="card dlg revive">
+      <p class="eyebrow warn">CORE OVERLOAD</p>
+      <h2>核心过载！</h2>
+      <div class="ring">
+        <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fg" id="rv-ring" cx="60" cy="60" r="52"/></svg>
+        <b id="rv-num">5</b>
+      </div>
+      <p class="dlg-sub">花一点星尘重启核心，原地继续（每局一次）</p>
+      <div class="col-btns">
+        <button class="btn btn-primary" id="rv-yes" type="button">续航 <span id="rv-cost">50</span> ✦</button>
+        <button class="btn btn-text" id="rv-no" type="button">不用了，结算</button>
+      </div>
+      <p class="rv-have" id="rv-have"></p>
+    </div>
+  </div>
+
+  <!-- ========== 结算 ========== -->
+  <div class="modal" id="m-over">
+    <div class="card dlg over">
+      <p class="eyebrow" id="o-eyebrow">运单结算</p>
+      <h2 id="o-title">送达失败，但跑得漂亮</h2>
+      <div class="o-score"><b id="o-score">0</b><span class="o-record" id="o-record">新纪录</span></div>
+      <table class="o-table">
+        <tr><td>里程</td><td id="o-dist">0 米</td><td id="o-distpts">0</td></tr>
+        <tr><td>星尘</td><td id="o-motes">0</td><td id="o-motepts">0</td></tr>
+        <tr><td>擦肩奖励</td><td id="o-near">0 次</td><td id="o-bonus">0</td></tr>
+        <tr class="o-mult"><td>倍率</td><td colspan="2" id="o-mult">×1</td></tr>
+      </table>
+      <p class="o-dust" id="o-dust"></p>
+      <ol class="m-list compact" id="o-missions"></ol>
+      <div class="row-btns">
+        <button class="btn btn-line sq" data-act="home" type="button" aria-label="返回标题"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></button>
+        <button class="btn btn-primary grow" data-act="restart" type="button">再来一次</button>
+      </div>
+      <a class="o-back" href="../index.html">← 游戏厅</a>
+    </div>
+  </div>
+
+  <noscript><div class="nojs">需要启用 JavaScript 才能游玩星环列车。</div></noscript>
+  <script src="../../../shared/arcade.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

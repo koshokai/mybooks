@@ -124,9 +124,18 @@
       const i = my * W + mx;
       if (opq[i]) {
         if (ext > 0) {
-          const exit = tmx < tmy ? tmx : tmy;
+          // 继续穿过连续的不透光格，深度一致，墙面边缘才不会出现锯齿
           if (visit) visit(i, t);
-          return Math.min(maxD, t + Math.min(ext, exit - t));
+          const lim = t + ext;
+          for (;;) {
+            const tn = tmx < tmy ? tmx : tmy;
+            if (tn >= lim) return Math.min(maxD, lim);
+            if (tmx < tmy) { tmx += tdx; mx += sx; } else { tmy += tdy; my += sy; }
+            if (mx < 0 || my < 0 || mx >= W || my >= H) return Math.min(maxD, tn);
+            const j = my * W + mx;
+            if (!opq[j]) return Math.min(maxD, tn);
+            if (visit) visit(j, tn);
+          }
         }
         return t;
       }
@@ -1015,12 +1024,12 @@
         continue;
       }
       const big = Math.max(r.w, r.h) * 0.58 + 1.6;
-      if (r.type === 'start') addLight(cx, cy, big + 0.8, [200, 214, 255], 0.62, 'steady', { ceiling: true });
+      if (r.type === 'start') addLight(cx, cy, big + 0.4, [200, 214, 255], 0.4, 'flicker', { ceiling: true });
       else if (r.type === 'podbay') addLight(cx, cy, big, [255, 70, 56], 0.45, 'alarm', { ceiling: true, podbay: true });
       else if (rng() < 0.42) {
         const mode = rng() < 0.5 ? 'flicker' : rng() < 0.4 ? 'broken' : 'steady';
         const cool = rng() < 0.6;
-        addLight(cx, cy, big, cool ? [180, 198, 255] : [255, 222, 180], 0.5, mode, { ceiling: true });
+        addLight(cx, cy, big, cool ? [180, 198, 255] : [255, 222, 180], 0.4, mode, { ceiling: true });
       }
     }
     for (const p of props) {

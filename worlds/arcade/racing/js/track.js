@@ -225,7 +225,7 @@ export class Track {
             vec3 R = reflect(V, N);
             vec3 env = textureCube(uEnv, R).rgb;
             float fres = pow(1.0 - clamp(dot(-V, N), 0.0, 1.0), 4.0);
-            col += env * (0.1 + 0.7 * fres);
+            col += env * (0.025 + 0.3 * fres);
             // 飞船灯光投影
             for (int i = 0; i < 6; i++) {
               vec3 d = vWorld - uShipPos[i];
@@ -344,7 +344,7 @@ export class Track {
           void main() {
             float h = vUv.y, s = vUv.x;
             float a = pow(1.0 - h, 2.4) * 0.38;
-            a += smoothstep(0.12, 0.0, h) * 1.1;
+            a += smoothstep(0.12, 0.0, h) * 0.85;
             a += smoothstep(0.9, 1.0, h) * 0.55;
             float bx = abs(fract(s / 4.0 - 0.5) - 0.5); float fw = fwidth(s / 4.0);
             a += (1.0 - smoothstep(0.03 - fw, 0.03 + fw, bx)) * 0.35 * (1.0 - h * 0.6);
@@ -506,12 +506,8 @@ export class Track {
     };
     for (let i = 0; i < poly.length - 1; i++) {
       mkBeam(poly[i], poly[i + 1], 1.3, 2.2, frameGeos);
-      // 内侧发光条
-      const a = poly[i], b = poly[i + 1];
-      const nx = -(b[1] - a[1]), ny = b[0] - a[0], nl = Math.hypot(nx, ny);
-      const off = 0.75;
-      const a2 = [a[0] - nx / nl * off * Math.sign(-a[0] || 1) * 0, a[1]], b2 = [b[0], b[1]];
-      mkBeam([a2[0], a2[1]], b2, 0.22, 2.5, glowGeos);
+      // 前后两面的发光条
+      mkBeam(poly[i], poly[i + 1], 0.13, 2.45, glowGeos);
     }
     const proto = mergeGeos(frameGeos), protoGlow = mergeGeos(glowGeos);
     const frames = [], glows = [];
@@ -526,7 +522,7 @@ export class Track {
     });
     if (frames.length) {
       const frameMesh = new THREE.Mesh(mergeGeos(frames), new THREE.MeshStandardMaterial({ color: new THREE.Color(palette.under).multiplyScalar(1.6), metalness: 0.85, roughness: 0.3, envMap: envTex }));
-      const glowMesh = new THREE.Mesh(mergeGeos(glows), new THREE.MeshBasicMaterial({ color: new THREE.Color(palette.accent).multiplyScalar(2.6) }));
+      const glowMesh = new THREE.Mesh(mergeGeos(glows), new THREE.MeshBasicMaterial({ color: new THREE.Color(palette.accent).multiplyScalar(1.7) }));
       frameMesh.frustumCulled = glowMesh.frustumCulled = false;
       grp.add(frameMesh, glowMesh);
     }
@@ -543,14 +539,14 @@ export class Track {
     mtx.setPosition(f.P);
     grp.applyMatrix4(mtx);
     const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(palette.under).multiplyScalar(1.8), metalness: 0.9, roughness: 0.25, envMap: envTex });
-    const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(palette.accent).multiplyScalar(3) });
+    const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(palette.accent).multiplyScalar(1.8) });
     const pillarG = new THREE.BoxGeometry(2.2, 20, 2.6);
     for (const sd of [-1, 1]) {
       const p = new THREE.Mesh(pillarG, dark); p.position.set(sd * w, 8, 0); grp.add(p);
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.25, 18, 2.8), glow); l.position.set(sd * (w - 1.15), 8, 0); grp.add(l);
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.14, 18, 2.75), glow); l.position.set(sd * (w - 1.15), 8, 0); grp.add(l);
     }
     const beam = new THREE.Mesh(new THREE.BoxGeometry(w * 2 + 2.2, 3.6, 2.6), dark); beam.position.set(0, 18.6, 0); grp.add(beam);
-    const beamGlow = new THREE.Mesh(new THREE.BoxGeometry(w * 2, 0.25, 2.8), glow); beamGlow.position.set(0, 16.7, 0); grp.add(beamGlow);
+    const beamGlow = new THREE.Mesh(new THREE.BoxGeometry(w * 2, 0.14, 2.75), glow); beamGlow.position.set(0, 16.7, 0); grp.add(beamGlow);
     // 倒计时灯
     const lights = [];
     const lg = new THREE.SphereGeometry(0.75, 16, 12);
