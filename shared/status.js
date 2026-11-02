@@ -5,7 +5,7 @@
 window.WX_READY = {
   // 首页的世界
   gallery: true,
-  cosmos: false,
+  cosmos: true,
   flora: true,
   colors: true,
   game: true,   // 游戏厅大厅

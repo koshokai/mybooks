@@ -11,7 +11,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" />
+  <!-- 字体异步加载：被墙或很慢时不阻塞页面，直接用系统衬线体 -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" media="print" onload="this.media='all'" />
   <link rel="stylesheet" href="css/cosmos.css" />
   <script type="importmap">{"imports":{"three":"../../shared/vendor/three/three.module.min.js","three/addons/":"../../shared/vendor/three/addons/"}}</script>
 </head>

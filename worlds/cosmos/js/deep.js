@@ -95,7 +95,7 @@ export function buildDeep() {
   const fade = []; // setOpacity 回调
 
   // —— 银河系 ——
-  const mw = makeGalaxy({ count: 62000, R: GAL_R, arms: 4, minor: true, near: [260, 1400], pitch: 0.27, bar: 0.24, thick: 0.016, bright: 0.85, size: 1.0 });
+  const mw = makeGalaxy({ count: 56000, R: GAL_R, arms: 4, minor: true, near: [260, 1400], pitch: 0.27, bar: 0.24, thick: 0.016, bright: 0.85, size: 1.0 });
   mw.position.copy(GAL_CENTER);
   mw.rotation.y = 0.5;
   group.add(mw);
@@ -240,7 +240,7 @@ export function buildDeep() {
   const m87 = blackHole(40, true);
   m87.group.position.set(6500, -2000, -9000);
   m87.group.rotation.set(0.2, 0.4, 0.15);
-  const m87host = cloud(6000, (o) => {
+  const m87host = cloud(4000, (o) => {
     const r = Math.abs(gauss()) * 650, a = rand(0, 6.28), b = Math.acos(rand(-1, 1));
     o.p = [r * Math.sin(b) * Math.cos(a), r * Math.cos(b) * 0.85, r * Math.sin(b) * Math.sin(a)];
     if (r < 260) { o.p = [0, 99999, 0]; }

@@ -78,6 +78,7 @@
   </div>
 
   <noscript><p class="noscript">此页面需要启用 JavaScript 与 WebGL。</p></noscript>
-  <script type="module" src="js/main.js"></script>
+  <!-- 先让开场的「植」字画出来，再开始构建 3D 场景 -->
+  <script type="module">requestAnimationFrame(() => setTimeout(() => import("./js/main.js"), 30));</script>
 </body>
 </html>

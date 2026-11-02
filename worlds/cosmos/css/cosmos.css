@@ -83,7 +83,8 @@ a { color: inherit; text-decoration: none; }
 /* —— HUD —— */
 #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; }
 #hud.show { opacity: 1; }
-#hud > * { pointer-events: auto; }
+#hud.show > * { pointer-events: auto; }
+#hud > .hint, #hud > .region { pointer-events: none; }
 
 .glass {
   background: var(--glass); border: 1px solid var(--line);
@@ -181,6 +182,7 @@ a { color: inherit; text-decoration: none; }
 .label.hidden { opacity: 0; pointer-events: none; }
 .label.here { font-size: 13px; color: var(--cyan); letter-spacing: 0.25em; }
 .label.here::before { display: none; }
+.label.here { text-align: center; padding: 3px 6px; }
 .label.here small { display: block; font-family: var(--latin); font-style: italic; letter-spacing: 0.08em; color: var(--ink-3); font-size: 12px; }
 
 /* —— 详情面板 —— */

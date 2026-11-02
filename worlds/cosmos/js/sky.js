@@ -147,7 +147,7 @@ export function buildSky() {
   const band = new THREE.Group();
   band.rotation.set(1.05, 0.4, 0.35);
   const bandMat = starMaterial();
-  band.add(points(20000, (o) => {
+  band.add(points(18000, (o) => {
     let l = rand(-Math.PI, Math.PI);
     if (Math.random() < 0.45) l = gauss() * 0.7; // 朝向银心更密
     const centerness = Math.exp(-l * l / 1.2);

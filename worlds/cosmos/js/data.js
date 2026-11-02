@@ -25,7 +25,7 @@ export const BODIES = [
   },
   {
     id: 'mercury', zh: '水星', en: 'Mercury', kind: '类地行星',
-    tagline: '离太阳最近、跑得最快的小行星',
+    tagline: '离太阳最近、跑得最快的行星',
     color: '#b7aea4',
     stats: {
       diameter: { v: 4879, t: '4,879 km' },

@@ -111,7 +111,7 @@
       wPatrol: 1.7, wInvest: 2.45, wChase: 3.55,
       vision: 7, half: 0.48, glimpse: 9, hearing: 0.75, memory: 1.4,
       lungeRange: 2.1, windup: 0.5, lungeCd: 3.0, searchTime: 7,
-      flares: 3, scanCd: 10, restore: 6, checks: 1, calibWin: 0.25, calibPeriod: 1.7,
+      flares: 3, scanCd: 10, restore: 6, checks: 1, calibWin: 0.34, calibPeriod: 2.2,
       stunTime: 3.8, grace: 26, calmLimit: 46, dust: 20, par: 300,
     },
     normal: {
@@ -122,7 +122,7 @@
       wPatrol: 2.05, wInvest: 2.95, wChase: 4.1,
       vision: 8.5, half: 0.54, glimpse: 11, hearing: 1, memory: 2.1,
       lungeRange: 2.35, windup: 0.42, lungeCd: 2.4, searchTime: 9,
-      flares: 2, scanCd: 14, restore: 7, checks: 2, calibWin: 0.17, calibPeriod: 1.35,
+      flares: 2, scanCd: 14, restore: 7, checks: 2, calibWin: 0.25, calibPeriod: 2.0,
       stunTime: 3.0, grace: 18, calmLimit: 32, dust: 35, par: 360,
     },
     nightmare: {
@@ -133,7 +133,7 @@
       wPatrol: 2.35, wInvest: 3.3, wChase: 4.5,
       vision: 10, half: 0.58, glimpse: 13, hearing: 1.3, memory: 2.9,
       lungeRange: 2.6, windup: 0.34, lungeCd: 1.85, searchTime: 12,
-      flares: 2, scanCd: 18, restore: 8, checks: 2, calibWin: 0.12, calibPeriod: 1.1,
+      flares: 2, scanCd: 18, restore: 8, checks: 2, calibWin: 0.18, calibPeriod: 1.7,
       stunTime: 2.3, grace: 12, calmLimit: 24, dust: 60, par: 480,
     },
   };

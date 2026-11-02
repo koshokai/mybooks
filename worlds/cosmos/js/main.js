@@ -250,6 +250,7 @@ function deepPortrait(id, size) {
 // ---------------- 卡片 ----------------
 function buildCards() {
   ui.cards.innerHTML = '';
+  ui.cards.scrollLeft = 0;
   const list = currentList();
   list.forEach((id, i) => {
     const d = dataOf(id);
@@ -326,12 +327,19 @@ function updateLabels() {
     if (vis !== L.visible) { L.el.classList.toggle('hidden', !vis); L.visible = vis; }
     if (vis) {
       const pr = Math.min(projRadius(pos, r), 120);
-      if (!L.w) L.w = L.el.offsetWidth;
-      // 靠近右边缘时把标签翻到左侧，避免被裁掉
-      const flip = scr.x + pr + 6 + L.w > innerWidth - 6;
-      const x = flip ? scr.x - pr - 6 - L.w : scr.x + pr + 6;
-      L.el.classList.toggle('flip', flip);
-      L.el.style.transform = `translate3d(${x | 0}px, ${(scr.y - 10) | 0}px, 0)`;
+      if (!L.w) { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; }
+      let x, y = scr.y - 10;
+      if (id === 'here') {
+        // 「你在这里」放在标记正下方居中，避免和银心标签打架
+        x = clamp(scr.x - L.w / 2, 8, innerWidth - L.w - 8);
+        y = scr.y + Math.max(pr, 16) + 8;
+      } else {
+        // 靠近右边缘时把标签翻到左侧，避免被裁掉
+        const flip = scr.x + pr + 6 + L.w > innerWidth - 6;
+        x = flip ? scr.x - pr - 6 - L.w : scr.x + pr + 6;
+        L.el.classList.toggle('flip', flip);
+      }
+      L.el.style.transform = `translate3d(${x | 0}px, ${y | 0}px, 0)`;
     }
   }
 }
@@ -748,6 +756,8 @@ async function init() {
   for (const id of SOLAR_ORDER) makeLabel(id, bodyData.get(id).zh, bodyData.get(id).color);
   for (const id of DEEP_ORDER) if (id !== 'milkyway') makeLabel(id, deepData.get(id).zh, deepData.get(id).color);
   makeLabel('here', '你在这里<small>You are here · 太阳系</small>', '#8fe3ff', 'here');
+  // 网络字体加载完后标签宽度会变，重新测量
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { for (const L of labels.values()) L.w = 0; });
   buildCards();
   progress();
 
