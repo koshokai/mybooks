@@ -186,7 +186,9 @@
   function flashAt(x, y, r, dur, col) { if (G.flashes.length < 70) G.flashes.push({ x, y, r, t: 0, dur, col }); }
   function dnum(x, y, v, crit, col, text) {
     if (!Q.save.settings.numbers && !text) return;
-    if (G.texts.length >= 64) { if (!crit && !text) return; G.texts.shift(); }
+    // 大混战时节流普通伤害数字，保证画面可读
+    if (!crit && !text && G.texts.length > 22 && Math.random() < 0.7) return;
+    if (G.texts.length >= 48) { if (!crit && !text) return; G.texts.shift(); }
     G.texts.push({ x: x + rand(-7, 7), y, vy: crit ? -78 : -58, t: 0, life: crit ? 0.95 : 0.62, v: text || Math.max(1, Math.round(v)), crit, col: col || null });
   }
   function banner(big, small, col) { if (Q.ui) Q.ui.banner(big, small, col); }
@@ -745,8 +747,9 @@
     P.inv -= dt; P.iframe -= dt; P.dashCd -= dt; P.skillCd -= dt; P.fortify -= dt; P.slowT -= dt; P.hurtT -= dt;
     P.swing = Math.max(0, P.swing - dt * 5); P.draw = Math.max(0, P.draw - dt * 4);
     if (!P.dead) {
-      if (IN.dashQ) { IN.dashQ = false; tryDash(); }
-      if (IN.skillQ) { IN.skillQ = false; trySkill(); }
+      // 输入缓冲：冲刺/技能进行中按下的闪避与技能，会在 0.3 秒内自动补上
+      if (IN.dashQ) { if (tryDash()) { IN.dashQ = false; P.dBuf = 0; } else if ((P.dBuf = (P.dBuf || 0) + dt) > 0.3 || P.dashCd > 0.3) { IN.dashQ = false; P.dBuf = 0; } }
+      if (IN.skillQ) { if (trySkill()) { IN.skillQ = false; P.sBuf = 0; } else if ((P.sBuf = (P.sBuf || 0) + dt) > 0.3 || P.skillCd > 0.3) { IN.skillQ = false; P.sBuf = 0; } }
     } else { IN.dashQ = IN.skillQ = false; }
     let moved = 0;
     if (P.dashT > 0) {

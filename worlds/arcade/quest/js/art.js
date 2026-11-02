@@ -368,7 +368,7 @@
       if (variant) {
         const t = cv(px, px), tg = t.getContext('2d');
         tg.drawImage(body, 0, 0); tg.globalCompositeOperation = 'source-atop';
-        tg.fillStyle = variant === 'flash' ? 'rgba(255,255,255,.95)' : 'rgba(160,230,255,.6)';
+        tg.fillStyle = variant === 'flash' ? 'rgba(255,250,240,.6)' : 'rgba(160,230,255,.55)';
         tg.fillRect(0, 0, px, px);
         if (variant === 'frost') gg.drawImage(body, 0, 0);
         gg.drawImage(t, 0, 0);

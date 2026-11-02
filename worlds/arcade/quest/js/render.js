@@ -397,7 +397,19 @@
     ctx.globalCompositeOperation = 'lighter';
     for (const w of G.weapons) {
       if (w.id === 'orbit' && w.pos.length) {
-        const s = A.pj.blade, sc = w.evo ? 1.25 : 1;
+        const s = A.pj.blade, sc = w.evo ? 1.25 : 1, px = G.p.x, py = G.p.y;
+        // 星刃拖尾弧光
+        ctx.lineCap = 'round';
+        for (let i = 0; i < w.pos.length; i += 3) {
+          const x = w.pos[i], y = w.pos[i + 1], R = Math.hypot(x - px, y - py), an = Math.atan2(y - py, x - px);
+          const dir = Q.angDiff(an, w.pos[i + 2]) > 0 ? 1 : -1;
+          for (let k = 0; k < 3; k++) {
+            ctx.strokeStyle = `rgba(255,215,120,${0.22 - k * 0.06})`; ctx.lineWidth = (w.evo ? 9 : 7) - k * 2;
+            ctx.beginPath();
+            if (dir > 0) ctx.arc(px, py, R, an - 0.22 * (k + 1), an - 0.22 * k); else ctx.arc(px, py, R, an + 0.22 * k, an + 0.22 * (k + 1));
+            ctx.stroke();
+          }
+        }
         for (let i = 0; i < w.pos.length; i += 3) {
           const x = w.pos[i], y = w.pos[i + 1], a = w.pos[i + 2];
           ctx.setTransform(k * Math.cos(a) * sc, k * Math.sin(a) * sc, -k * Math.sin(a) * sc, k * Math.cos(a) * sc, ox + x * k, oy + y * k);
@@ -599,7 +611,7 @@
     for (const t of G.texts) {
       const p = t.t / t.life;
       const pop = t.crit ? (p < 0.15 ? 1 + (0.15 - p) * 5 : 1) : 1;
-      const size = (typeof t.v === 'string' ? 17 : t.crit ? 21 : 14) * pop * Math.max(0.8, G.scale);
+      const size = (typeof t.v === 'string' ? 17 : t.crit ? 20 : 13) * pop * Math.max(0.85, G.scale);
       ctx.font = `${t.crit ? 'italic 900' : '800'} ${size.toFixed(1)}px ${typeof t.v === 'string' ? SERIF : NUMF}`;
       ctx.globalAlpha = p > 0.7 ? (1 - p) / 0.3 : 1;
       const x = SX(t.x), y = SY(t.y);
@@ -631,16 +643,16 @@
     rrect(lx, ly, lw, mob ? 22 : 24, 11); ctx.fillStyle = 'rgba(14,8,8,.72)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,215,160,.35)'; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = '#ffe9b0'; ctx.fillText(lvTxt, lx + 9, ly + (mob ? 11 : 12) + 1);
     // 手机：顶部血条
-    let iconY = ly + (mob ? 30 : 34);
+    let iconY = mob ? st + 84 : ly + 34;
     if (mob) {
-      const bx = lx + lw + 8, bw = Math.min(130, W * 0.32), f = clamp(P.hp / S.maxHp, 0, 1);
+      const bx = lx + lw + 6, bw = Math.min(92, W / 2 - 52 - (lx + lw + 6)), f = clamp(P.hp / S.maxHp, 0, 1);
       rrect(bx, ly + 5, bw, 12, 6); ctx.fillStyle = 'rgba(14,8,8,.72)'; ctx.fill();
       rrect(bx + 1.5, ly + 6.5, Math.max(0, (bw - 3) * f), 9, 4.5); ctx.fillStyle = f > 0.5 ? '#5fe8a0' : f > 0.25 ? '#ffd36b' : '#ff4a4a'; ctx.fill();
       ctx.font = `700 10px ${NUMF}`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(Math.ceil(P.hp) + ' / ' + Math.round(S.maxHp), bx + bw / 2, ly + 11.5);
       ctx.textAlign = 'left';
     }
     // 已有升级
-    const isz = mob ? 22 : 28, gap = 4;
+    const isz = mob ? 20 : 28, gap = 4;
     let ix = lx, row = 0;
     const items = [];
     for (const w of G.weapons) items.push([w.evo ? Q.EVOS[Q.UPG[w.id].evo].glyph : Q.UPG[w.id].glyph, Q.UPG[w.id].color, w.lvl, Q.UPG[w.id].max, w.evo]);
@@ -660,13 +672,13 @@
     const cx = W / 2, M = Q.MODES[G.mode];
     const total = G.t;
     ctx.textAlign = 'center';
-    ctx.font = `700 ${mob ? 24 : 30}px ${LATIN}`;
-    ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillText(Q.fmtTime(total), cx + 1, st + (mob ? 30 : 36) + 1);
-    ctx.fillStyle = '#fff6ea'; ctx.fillText(Q.fmtTime(total), cx, st + (mob ? 30 : 36));
+    ctx.font = `700 ${mob ? 22 : 30}px ${LATIN}`;
+    ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillText(Q.fmtTime(total), cx + 1, st + (mob ? 22 : 36) + 1);
+    ctx.fillStyle = '#fff6ea'; ctx.fillText(Q.fmtTime(total), cx, st + (mob ? 22 : 36));
     const B = Q.BIOMES[Q.STAGES[G.stage].biome];
     const boss = G.boss;
     if (!boss) {
-      const pw = mob ? 150 : 210, py = st + (mob ? 50 : 60);
+      const pw = mob ? 140 : 210, py = st + (mob ? 46 : 60);
       ctx.font = `600 ${mob ? 11 : 12}px ${SERIF}`;
       ctx.fillStyle = B.accent;
       const label = B.name + ' · 第' + ['一', '二', '三'][G.stage] + '程';
@@ -690,7 +702,7 @@
     } else drawBossBar(boss, mob, st);
     // 击杀与星尘（右上，暂停按钮下方）
     ctx.textAlign = 'right';
-    const rx = W - 14, ry = st + (mob ? 66 : 74);
+    const rx = W - 14, ry = st + (mob ? 98 : 74);
     ctx.font = `700 ${mob ? 15 : 17}px ${NUMF}`; ctx.fillStyle = '#fff6ea';
     ctx.fillText(G.kills.toLocaleString(), rx, ry);
     ctx.font = `600 ${mob ? 11 : 12}px ${SERIF}`; ctx.fillStyle = 'rgba(255,240,230,.65)';
@@ -781,12 +793,12 @@
     ctx.font = `600 10px ${SERIF}`; ctx.fillStyle = 'rgba(255,240,230,.55)'; ctx.fillText(key, x, y + r + 12);
   }
   function drawBossBar(e, mob, st) {
-    const b = e.boss, bw = Math.min(mob ? W - 40 : 620, W - 40), bx = W / 2 - bw / 2, by = st + (mob ? 52 : 62);
+    const b = e.boss, bw = Math.min(mob ? W - 28 : 620, W - 40), bx = W / 2 - bw / 2, by = st + (mob ? 48 : 62);
     ctx.textAlign = 'center';
     ctx.font = `700 ${mob ? 13 : 15}px ${SERIF}`;
     ctx.fillStyle = b.def.color;
     ctx.fillText(b.def.title + ' · ' + b.def.name + (b.enraged ? ' · 狂怒' : ''), W / 2, by);
-    const y = by + 12, h = mob ? 9 : 12;
+    const y = by + (mob ? 10 : 13), h = mob ? 9 : 12;
     rrect(bx - 2, y - 2, bw + 4, h + 4, 4); ctx.fillStyle = 'rgba(8,2,4,.85)'; ctx.fill();
     ctx.strokeStyle = b.enraged ? `rgba(255,60,60,${0.6 + 0.4 * Math.sin(G.rt * 8)})` : Q.rgba(b.def.color, 0.55); ctx.lineWidth = 1.2; ctx.stroke();
     const f = clamp(e.hp / e.mhp, 0, 1), lag = clamp(e.hpLag, 0, 1);
@@ -817,7 +829,8 @@
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
     // 远方巨星
     ctx.globalCompositeOperation = 'lighter';
-    const mx = W * 0.72, my = H * 0.26, mr = Math.min(W, H) * 0.16;
+    const narrow = W < 640;
+    const mx = narrow ? W * 0.84 : W * 0.72, my = narrow ? H * 0.1 : H * 0.26, mr = narrow ? W * 0.12 : Math.min(W, H) * 0.16;
     ctx.globalAlpha = 0.5; ctx.drawImage(lightSprite('#ff8a5a'), mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';

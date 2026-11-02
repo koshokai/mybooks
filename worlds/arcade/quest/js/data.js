@@ -34,8 +34,8 @@
       id: 'ranger', cls: '游猎者', name: '青隼', en: 'WAYFARER', color: '#6bffb5', color2: '#c8ff6b', pc: 10,
       title: '追猎坠星兽的旷野游侠',
       lore: '她追着一头坠星兽走过了三个季节。弓弦每响一次，旷野便安静一分。',
-      hp: 105, spd: 176, armor: 0, crit: 0.12, critMul: 0.3, area: 1, might: 1, regen: 0.15, dr: 0,
-      weapon: 'w_ranger', skill: 'k_ranger', skillCd: 6,
+      hp: 115, spd: 176, armor: 0, crit: 0.12, critMul: 0.3, area: 1, might: 1, regen: 0.2, dr: 0,
+      weapon: 'w_ranger', skill: 'k_ranger', skillCd: 5.5,
       passive: { name: '鹰眸', desc: '暴击率 +7%，暴击伤害 +30%，身法更快' },
       bars: [['生命', 3], ['攻击', 4], ['速度', 5], ['射程', 4], ['上手', 2]],
       unlockCost: 150,
@@ -90,7 +90,7 @@
       events: [[0.2, 'ring'], [0.36, 'elite'], [0.52, 'swarm'], [0.64, 'rush'], [0.76, 'elite'], [0.86, 'ring']],
     },
     {
-      biome: 1, boss: 'linyuan', elite: 'sentry', count: [100, 215], rate: [4, 8.4], hpMul: 3.4, dmgMul: 1.55,
+      biome: 1, boss: 'linyuan', elite: 'sentry', count: [100, 210], rate: [3.8, 8], hpMul: 3.3, dmgMul: 1.55,
       roster: [['wolf', 0, 10], ['crystal', 0.04, 4], ['wisp', 0.1, 4], ['stag', 0.22, 3.5], ['bloat', 0.34, 3], ['yeti', 0.48, 2]],
       ring: 'wolf', rush: 'stag',
       events: [[0.1, 'ring'], [0.22, 'elite'], [0.36, 'rush'], [0.46, 'swarm'], [0.58, 'elite'], [0.68, 'rush'], [0.78, 'ring'], [0.9, 'elite']],
@@ -107,7 +107,7 @@
   Q.BOSSES = {
     heyan: { name: '赫焱', title: '烬原之主', full: '熔心巨像 · 赫焱', r: 58, hp: 9000, spd: 60, dmg: 20, color: '#ff7a3a', pc: 2,
       line: '炽热的心核在岩躯中跳动——它曾是一颗坠落的星。' },
-    linyuan: { name: '凛渊', title: '霜林古灵', full: '霜角古灵 · 凛渊', r: 54, hp: 21000, spd: 95, dmg: 23, color: '#9fe8ff', pc: 5,
+    linyuan: { name: '凛渊', title: '霜林古灵', full: '霜角古灵 · 凛渊', r: 54, hp: 19000, spd: 95, dmg: 23, color: '#9fe8ff', pc: 5,
       line: '古林的守护灵被星寒冻结了千年，如今只认得杀意。' },
     yuanyao: { name: '渊曜', title: '坠星之主', full: '坠星之主 · 渊曜', r: 66, hp: 55000, spd: 42, dmg: 30, color: '#d38bff', pc: 8,
       line: '拽落群星的，正是它。' },
@@ -206,6 +206,6 @@
   /* ---------- 模式 ---------- */
   Q.MODES = {
     normal: { id: 'normal', name: '远征', sub: '约 10 分钟 · 三程三首领', stageDur: 180, xpMul: 1, bossMul: 1, dustMul: 1 },
-    quick: { id: 'quick', name: '速战', sub: '约 5 分钟 · 节奏更快', stageDur: 90, xpMul: 1.75, bossMul: 0.72, dustMul: 0.6 },
+    quick: { id: 'quick', name: '速战', sub: '约 5 分钟 · 节奏更快', stageDur: 90, xpMul: 2.1, bossMul: 0.7, dustMul: 0.6 },
   };
 })();

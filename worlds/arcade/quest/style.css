@@ -28,6 +28,8 @@ body {
 }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 a { color: inherit; }
+[hidden] { display: none !important; }
+.dust-pill, .stat b, .dmg-row .vl, .sum-dust .big, .upc .lvl, .pb-item small, .sb-item small, .rune .btn, .btn small { font-variant-numeric: lining-nums tabular-nums; }
 #cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
 /* ---------- 通用 ---------- */
@@ -414,9 +416,9 @@ body.playing.touch .toast { bottom: calc(130px + var(--safe-b)); }
   .hero-card .hc-name b { font-size: 15px; letter-spacing: .12em; margin-right: -.12em; }
   .hero-card .hc-name small { font-size: 9px; letter-spacing: .18em; }
   .hero-card.on { transform: translateY(-4px) scale(1.03); }
-  .hero-card .lock { font-size: 11px; padding: 8px; gap: 4px; }
-  .hero-card .lock .lk { font-size: 22px; }
-  .hero-card .lock .btn { min-height: 30px; padding: 0 10px; font-size: 12px; }
+  .hero-card .lock { font-size: 10.5px; padding: 10px 6px 0; gap: 4px; justify-content: flex-start; line-height: 1.4; }
+  .hero-card .lock .lk { font-size: 20px; }
+  .hero-card .lock .btn { min-height: 28px; padding: 0 10px; font-size: 12px; letter-spacing: .04em; }
   .sel-body { justify-content: flex-start; gap: 16px; padding-top: 10px; }
   .hero-info { grid-template-columns: 1fr; padding: 16px; gap: 6px; }
   .hi-name b { font-size: 24px; }
@@ -453,7 +455,7 @@ body.playing.touch .toast { bottom: calc(130px + var(--safe-b)); }
   .sum-cols { grid-template-columns: 1fr; gap: 12px; }
   .dmg-row { grid-template-columns: 24px 64px 1fr 58px; }
   .row-btns .btn { padding: 0 12px; letter-spacing: .1em; }
-  .banner { top: calc(120px + var(--safe-t)); }
+  .banner { top: calc(150px + var(--safe-t)); }
   .banner b { font-size: 24px; letter-spacing: .3em; margin-right: -.3em; }
   .banner small { font-size: 12px; padding: 0 20px; }
   .boss-card b { font-size: 64px; }

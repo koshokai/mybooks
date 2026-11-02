@@ -67,7 +67,7 @@
       const lk = p.el.querySelector('.lock');
       lk.hidden = !locked;
       if (locked) {
-        lk.innerHTML = `<span class="lk">⚿</span><span>击败首个首领<br>或</span><button class="btn btn-primary sm" data-unlock="${p.id}" ${dust < H.unlockCost ? 'disabled' : ''}>✦ ${H.unlockCost} 解锁</button>`;
+        lk.innerHTML = `<span class="lk">⚿</span><span>击败首个首领后解锁</span><button class="btn btn-primary sm" data-unlock="${p.id}" ${dust < H.unlockCost ? 'disabled' : ''}>✦ ${H.unlockCost}</button>`;
         lk.querySelector('button').onclick = (e) => {
           e.stopPropagation();
           if (Q.arcade.spend(H.unlockCost)) { Q.save.unlocked[p.id] = true; Q.persist(); sfx('buy'); selHero = p.id; refreshSelect(); UI.toast('英雄解锁', H.cls + ' · ' + H.name); }
