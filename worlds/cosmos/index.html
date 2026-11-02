@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#02030a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>宙 · 宇宙</title>
+  <meta name="description" content="深邃的宇宙，浩瀚无边——可交互的 3D 太阳系与深空图鉴。" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" />
+  <link rel="stylesheet" href="css/cosmos.css" />
+  <script type="importmap">{"imports":{"three":"../../shared/vendor/three/three.module.min.js","three/addons/":"../../shared/vendor/three/addons/"}}</script>
+</head>
+<body>
+  <canvas id="stage" aria-label="宇宙三维场景"></canvas>
+
+  <!-- 加载 -->
+  <div id="loader">
+    <div class="loader-glyph">宙</div>
+    <div class="loader-text">正在生成宇宙<span id="loader-pct">0%</span></div>
+    <div class="loader-bar"><i id="loader-fill"></i></div>
+    <div class="loader-sub">Forging stars &amp; worlds</div>
+  </div>
+
+  <!-- 片头标题 -->
+  <div id="intro" aria-hidden="true">
+    <div class="intro-glyph">宙</div>
+    <div class="intro-line">浩瀚无边</div>
+    <div class="intro-en">The Cosmos · Boundless &amp; Deep</div>
+    <button id="skip" type="button">跳过 ›</button>
+  </div>
+
+  <!-- 标签层 -->
+  <div id="labels"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <a class="back" href="../../index.html" aria-label="返回">
+      <span class="back-arrow">← 返回</span><span class="back-glyph">宙</span>
+    </a>
+
+    <div class="region">
+      <div class="region-zh" id="region-zh">太阳系</div>
+      <div class="region-en" id="region-en">The Solar System</div>
+    </div>
+
+    <div class="modes" role="tablist">
+      <button type="button" class="mode active" data-mode="solar" role="tab"><b>太阳系</b><i>Solar</i></button>
+      <button type="button" class="mode" data-mode="deep" role="tab"><b>深空</b><i>Deep Space</i></button>
+    </div>
+
+    <div class="hint" id="hint">拖动旋转 · 双指或滚轮缩放 · 轻点天体查看</div>
+
+    <div class="dock" id="dock">
+      <div class="dock-title"><span id="dock-title">选择天体</span><em id="dock-sub">Choose your world</em></div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+
+  <!-- 详情面板 -->
+  <aside id="panel" aria-hidden="true">
+    <div class="panel-grip"></div>
+    <div class="panel-watermark" id="p-mark">宙</div>
+    <div class="panel-top">
+      <button type="button" class="p-nav" id="p-prev" aria-label="上一个">‹</button>
+      <span class="p-index" id="p-index">01 / 10</span>
+      <button type="button" class="p-nav" id="p-next" aria-label="下一个">›</button>
+      <button type="button" class="p-close" id="p-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="panel-scroll">
+      <div class="p-kind" id="p-kind">类地行星</div>
+      <h2 class="p-name" id="p-name">地球</h2>
+      <div class="p-en" id="p-en">Earth</div>
+      <p class="p-tag" id="p-tag"></p>
+      <div class="p-dist" id="p-dist"></div>
+      <div class="p-section"><span>属性</span><em>Attributes</em></div>
+      <div class="p-stats" id="p-stats"></div>
+      <div class="p-section"><span>趣闻</span><em>Did you know</em></div>
+      <ol class="p-facts" id="p-facts"></ol>
+      <p class="p-note" id="p-note"></p>
+    </div>
+  </aside>
+
+  <noscript><div class="nojs">需要启用 JavaScript 才能进入宇宙。</div></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

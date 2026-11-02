@@ -125,15 +125,15 @@ const fx = (() => {
   function sprite(rgb) {
     const s = 128, c = document.createElement('canvas'); c.width = c.height = s;
     const x = c.getContext('2d'), g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-    g.addColorStop(0, rgba(rgb, 1)); g.addColorStop(0.35, rgba(rgb, 0.55)); g.addColorStop(1, rgba(rgb, 0));
+    g.addColorStop(0, rgba(rgb, 1)); g.addColorStop(0.18, rgba(rgb, 0.7)); g.addColorStop(0.5, rgba(rgb, 0.18)); g.addColorStop(1, rgba(rgb, 0));
     x.fillStyle = g; x.fillRect(0, 0, s, s);
     return c;
   }
   function setColor(c) {
     const [hh, s, l] = c.hsl;
     const sat = clamp(Math.max(s, 0.22), 0.22, 0.75);
-    const la = c.light ? clamp(l + 0.32, 0.45, 0.85) : clamp(l - 0.3, 0.12, 0.55);
-    tgt.a = hslToRgb(hh + 180, c.chroma < 0.08 ? 0.18 : sat, la);
+    const la = l > 0.74 ? l - 0.3 : clamp(l + 0.3, 0.74, 0.93);
+    tgt.a = hslToRgb(hh + 180, c.chroma < 0.08 ? 0.2 : sat * 0.8, la);
     tgt.b = c.light ? hslToRgb(hh, clamp(s, 0, 0.6), clamp(l - 0.12, 0, 1)) : hslToRgb(hh, clamp(s * 1.1, 0, 0.8), clamp(l - 0.16, 0, 1));
   }
   let t = 0;
@@ -197,11 +197,11 @@ const TODAY = todayColor();
 function slideHTML(c, idx) {
   const fam = FAM[c.f], sea = SEA[c.s];
   return `<section class="slide" data-i="${c.i}" style="--len:${[...c.n].length}">
-    <div class="name-col">
+    <div class="name-col"><div class="nw">
       <div class="seal">${fam.name.length > 1 ? fam.name : fam.name + '色'}</div>
       <h2 class="v-name">${c.n}</h2>
       <div class="v-pin">${c.p}</div>
-    </div>
+    </div></div>
     <div class="info-col">
       <div class="meta"><span>No.${pad(idx + 1)}</span><span class="fam">${fam.label}</span><span class="fam">${sea.name}</span></div>
       <div class="hexline" data-copy="${c.h}" title="点击复制"><b>${c.h}</b><small>参考色值</small></div>
@@ -381,8 +381,8 @@ function paintSwatch(cv, c, hs) {
     g.addColorStop(0, rgba(hx.c.rgb, 0.55)); g.addColorStop(0.5, rgba(hx.c.rgb, 0.2)); g.addColorStop(1, rgba(hx.c.rgb, 0));
     x.fillStyle = g; x.fillRect(0, 0, w, h);
   });
-  x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.6;
-  x.fillStyle = x.createPattern(paperCanvas, 'repeat'); x.fillRect(0, 0, w, h);
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.35;
+  x.fillStyle = x.createPattern(paperCanvas, 'repeat'); x.fillRect(0, 0, cv.width, cv.height);
 }
 
 /* =========================================================
@@ -395,23 +395,26 @@ function buildWheel() {
   const pts = COLORS.map((c) => {
     const neutral = c.chroma < 0.1;
     const a = (c.hsl[0] - 90) * Math.PI / 180;
-    let r = neutral ? 0.44 + c.hsl[2] * 0.1 : 0.56 + clamp(c.chroma, 0, 0.8) / 0.8 * 0.38;
-    return { c, a, r, x: Math.cos(a) * r, y: Math.sin(a) * r, rMin: neutral ? 0.4 : 0.54 };
+    const r = 0.62 + clamp(c.chroma, 0, 0.7) / 0.7 * 0.34;
+    return { c, a, r, neutral, x: Math.cos(a) * r, y: Math.sin(a) * r, rMin: 0.6, rMax: 0.97 };
   });
+  // 无彩之色（白、灰、黑）按明度排成内环
+  const ns = pts.filter((p) => p.neutral).sort((p, q) => q.c.hsl[2] - p.c.hsl[2]);
+  ns.forEach((p, k) => { const a = -Math.PI / 2 + (k / ns.length) * Math.PI * 2; p.x = Math.cos(a) * 0.44; p.y = Math.sin(a) * 0.44; p.rMin = 0.42; p.rMax = 0.47; });
   // 简单的斥力松弛，避免重叠
-  const D = 0.092;
-  for (let it = 0; it < 120; it++) {
+  const D = 0.122;
+  for (let it = 0; it < 200; it++) {
     for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
       const p = pts[i], q = pts[j], dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1e-4;
       if (d < D) { const m = (D - d) / 2 / d; p.x -= dx * m; p.y -= dy * m; q.x += dx * m; q.y += dy * m; }
     }
     for (const p of pts) {
-      const d = Math.hypot(p.x, p.y), r = clamp(d, p.rMin, 0.96);
+      const d = Math.hypot(p.x, p.y), r = clamp(d, p.rMin, p.rMax);
       if (d !== r) { p.x *= r / d; p.y *= r / d; }
     }
   }
   wheel.insertAdjacentHTML('beforeend', pts.map((p, k) => `<button class="dot" data-dot="${p.c.i}" aria-label="${p.c.n}"
-    style="left:${50 + p.x * 50}%;top:${50 + p.y * 50}%;background:${p.c.h};--sz:${8.2}%;animation-delay:${(k % 30) * 12}ms"></button>`).join(''));
+    style="left:${50 + p.x * 50}%;top:${50 + p.y * 50}%;background:${p.c.h};--sz:6.2%;animation-delay:${(k % 30) * 12}ms"></button>`).join(''));
   wheelBuilt = true;
 }
 function coreShow(c, hint) {
@@ -627,12 +630,12 @@ const inkAnim = (() => {
     blooms = [];
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
-      const dist = (0.42 + Math.random() * 0.3) * Math.hypot(w, h) / 2;
+      const dist = (0.62 + Math.random() * 0.3) * Math.hypot(w, h) / 2;
       const c = pal[i % pal.length];
       blooms.push({
         x: w / 2 + Math.cos(a) * dist * (w / Math.hypot(w, h)) * 1.3,
         y: h / 2 + Math.sin(a) * dist * (h / Math.hypot(w, h)) * 1.3,
-        R: m * (0.22 + Math.random() * 0.2), rgb: c.rgb,
+        R: m * (0.2 + Math.random() * 0.16), rgb: c.rgb,
         start: i * 180 + Math.random() * 200, dur: 2600 + Math.random() * 1600,
         harm: Array.from({ length: 6 }, (_, k) => ({ k: k + 2, amp: (0.5 + Math.random()) * 0.11 / (k * 0.5 + 1), ph: Math.random() * 6.28, sp: (Math.random() - 0.5) * 0.0012 })),
         drops: Array.from({ length: 5 + Math.floor(Math.random() * 6) }, () => ({ a: Math.random() * 6.28, d: 1.02 + Math.random() * 0.4, r: 0.02 + Math.random() * 0.06 })),
@@ -660,13 +663,14 @@ const inkAnim = (() => {
       if (p <= 0 || p >= 1) continue;
       const e = 1 - (1 - p) ** 3, r = b.R * e;
       blob(b, r, time);
-      x.fillStyle = rgba(b.rgb, 0.028 * (1 - p * 0.6));
+      x.fillStyle = rgba(b.rgb, 0.011);
       x.fill();
-      x.lineWidth = 1.2; x.strokeStyle = rgba(b.rgb, 0.05 * (1 - p)); x.stroke();
+      x.lineWidth = 1.4; x.strokeStyle = rgba(b.rgb, 0.07 * (1 - p)); x.stroke();
       for (const d of b.drops) {
-        if (p < 0.3) continue;
-        const dx = b.x + Math.cos(d.a) * b.R * d.d * e, dy = b.y + Math.sin(d.a) * b.R * d.d * e;
-        x.beginPath(); x.arc(dx, dy, b.R * d.r * e, 0, 6.29);
+        const q = clamp((p - 0.25 - d.r * 4) / 0.5, 0, 1);
+        if (q <= 0 || q >= 1) continue;
+        const dx = b.x + Math.cos(d.a) * b.R * d.d, dy = b.y + Math.sin(d.a) * b.R * d.d;
+        x.beginPath(); x.arc(dx, dy, b.R * d.r * (1 - (1 - q) ** 3), 0, 6.29);
         x.fillStyle = rgba(b.rgb, 0.03); x.fill();
       }
     }
