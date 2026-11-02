@@ -81,8 +81,13 @@ export class Racer {
     const yawCap = this.maxYaw * (brake ? 1.2 : 1);
     if (this.drifting) {
       const d = this.drifting;
-      const sd = clamp(this.steer * d, -1, 1);
-      target = d * yawCap * (0.88 + 0.55 * sd);
+      let sd = clamp(this.steer * d, -1, 1);
+      if (inp.latch) sd *= 0.6; // 触屏无法细调：按住方向只略微收紧
+      // 漂移自适应弯道：基础偏航率贴合前方弯道，方向键只负责收紧/放宽
+      const kA = tr.maxKappaAhead(this.dist, 26);
+      const need = Math.abs(kA) * Math.max(20, this.vf);
+      const base = Math.sign(kA) === d ? clamp(need * 1.08 + 0.12, 0.6, 2.1) : 0.6;
+      target = d * base * (1 + 0.2 * sd);
       grip = 3.4; scrub = 0.045;
       // 充能：角度越大、速度越快充得越快
       const charge = (0.36 + 0.26 * Math.max(0, sd)) * clamp(speed / this.topSpeed, 0.4, 1.1);

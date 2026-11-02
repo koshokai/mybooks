@@ -161,10 +161,15 @@
     $('#skill-glyph').textContent = Q.UPG[Q.HEROES[hero].skill].glyph;
     $('#btn-skill').style.setProperty('--c', Q.HEROES[hero].color);
     const B = Q.BIOMES[0];
+    const runId = (UI.runId = (UI.runId || 0) + 1);
     setTimeout(() => {
-      if (G.state !== 'play' && G.state !== 'level') return;
+      if (UI.runId !== runId || (G.state !== 'play' && G.state !== 'level')) return;
       UI.banner(B.name, Q.input.touch ? '左侧拖动移动 · 自动攻击 · 右下技能与闪避' : 'WASD 移动 · 鼠标瞄准 · Q 技能 · 空格闪避', B.accent);
     }, 400);
+    if ((Q.save.stats.runs | 0) < 2) {
+      setTimeout(() => { if (UI.runId === runId && G.state === 'play') UI.banner('', '拾取星晶升级 · 法术满级再配上对应天赋，即可进化', '#ffe9b0'); }, 3600);
+      setTimeout(() => { if (UI.runId === runId && G.state === 'play') UI.banner('', (mode === 'quick' ? '九十秒' : '三分钟') + '后，首领将随坠星降临 · 留意地面的预警圈', '#ff9a3c'); }, 7400);
+    }
   }
   UI.startRun = startRun;
 

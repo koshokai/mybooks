@@ -90,7 +90,7 @@
         totalDmg: Math.round(G.totalDmg || 0), dust: Q.arcade.dust(), pq: G.pq, result: G.result ? { victory: G.result.victory, dust: G.result.dust, time: Math.round(G.result.time) } : null,
       };
     },
-    levelUp(n) { n = n || 1; for (let i = 0; i < n; i++) { G.level++; G.xpNext = Math.round(5 + (G.level - 1) * 5.2 + Math.pow(G.level - 1, 1.82) * 0.42); G.queue.push({ kind: 'level' }); } return G.queue.length; },
+    levelUp(n) { n = n || 1; for (let i = 0; i < n; i++) { G.level++; G.xpNext = Q.xpFor(G.level); G.queue.push({ kind: 'level' }); } return G.queue.length; },
     pick(i) { return Q.game.choose(i || 0); },
     give(id, n) { for (let i = 0; i < (n || 1); i++) Q.game.applyUpgrade({ type: 'up', id }); return G.lv[id]; },
     evolve(eid) { Q.game.applyUpgrade({ type: 'evo', id: eid }); return true; },

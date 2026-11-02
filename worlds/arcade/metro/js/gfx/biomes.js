@@ -5,7 +5,7 @@ export const BIOMES = [
   {
     id: 'day', name: '昼侧', en: 'DAYSIDE', sub: '阳光正照着整颗星球',
     skyTop: '#01030a', skyMid: '#0d2a5c', skyBot: '#081228', nebA: '#34306a', nebB: '#1d4f72', neb: 0.12, stars: 0.22,
-    sunDir: [0.62, 0.36, -0.7], sunCol: '#fff2dc', sunAmt: 0.8,
+    sunDir: [0.62, 0.36, -0.7], sunCol: '#ffe9c4', sunAmt: 0.55,
     pLight: [0.25, 0.7, 0.67], pOcean: '#1450a8', pDeep: '#061a46', pLand: '#4b8a46', pDesert: '#c2a46c', pCloud: '#ffffff', pCloudAmt: 1.0,
     pCity: '#ffc46a', pCityAmt: 0.0, pAtmo: '#5cb6ff', pAtmoN: '#1a3a8a', pTerm: '#ff8a46', pSpec: 0.7,
     ring: '#ffe0b0', ringAmt: 0.55,
@@ -17,8 +17,8 @@ export const BIOMES = [
   {
     id: 'dusk', name: '晨昏线', en: 'TERMINATOR', sub: '白昼与黑夜在脚下交界',
     skyTop: '#06030f', skyMid: '#3a1838', skyBot: '#120a1c', nebA: '#6a2a5a', nebB: '#2a2a6a', neb: 0.22, stars: 0.5,
-    sunDir: [-0.7, 0.05, -0.71], sunCol: '#ffb070', sunAmt: 0.85,
-    pLight: [-0.92, 0.32, -0.2], pOcean: '#173f86', pDeep: '#071637', pLand: '#4a6e3c', pDesert: '#b88a5a', pCloud: '#ffe6d0', pCloudAmt: 0.95,
+    sunDir: [-0.636, -0.135, -0.758], sunCol: '#ffb070', sunAmt: 1.0,
+    pLight: [-0.62, 0.07, -0.78], pOcean: '#173f86', pDeep: '#071637', pLand: '#4a6e3c', pDesert: '#b88a5a', pCloud: '#ffe6d0', pCloudAmt: 0.95,
     pCity: '#ffbe5c', pCityAmt: 0.8, pAtmo: '#ff9a5a', pAtmoN: '#3a2a7a', pTerm: '#ff6a2a', pSpec: 1.0,
     ring: '#ffc890', ringAmt: 0.8,
     hemiSky: '#ffb890', hemiGround: '#40284a', hemiInt: 1.0, keyCol: '#ffae6e', keyInt: 2.4, keyDir: [-0.8, 0.45, -0.3],
@@ -41,7 +41,7 @@ export const BIOMES = [
   {
     id: 'belt', name: '碎星带', en: 'ASTEROID BELT', sub: '穿过古老的岩石环',
     skyTop: '#04020c', skyMid: '#1a0f3a', skyBot: '#080616', nebA: '#8a3aa8', nebB: '#1a8a9a', neb: 0.85, stars: 0.8,
-    sunDir: [0.85, 0.25, -0.46], sunCol: '#e8f0ff', sunAmt: 0.6,
+    sunDir: [0.55, 0.42, -0.72], sunCol: '#e8f0ff', sunAmt: 0.45,
     pLight: [0.95, 0.15, -0.25], pOcean: '#2a2a5a', pDeep: '#0a0a22', pLand: '#5a4a6a', pDesert: '#8a6a7a', pCloud: '#c8b8e8', pCloudAmt: 0.7,
     pCity: '#ff9ad0', pCityAmt: 0.6, pAtmo: '#b07aff', pAtmoN: '#4a2a8a', pTerm: '#ff6ad0', pSpec: 0.4,
     ring: '#d8b8ff', ringAmt: 0.7,

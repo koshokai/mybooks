@@ -39,7 +39,7 @@ const FinalShader = {
       col *= 1.0 - uVignette * smoothstep(0.38, 0.95, d * 1.25);
       float wl = smoothstep(0.22, 0.0, vUv.x) * uWarn.x + smoothstep(0.78, 1.0, vUv.x) * uWarn.y;
       col += uWarnColor * wl * 0.35;
-      col += uFlashColor * uFlash;
+      col += uFlashColor * uFlash * (0.15 + 0.85 * smoothstep(0.25, 0.85, d * 1.25));
       gl_FragColor = vec4(col, 1.0);
     }`,
 };

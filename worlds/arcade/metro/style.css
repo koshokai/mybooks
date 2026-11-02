@@ -288,6 +288,17 @@ body.playing #hud { opacity: 1; }
 .o-back:hover { color: var(--ink); }
 .nojs { position: fixed; inset: 0; display: grid; place-items: center; color: var(--dim); }
 
+/* 新手提示 */
+.t-hint { display: none; }
+#coach {
+  position: fixed; left: 50%; bottom: calc(34px + var(--safe-b)); transform: translateX(-50%); z-index: 9; pointer-events: none;
+  padding: 10px 18px; border-radius: 999px; font-size: 14px; letter-spacing: .12em; white-space: nowrap; color: #fff;
+  background: rgba(14, 10, 24, .55); border: 1px solid rgba(255, 210, 150, .3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity .5s;
+}
+#coach.on { opacity: 1; }
+#coach b { color: var(--accent); font-weight: 600; margin: 0 2px; }
+
 /* ---------- 手机竖屏 ---------- */
 @media (max-width: 760px), (max-aspect-ratio: 4/5) {
   #title::before { background: linear-gradient(180deg, rgba(6, 4, 12, .7) 0%, rgba(6, 4, 12, .1) 26%, rgba(6, 4, 12, 0) 44%, rgba(6, 4, 12, .55) 62%, rgba(6, 4, 12, .92) 100%); }
@@ -297,10 +308,13 @@ body.playing #hud { opacity: 1; }
   .t-en { font-size: 13px; padding-left: .62em; }
   .t-sub { display: none; }
   #btn-start { position: fixed; left: 20px; right: 20px; bottom: calc(232px + var(--safe-b)); margin: 0; animation-name: riseNoT; }
-  .t-stats { position: fixed; left: 0; right: 0; bottom: calc(176px + var(--safe-b)); justify-content: center; margin: 0; gap: 26px; animation-name: riseNoT; }
+  .t-stats { position: fixed; left: 0; right: 0; bottom: calc(164px + var(--safe-b)); justify-content: center; margin: 0; gap: 26px; animation-name: riseNoT; }
+  .t-hint { display: block; position: fixed; left: 0; right: 0; bottom: calc(222px + var(--safe-b)); font-size: 12px; letter-spacing: .1em; color: var(--dim); text-align: center; animation: riseNoT .9s .3s both; }
+  #btn-start { bottom: calc(250px + var(--safe-b)); }
+  #coach { font-size: 13px; padding: 9px 14px; letter-spacing: .06em; }
   .t-stats b { font-size: 24px; text-align: center; }
   .t-stats small { text-align: center; }
-  .t-side { left: 14px; right: 14px; width: auto; bottom: calc(14px + var(--safe-b)); gap: 8px; }
+  .t-side { left: 14px; right: 14px; width: auto; bottom: calc(12px + var(--safe-b)); gap: 8px; }
   .t-side .card { padding: 12px 14px; border-radius: 16px; }
   .t-side .howto { display: none; }
   .m-list { gap: 7px; margin-top: 8px; }
@@ -315,6 +329,14 @@ body.playing #hud { opacity: 1; }
   #count { font-size: 110px; }
   .dlg { padding: 28px 20px 22px; }
   .o-score b { font-size: 56px; }
+}
+@media (max-width: 760px) and (max-height: 700px) and (max-aspect-ratio: 4/5) {
+  .t-side { display: none; }
+  .t-glyph { font-size: 76px; }
+  .t-name { font-size: 28px; }
+  #btn-start { bottom: calc(112px + var(--safe-b)); }
+  .t-hint { bottom: calc(84px + var(--safe-b)); }
+  .t-stats { bottom: calc(22px + var(--safe-b)); }
 }
 @media (max-height: 560px) and (min-aspect-ratio: 4/5) {
   .t-side .howto { display: none; }

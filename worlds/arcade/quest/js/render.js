@@ -555,6 +555,15 @@
       }
       if (any) { ctx.strokeStyle = Q.PAL[c]; ctx.lineWidth = 1.6; ctx.stroke(); }
     }
+    // 光柱（升级、精英降临）
+    for (const p of G.pillars) {
+      const f = p.t / p.dur, a = f < 0.15 ? f / 0.15 : 1 - (f - 0.15) / 0.85, w = 26 * (1 - f * 0.5), h = 420;
+      const g = ctx.createLinearGradient(0, p.y - h, 0, p.y + 10);
+      g.addColorStop(0, Q.rgba(p.col, 0)); g.addColorStop(0.7, Q.rgba(p.col, 0.45 * a)); g.addColorStop(1, Q.rgba('#ffffff', 0.9 * a));
+      ctx.fillStyle = g; ctx.fillRect(p.x - w, p.y - h, w * 2, h + 10);
+      ctx.fillStyle = Q.rgba('#ffffff', 0.7 * a); ctx.fillRect(p.x - w * 0.18, p.y - h * 0.9, w * 0.36, h * 0.9 + 6);
+      ctx.globalAlpha = a; ctx.drawImage(lightSprite(p.col), p.x - 80, p.y - 50, 160, 100); ctx.globalAlpha = 1;
+    }
     // 冲击环
     for (const r of G.rings) {
       const p = r.t / r.dur, rr = lerp(r.r0, r.r1, Q.easeOut(p));
@@ -685,7 +694,7 @@
     ctx.font = `700 ${mob ? 15 : 17}px ${NUMF}`; ctx.fillStyle = '#fff6ea';
     ctx.fillText(G.kills.toLocaleString(), rx, ry);
     ctx.font = `600 ${mob ? 11 : 12}px ${SERIF}`; ctx.fillStyle = 'rgba(255,240,230,.65)';
-    ctx.fillText('击杀', rx - ctx.measureText(G.kills.toLocaleString()).width - 0, ry + (mob ? 15 : 17));
+    ctx.fillText('击杀', rx, ry + (mob ? 15 : 17));
     ctx.font = `700 ${mob ? 13 : 14}px ${NUMF}`; ctx.fillStyle = '#ffe9b0';
     ctx.fillText('✦ ' + G.dustPicked, rx, ry + (mob ? 32 : 36));
     // 连斩
@@ -699,6 +708,11 @@
       ctx.globalAlpha = 1;
     }
     // 桌面：底部血条与技能
+    if (!Q.input.touch && mob) {
+      const cxs = W / 2, cy = H - 40;
+      cdButton(cxs - 30, cy, 24, Q.UPG[G.hero.skill].glyph, G.hero.color, P.skillCd / Q.game.skillCd(), 'Q');
+      cdButton(cxs + 30, cy, 19, '闪', '#9fe8ff', P.dashCd / 1.5, '空格');
+    }
     if (!mob) {
       const bw = 280, bx = 22, by = H - 40, f = clamp(P.hp / S.maxHp, 0, 1);
       ctx.textAlign = 'left';

@@ -25,7 +25,7 @@
       id: 'mage', cls: '星术师', name: '黎萤', en: 'ASTROMANCER', color: '#b49bff', color2: '#6be4ff', pc: 8,
       title: '读懂坠星的年轻术士',
       lore: '她在星屑里听见了低语——那些星辰不是自己坠落的，而是被什么东西拽了下来。',
-      hp: 90, spd: 160, armor: 0, crit: 0.05, critMul: 0, area: 1.15, might: 1.05, regen: 0.15, dr: 0,
+      hp: 110, spd: 160, armor: 0, crit: 0.05, critMul: 0, area: 1.15, might: 1.05, regen: 0.2, dr: 0,
       weapon: 'w_mage', skill: 'k_mage', skillCd: 9,
       passive: { name: '星辉', desc: '范围 +15%，伤害 +5%' },
       bars: [['生命', 2], ['攻击', 4], ['速度', 3], ['射程', 5], ['上手', 4]],
@@ -84,19 +84,19 @@
   /* ---------- 远征三程 ---------- */
   Q.STAGES = [
     {
-      biome: 0, boss: 'heyan', elite: 'warden', count: [30, 140], rate: [1.3, 5.5], hpMul: 1, dmgMul: 1,
+      biome: 0, boss: 'heyan', elite: 'warden', count: [30, 140], rate: [1.7, 5.6], hpMul: 1, dmgMul: 1,
       roster: [['imp', 0, 10], ['magma', 0.08, 4], ['cult', 0.2, 3], ['horn', 0.33, 3], ['beetle', 0.46, 3], ['ogre', 0.6, 2]],
       ring: 'imp', rush: 'horn',
       events: [[0.2, 'ring'], [0.36, 'elite'], [0.52, 'swarm'], [0.64, 'rush'], [0.76, 'elite'], [0.86, 'ring']],
     },
     {
-      biome: 1, boss: 'linyuan', elite: 'sentry', count: [90, 210], rate: [3.6, 8], hpMul: 3.4, dmgMul: 1.45,
-      roster: [['wolf', 0, 10], ['crystal', 0.04, 4], ['wisp', 0.12, 3], ['stag', 0.25, 3], ['bloat', 0.38, 3], ['yeti', 0.5, 2]],
+      biome: 1, boss: 'linyuan', elite: 'sentry', count: [100, 215], rate: [4, 8.4], hpMul: 3.4, dmgMul: 1.55,
+      roster: [['wolf', 0, 10], ['crystal', 0.04, 4], ['wisp', 0.1, 4], ['stag', 0.22, 3.5], ['bloat', 0.34, 3], ['yeti', 0.48, 2]],
       ring: 'wolf', rush: 'stag',
-      events: [[0.14, 'ring'], [0.28, 'elite'], [0.44, 'swarm'], [0.56, 'rush'], [0.66, 'elite'], [0.78, 'ring'], [0.9, 'elite']],
+      events: [[0.1, 'ring'], [0.22, 'elite'], [0.36, 'rush'], [0.46, 'swarm'], [0.58, 'elite'], [0.68, 'rush'], [0.78, 'ring'], [0.9, 'elite']],
     },
     {
-      biome: 2, boss: 'yuanyao', elite: 'herald', count: [140, 300], rate: [5, 11], hpMul: 8.5, dmgMul: 1.95,
+      biome: 2, boss: 'yuanyao', elite: 'herald', count: [140, 300], rate: [5, 11], hpMul: 8, dmgMul: 2.0,
       roster: [['shade', 0, 10], ['egg', 0.04, 4], ['eye', 0.1, 3], ['husk', 0.2, 3], ['nova', 0.32, 3], ['colos', 0.44, 2]],
       ring: 'shade', rush: 'husk',
       events: [[0.12, 'ring'], [0.24, 'elite'], [0.4, 'swarm'], [0.5, 'rush'], [0.6, 'elite'], [0.72, 'ring'], [0.82, 'elite'], [0.92, 'swarm']],
@@ -107,9 +107,9 @@
   Q.BOSSES = {
     heyan: { name: '赫焱', title: '烬原之主', full: '熔心巨像 · 赫焱', r: 58, hp: 9000, spd: 60, dmg: 20, color: '#ff7a3a', pc: 2,
       line: '炽热的心核在岩躯中跳动——它曾是一颗坠落的星。' },
-    linyuan: { name: '凛渊', title: '霜林古灵', full: '霜角古灵 · 凛渊', r: 54, hp: 30000, spd: 95, dmg: 24, color: '#9fe8ff', pc: 5,
+    linyuan: { name: '凛渊', title: '霜林古灵', full: '霜角古灵 · 凛渊', r: 54, hp: 21000, spd: 95, dmg: 23, color: '#9fe8ff', pc: 5,
       line: '古林的守护灵被星寒冻结了千年，如今只认得杀意。' },
-    yuanyao: { name: '渊曜', title: '坠星之主', full: '坠星之主 · 渊曜', r: 66, hp: 95000, spd: 42, dmg: 28, color: '#d38bff', pc: 8,
+    yuanyao: { name: '渊曜', title: '坠星之主', full: '坠星之主 · 渊曜', r: 66, hp: 55000, spd: 42, dmg: 30, color: '#d38bff', pc: 8,
       line: '拽落群星的，正是它。' },
   };
 

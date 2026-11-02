@@ -119,14 +119,14 @@ export class FX {
     o.x = Math.cos(a) * r * 1.3; o.y = Math.sin(a) * r * 0.8 + 1.5;
     if (o.y < 0.6 && Math.abs(o.x) < 4) o.y += 4;
     o.z = initial ? -Math.random() * 70 : -55 - Math.random() * 20;
-    o.len = 2 + Math.random() * 5;
+    o.len = 1.5 + Math.random() * 3.5;
     o.v = 1.6 + Math.random() * 0.9;
     return o;
   }
 
   updateLines(dt, cam, speed, intensity) {
     const m = this._m;
-    this.lineMat.opacity = intensity * 0.55;
+    this.lineMat.opacity = intensity * 0.3;
     this.lines.visible = intensity > 0.02;
     if (!this.lines.visible) return;
     for (let i = 0; i < this.SL; i++) {

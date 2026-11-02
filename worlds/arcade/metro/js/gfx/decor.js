@@ -114,17 +114,17 @@ export class Decor {
 
     // —— 远处的平行轨道与小列车 ——
     {
-      this.lineMat = bend(new THREE.MeshBasicMaterial({ toneMapped: false, color: new THREE.Color(1.2, 1.2, 1.2) }));
+      this.lineMat = new THREE.MeshBasicMaterial({ toneMapped: false, color: new THREE.Color(1.2, 1.2, 1.2), transparent: true, opacity: 0.55, depthWrite: false });
       const lines = [[-46, -18], [64, 9], [-120, 26]];
       this.far = [];
       for (const [x, y] of lines) {
-        const g = new THREE.BoxGeometry(0.9, 0.5, 700, 1, 1, 140);
+        const g = new THREE.BoxGeometry(0.35, 0.22, 700, 1, 1, 4);
         const mesh = new THREE.Mesh(g, this.lineMat);
         mesh.position.set(x, y, -300); mesh.frustumCulled = false;
         scene.add(mesh);
         const trains = [];
         for (let k = 0; k < 2; k++) {
-          const tg = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 26), bend(new THREE.MeshBasicMaterial({ toneMapped: false, color: new THREE.Color(2.2, 2.0, 1.6) })));
+          const tg = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.9, 26), new THREE.MeshBasicMaterial({ toneMapped: false, color: new THREE.Color(1.8, 1.6, 1.3) }));
           tg.frustumCulled = false;
           scene.add(tg);
           trains.push({ mesh: tg, s: R() * 400, v: (R() < 0.5 ? -1 : 1) * (8 + R() * 22) });
@@ -215,10 +215,10 @@ export class Decor {
     const bl = Math.sin(time * 3.2) > 0.6 ? 1 : 0.15;
     this.towerGlow.color.setRGB(3 * bl + 0.6, 3 * bl + 0.6, 3 * bl + 0.6);
     // 远处轨道
-    this.lineMat.color.copy(MIX.deckGlow).multiplyScalar(0.9);
+    this.lineMat.color.copy(MIX.deckGlow).multiplyScalar(0.45);
     for (const L of this.far) {
       for (const t of L.trains) {
-        t.s += (t.v + speed) * dt * 0 + t.v * dt;
+        t.s += t.v * dt;
         let z = dist - t.s;
         if (z > 60) { t.s = dist + 380 + Math.random() * 200; z = dist - t.s; }
         if (z < -640) { t.s = dist - 40; z = dist - t.s; }

@@ -113,6 +113,15 @@ function unlock(id, name) {
 
 /* ============ 世界构建 ============ */
 async function loadTrack(idx) {
+  try { await buildTrackWorld(idx); }
+  catch (e) {
+    console.error(e);
+    loading = false;
+    showLoading(true, '赛道加载失败，请刷新页面重试');
+    throw e;
+  }
+}
+async function buildTrackWorld(idx) {
   loading = true;
   showLoading(true, '正在生成赛道 · ' + TRACKS[idx].name);
   await nextFrame(); await nextFrame();
@@ -212,7 +221,7 @@ function toSelect(m) {
 
 function syncModeSwitch() {
   $$('.mode-switch button').forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
-  $('#sel-mode').textContent = mode === 'race' ? 'GRAND PRIX · 6 艘飞船 · 3 圈' : 'TIME TRIAL · 与最佳单圈幽灵竞速';
+  $('#sel-mode').textContent = mode === 'race' ? 'GRAND PRIX · SIX SHIPS · THREE LAPS' : 'TIME TRIAL · RACE YOUR GHOST';
   $('#sel-title').textContent = mode === 'race' ? '大奖赛' : '计时赛';
   $('#sel-hint').textContent = mode === 'race' ? '前三名登上领奖台 · 名次越高星尘越多' : '独自跑三圈，刷新纪录后会留下你的幽灵';
 }
@@ -531,7 +540,7 @@ function onPlayerFinish() {
   fireworks = place <= 3 || mode === 'trial' ? 2.2 : 0.8;
 }
 let fireworks = 0, fwAcc = 0;
-const FW_COLS = [new THREE.Color('#ffd36b'), new THREE.Color('#ff5ad1'), new THREE.Color('#4de8ff'), new THREE.Color('#ffffff')];
+const FW_COLS = [new THREE.Color('#ffd36b'), new THREE.Color('#ff5ad1'), new THREE.Color('#4de8ff'), new THREE.Color('#b98bff'), new THREE.Color('#7dffb0')];
 function updateFireworks(dt) {
   if (fireworks <= 0 || !race) return;
   fireworks -= dt;
@@ -543,7 +552,7 @@ function updateFireworks(dt) {
   V1.copy(f.P).addScaledVector(f.L, (Math.random() - 0.5) * track.width * 0.8).addScaledVector(f.U, 6 + Math.random() * 10);
   racerVelocity(p, V2).multiplyScalar(0.9);
   const c = FW_COLS[(Math.random() * FW_COLS.length) | 0];
-  sparks.emit(V1, V2, c, Q.low ? 40 : 70, { spread: 26, life: 1.1, size: 0.6, bright: 3, jitter: 0.2 });
+  sparks.emit(V1, V2, c, Q.low ? 50 : 90, { spread: 32, life: 1.25, size: 0.34, bright: 3.4, jitter: 0.2, sphere: true });
 }
 
 function showResults() {
@@ -710,7 +719,10 @@ function frame(now) {
   fpsAcc += dt; fpsN++;
   if (fpsAcc > 2.5) {
     const avg = fpsAcc / fpsN;
-    if (avg > 1 / 36 && dprLevel > 1 && !params.has('dev')) { dprLevel = Math.max(1, dprLevel - 0.25); world.setDpr(dprLevel); hud.setupMap(track, pal); }
+    if (avg > 1 / 36 && !params.has('dev') && !loading) {
+      if (dprLevel > 1) { dprLevel = Math.max(1, dprLevel - 0.25); world.setDpr(dprLevel); hud.setupMap(track, pal); }
+      else if (world.bloom.enabled && avg > 1 / 30) { world.bloom.enabled = false; world.renderer.toneMappingExposure = 1.12; }
+    }
     fpsAcc = 0; fpsN = 0;
   }
   if (paused || loading || !track) return;
@@ -793,7 +805,7 @@ function update(dt) {
   if (startGate) startGate.group.traverse((o) => { if (o.userData.holo) o.userData.holo.uniforms.uTime.value = time; });
   updateFireworks(dt);
   flash *= Math.exp(-dt * 6);
-  world.final.uniforms.uFlash.value = flash * 0.5;
+  world.final.uniforms.uFlash.value = flash * 0.32;
 }
 let lastPlace = 0;
 

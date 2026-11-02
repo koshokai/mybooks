@@ -230,7 +230,7 @@ export class Track {
             for (int i = 0; i < 6; i++) {
               vec3 d = vWorld - uShipPos[i];
               float dd = dot(d, d);
-              col += uShipCol[i] * (exp(-dd * 0.05) * 0.4 + exp(-dd * 0.5) * 0.35);
+              col += uShipCol[i] * (exp(-dd * 0.13) * 0.28 + exp(-dd * 0.7) * 0.32);
             }
             float dist = length(vWorld - cameraPosition);
             col = mix(col, uFog, 1.0 - exp(-dist * 0.00045));
@@ -554,11 +554,14 @@ export class Track {
       const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.08, 0.02, 0.02) });
       const s = new THREE.Mesh(lg, m); s.position.set((i - 2) * 2.4, 18.6, 1.45); grp.add(s); lights.push(s);
     }
-    // 招牌
-    const sign = makeTextPlane(['星际竞速', 'STAR RACER · 起点'], palette.accent, 512, 128);
-    sign.scale.set(16, 4, 1);
-    sign.position.set(0, 23.6, 0.3);
-    grp.add(sign);
+    // 招牌：挂在横梁上、倒计时灯两侧（不挡住画面上方的计时）
+    const signL = makeTextPlane(['星际竞速', 'STAR RACER'], palette.accent, 512, 128);
+    signL.scale.set(10, 2.5, 1);
+    signL.position.set(-(w - 6.5), 18.6, 1.42);
+    const signR = makeTextPlane(['起点', 'START · FINISH'], palette.accent2, 512, 128);
+    signR.scale.set(10, 2.5, 1);
+    signR.position.set(w - 6.5, 18.6, 1.42);
+    grp.add(signL, signR);
     return { group: grp, lights };
   }
 }

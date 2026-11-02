@@ -59,8 +59,7 @@ export class Robot {
     this.eyesTex = eyesTexture();
     this.eyesTex.repeat.set(0.25, 1);
     this.eyeMat = new THREE.MeshBasicMaterial({ map: this.eyesTex, transparent: true, color: new THREE.Color('#7fe8ff').multiplyScalar(2.4), toneMapped: false, depthWrite: false });
-    this.eyes = M(new THREE.PlaneGeometry(0.5, 0.125 * 4 * 0.5 / 1), this.eyeMat, 0, -0.01, -0.35, this.head);
-    this.eyes.scale.set(1, 0.5, 1);
+    this.eyes = M(new THREE.PlaneGeometry(0.44, 0.44), this.eyeMat, 0, -0.01, -0.35, this.head);
     this.eyes.rotation.y = Math.PI;
     for (const sx of [-0.41, 0.41]) {
       M(new THREE.CylinderGeometry(0.1, 0.1, 0.06, 16), joint, sx, 0.02, 0, this.head).rotation.z = Math.PI / 2;
@@ -196,7 +195,7 @@ export class Robot {
     let blink = 1;
     if (this.blinkT < 0.12) blink = Math.abs(this.blinkT - 0.06) / 0.06;
     if (this.blinkT < 0) this.blinkT = 2 + Math.random() * 3;
-    this.eyes.scale.y = 0.5 * (ex === 0 ? Math.max(0.12, blink) : 1);
+    this.eyes.scale.y = ex === 0 ? Math.max(0.12, blink) : 1;
 
     const crashing = st.mode === 'dying' || st.mode === 'dead';
     // 姿态权重
@@ -223,7 +222,7 @@ export class Robot {
     // 身体：起伏、前倾、侧倾
     const bob = Math.abs(sp) * 0.07 * run + Math.sin(this.t * 2.2) * 0.012 * idle;
     this.body.position.y = -0.78 + bob - 0.36 * this.slideW;
-    const targetLean = clamp(-this.vx * 0.055, -0.45, 0.45);
+    const targetLean = clamp(-this.vx * 0.04, -0.32, 0.32);
     this.lean = damp(this.lean, targetLean, 12, dt);
     this.yaw = damp(this.yaw, clamp(-this.vx * 0.02, -0.25, 0.25), 10, dt);
     // 翻转
@@ -232,8 +231,7 @@ export class Robot {
       this.flip += dt / Math.max(0.3, st.airT || 0.58);
       if (this.flip >= 1 || st.grounded) { this.flipOn = false; this.flip = 0; }
     }
-    let pitch = 0.13 * run - 0.95 * this.slideW * -1 - 0.32 * this.jetW + 0.1 * this.airW;
-    pitch = 0.13 * run + 0.95 * this.slideW - 0.38 * this.jetW + 0.08 * this.airW;
+    let pitch = 0.13 * run + 0.95 * this.slideW - 0.38 * this.jetW + 0.08 * this.airW;
     let roll = this.lean;
     // 踉跄
     if (st.stumble > 0) { roll += Math.sin(this.t * 30) * 0.25 * Math.min(1, st.stumble); }
@@ -300,8 +298,12 @@ export class Robot {
     const pts = this.trailPts;
     const wp = this.pack.getWorldPosition(this._tmp || (this._tmp = new THREE.Vector3()));
     if (!st.idle) {
-      pts.unshift({ x: wp.x, y: wp.y - 0.05, s: st.dist });
-      if (pts.length > this.TN) pts.length = this.TN;
+      // 距离跳变（卡顿、快进、复活）时直接截断，避免拖尾拉成一大片
+      if (pts.length && (st.dist - pts[0].s > 4 || st.dist < pts[0].s)) pts.length = 0;
+      const head = pts.length > this.TN - 1 ? pts.pop() : {};
+      head.x = wp.x; head.y = wp.y - 0.05; head.s = st.dist;
+      pts.unshift(head);
+      while (pts.length > 1 && st.dist - pts[pts.length - 1].s > 22) pts.pop();
     } else pts.length = 0;
     const pos = this.trail.geometry.attributes.position;
     const w0 = 0.2 + 0.12 * this.jetW;

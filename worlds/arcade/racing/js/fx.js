@@ -39,9 +39,18 @@ export class Sparks {
       this.pos[i * 3] = p.x + (Math.random() - 0.5) * (opts.jitter ?? 0.4);
       this.pos[i * 3 + 1] = p.y + (Math.random() - 0.5) * (opts.jitter ?? 0.4);
       this.pos[i * 3 + 2] = p.z + (Math.random() - 0.5) * (opts.jitter ?? 0.4);
-      this.vel[i * 3] = v.x + (Math.random() - 0.5) * spread;
-      this.vel[i * 3 + 1] = v.y + (Math.random() - 0.5) * spread + (opts.up ?? 0);
-      this.vel[i * 3 + 2] = v.z + (Math.random() - 0.5) * spread;
+      if (opts.sphere) {
+        // 球面方向 × 速度：烟花呈圆形绽放
+        const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+        const sp = spread * 0.5 * (0.75 + Math.random() * 0.25);
+        this.vel[i * 3] = v.x + Math.cos(th) * s * sp;
+        this.vel[i * 3 + 1] = v.y + u * sp + (opts.up ?? 0);
+        this.vel[i * 3 + 2] = v.z + Math.sin(th) * s * sp;
+      } else {
+        this.vel[i * 3] = v.x + (Math.random() - 0.5) * spread;
+        this.vel[i * 3 + 1] = v.y + (Math.random() - 0.5) * spread + (opts.up ?? 0);
+        this.vel[i * 3 + 2] = v.z + (Math.random() - 0.5) * spread;
+      }
       const b = bright * (0.6 + Math.random() * 0.6);
       this.base[i * 3] = color.r * b; this.base[i * 3 + 1] = color.g * b; this.base[i * 3 + 2] = color.b * b;
       this.maxLife[i] = this.life[i] = life * (0.6 + Math.random() * 0.7);

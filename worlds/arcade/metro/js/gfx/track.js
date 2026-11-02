@@ -81,13 +81,13 @@ export class Track {
           float divD = abs(abs(x) - ${(LANE_W / 2).toFixed(3)});
           float div = band(divD, 0.03) * step(ax, ${(LANE_W * 1.5).toFixed(3)});
           float dash = 0.55 + 0.45 * step(0.5, fract(s / 6.0 + uTime * 0.0));
-          glow += uLine * div * dash * 0.9;
+          glow += uLine * div * dash * 0.55;
           // 甲板边缘发光带
           float rim = band(ax - 3.62, 0.05);
-          glow += uGlow * rim * (0.9 + 0.6 * pow(fract(s / 18.0 - uTime * 0.8), 8.0));
+          glow += uGlow * rim * (0.45 + 0.7 * pow(fract(s / 18.0 - uTime * 0.8), 8.0));
           col = mix(col, base * 0.5, edge);
           // 路灯光斑（与灯柱位置一致：左侧每 30 米，右侧错开 15 米）
-          float dl = abs(mod(s + 15.0, 30.0) - 15.0), dr = abs(mod(s, 30.0) - 15.0);
+          float dl = abs(mod(s + 15.0 - 9.0, 30.0) - 15.0), dr = abs(mod(s - 9.0, 30.0) - 15.0);
           float pool = exp(-(dl * dl) / 26.0 - pow(x + 3.9, 2.0) / 5.0) + exp(-(dr * dr) / 26.0 - pow(x - 3.9, 2.0) / 5.0);
           // 光照：半球光 + 主光 + 掠射反光
           vec3 V = normalize(cameraPosition - vP);
@@ -121,7 +121,7 @@ export class Track {
     const gb = new GB();
     const segs = 150;
     for (let l = 0; l < 3; l++) for (const side of [-1, 1]) {
-      gb.add(new THREE.BoxGeometry(0.11, 0.16, LEN, 1, 1, segs), { x: LANE_X[l] + side * 0.62, y: 0.08, z: (Z_NEAR + Z_FAR) / 2, color: new THREE.Color(l, 0, 0), glow: 0 });
+      gb.add(new THREE.BoxGeometry(0.085, 0.14, LEN, 1, 1, segs), { x: LANE_X[l] + side * 0.62, y: 0.07, z: (Z_NEAR + Z_FAR) / 2, color: new THREE.Color(l, 0, 0), glow: 0 });
     }
     for (const side of [-1, 1]) {
       gb.add(new THREE.BoxGeometry(0.34, 0.5, LEN, 1, 1, segs), { x: side * (DECK_HW - 0.17), y: 0.1, z: (Z_NEAR + Z_FAR) / 2, color: new THREE.Color(0, 0, 0), glow: 1 });
@@ -160,7 +160,7 @@ export class Track {
             float top = step(0.5, vN.y);
             vec3 V = normalize(cameraPosition - vP);
             float sheen = pow(1.0 - max(V.y, 0.0), 2.0);
-            c = mix(uBase * 0.9, uRail * (0.55 + sheen * 0.9) + uKey * uKeyInt * 0.08, top);
+            c = mix(uBase * 0.7, uRail * (0.16 + sheen * 0.32) + uKey * uKeyInt * 0.05, top);
             float wv = li == 0 ? uWarn.x : li == 1 ? uWarn.y : uWarn.z;
             c += vec3(1.0, 0.15, 0.08) * wv * top * (0.6 + 0.6 * sin(uTime * 18.0)) * 1.4;
             c *= 1.0 - smoothstep(90.0, 220.0, vFog) * 0.5;
@@ -168,8 +168,8 @@ export class Track {
             float inner = step(0.5, abs(vN.x)) * step(0.0, -vN.x * sign(vP.x));
             float strip = smoothstep(0.24, 0.3, vP.y) * (1.0 - smoothstep(0.3, 0.36, vP.y));
             c = uBase * (0.7 + 0.6 * max(vN.y, 0.0)) * (uHemi * 0.6 + 0.25);
-            c += uGlow * strip * inner * 2.2;
-            c += uGlow * step(0.5, vN.y) * 0.25;
+            c += uGlow * strip * inner * 0.9;
+            c += uGlow * step(0.5, vN.y) * 0.08;
           } else {
             c = uBase * 0.35 * (0.5 + 0.5 * max(vN.y, 0.0)) * (uHemi * 0.8 + 0.2);
             c += uLine * 0.08 * step(0.5, abs(vN.x));
@@ -244,7 +244,7 @@ export class Track {
     }
     for (; n < MAX_GAPS; n++) this.gaps[n].w = 0;
     this.trussGroup.position.z = dist % 6;
-    this.lampGroup.position.z = dist % 30;
-    this.lampMat.color.copy(MIX.lamp).multiplyScalar(3.2);
+    this.lampGroup.position.z = (dist + 21) % 30; // 路灯位于 s ≡ 9（左）/ 24（右）(mod 30)
+    this.lampMat.color.copy(MIX.lamp).multiplyScalar(1.7);
   }
 }

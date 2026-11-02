@@ -28,7 +28,7 @@ export function glowMaterial(tex, color, { opacity = 1, size = 1, additive = tru
         w.xyz = bendWorld(w.xyz);
         vec4 mv = viewMatrix * w;
         mv.xy += position.xy * uSize * sc;
-        vF = clamp(1.0 - (-mv.z - 150.0) / 120.0, 0.0, 1.0);
+        vF = clamp(1.0 - (-mv.z - 150.0) / 120.0, 0.0, 1.0) * smoothstep(2.0, 7.0, -mv.z);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */`
@@ -80,6 +80,7 @@ export class Props {
     const glow = bend(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(2.6, 2.6, 2.6) }));
     this.glowMat = glow;
     this.blinkMat = bend(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(3, 3, 3) }));
+    const signMat = bend(new THREE.MeshBasicMaterial({ map: atlas, vertexColors: true, toneMapped: false, color: new THREE.Color(1.5, 1.5, 1.5) }));
     const RED = new THREE.Color(1, 0.18, 0.12), AMBER = new THREE.Color('#ffb547'), WHITE = new THREE.Color(1, 1, 1);
 
     // —— 警示栏 ——
@@ -97,7 +98,7 @@ export class Props {
     }
     // —— 信号门架（单车道） ——
     const gantry = (wide) => {
-      const f = new GB(), g = new GB(), b = new GB();
+      const f = new GB(), g = new GB(), b = new GB(), sg = new GB();
       const hw = wide ? DECK_HW - 0.05 : 1.16;
       for (const sx of [-hw, hw]) {
         f.box(0.2, 3.65, 0.34, { x: sx, y: 1.82, color: 0x2a3040 });
@@ -107,14 +108,14 @@ export class Props {
       f.box(hw * 2 + 0.2, 0.28, 0.42, { y: 3.48, color: 0x2a3040 });
       f.box(hw * 2 - 0.1, 1.5, 0.16, { y: 2.5, color: 0x1a1e28 });
       const signs = wide ? [-LANE_X[2], 0, LANE_X[2]] : [0];
-      for (const sx of signs) f.box(0.95, 0.95, 0.2, { x: sx, y: 2.5, z: 0.02, color: 0xffffff, uv: ATLAS.sign });
+      for (const sx of signs) sg.box(0.95, 0.95, 0.2, { x: sx, y: 2.5, z: 0.02, color: 0xffffff, uv: ATLAS.sign });
       g.box(hw * 2 - 0.1, 0.05, 0.46, { y: 1.19, color: new THREE.Color(1, 0.35, 0.18) });
       const lanes = wide ? [-LANE_X[2], 0, LANE_X[2]] : [0];
       for (const lx of lanes) for (const cx of [-0.42, 0, 0.42]) {
         g.add(new THREE.ConeGeometry(0.11, 0.2, 3), { x: lx + cx, y: 1.02, rx: Math.PI, color: new THREE.Color(1, 0.3, 0.15) });
       }
       for (const sx of wide ? [-2.8, -1.4, 0, 1.4, 2.8] : [-0.6, 0, 0.6]) b.sphere(0.1, 8, 6, { x: sx, y: 3.72, color: RED });
-      return [[f.build(), frame, false], [g.build(), glow, false], [b.build(), this.blinkMat, false]];
+      return [[f.build(), frame, false], [g.build(), glow, false], [b.build(), this.blinkMat, false], [sg.build(), signMat, false]];
     };
     this.gantry = new Pool(scene, 24, gantry(false));
     this.gantryWide = new Pool(scene, 10, gantry(true));
@@ -254,7 +255,7 @@ export class Props {
     // —— 星尘 ——
     {
       const b = new GB();
-      const oct = new THREE.OctahedronGeometry(0.23, 0);
+      const oct = new THREE.OctahedronGeometry(0.27, 0);
       b.add(oct, { sy: 1.4, color: 0xffffff });
       const geo = b.build();
       const col = geo.attributes.color;
@@ -263,7 +264,7 @@ export class Props {
       this.motes = new THREE.InstancedMesh(geo, this.moteMat, 700);
       this.motes.frustumCulled = false; this.motes.count = 0;
       scene.add(this.motes);
-      this.moteHaloMat = glowMaterial(this.powTex, 0xffb547, { size: 0.9, opacity: 0.42 });
+      this.moteHaloMat = glowMaterial(this.powTex, 0xffb547, { size: 0.8, opacity: 0.26 });
       this.moteHalo = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), this.moteHaloMat, 700);
       this.moteHalo.frustumCulled = false; this.moteHalo.count = 0;
       scene.add(this.moteHalo);
@@ -293,7 +294,11 @@ export class Props {
           for (let k = 0; k < 3; k++) S.cars[k].visible = k < f.cars;
           const close = 1 - Math.min(1, Math.max(0, (fr - dist) / 160));
           warn[f.lane] = Math.max(warn[f.lane], fr > dist - 2 ? 0.35 + close * 0.65 : 0);
-          S.beam.material.uniforms.uI.value = 0.6 + close * 0.6;
+          // 车头离玩家（镜头）很近时，大光晕与光锥淡出，避免整屏泛白
+          const nearFade = Math.min(1, Math.max(0, (fr - dist - 6) / 30));
+          S.beam.material.uniforms.uI.value = (0.6 + close * 0.6) * nearFade;
+          S.flare.material.uniforms.uOpacity.value = nearFade;
+          S.beam.visible = nearFade > 0.01;
           continue;
         }
         if (f.s0 > far || f.s1 < near - (f.t === TRAIN ? 0 : 0)) continue;

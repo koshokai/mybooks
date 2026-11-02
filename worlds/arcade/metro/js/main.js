@@ -145,7 +145,7 @@ function camParams() {
   const a = innerWidth / innerHeight;
   const p = clamp((1.15 - a) / (1.15 - 0.46), 0, 1); // 0 横屏 → 1 手机竖屏
   return {
-    p, fov: lerp(56, 70, p), back: lerp(6.6, 8.9, p), up: lerp(3.25, 4.5, p), ahead: lerp(9, 12, p), lookY: lerp(1.05, 0.9, p), follow: lerp(0.72, 0.62, p),
+    p, fov: lerp(56, 70, p), back: lerp(6.3, 8.6, p), up: lerp(3.15, 4.4, p), ahead: lerp(9, 12, p), lookY: lerp(1.05, -0.3, p), follow: lerp(0.72, 0.62, p),
   };
 }
 const _look = new THREE.Vector3(), _tp = new THREE.Vector3(), _tl = new THREE.Vector3(), _cp = new THREE.Vector3(), _cl = new THREE.Vector3();
@@ -153,11 +153,11 @@ function titlePose(t, pos, look) {
   const cp = camParams();
   const sw = Math.sin(t * 0.18) * 0.35;
   if (cp.p > 0.5) { // 竖屏：机器人在画面中下部
-    pos.set(-0.6 + sw * 0.8, 1.55, 5.4);
-    look.set(0.15, 2.35, -2);
+    pos.set(-0.45 + sw * 0.5, 1.45, 4.6);
+    look.set(0.05, 0.15, -2);
   } else {
-    pos.set(-2.1 + sw, 1.75, 5.0);
-    look.set(-1.25 + sw * 0.4, 1.55, -1.2);
+    pos.set(-1.5 + sw, 1.7, 5.0);
+    look.set(-0.55 + sw * 0.4, 1.5, -1.2);
   }
 }
 function chasePose(dt, pos, look) {
@@ -219,7 +219,7 @@ function envUpdate(dt) {
     if (G.mode !== 'title' && G.forceBiome == null) { showBanner(target, sim.t < 5); sound.biomeWhoosh(); }
     sound.biome = target;
   }
-  G.env.w = Math.min(1, G.env.w + dt / (G.forceBiome != null ? 0.6 : 6.5));
+  G.env.w = G.forceBiome != null ? 1 : Math.min(1, G.env.w + dt / 6.5);
   blendFrom(G.env.from, G.env.b, smooth(G.env.w));
   hemi.color.copy(MIX.hemiSky); hemi.groundColor.copy(MIX.hemiGround); hemi.intensity = MIX.hemiInt;
   key.color.copy(MIX.keyCol); key.intensity = MIX.keyInt; key.position.copy(MIX.keyDir).multiplyScalar(30);
@@ -368,14 +368,25 @@ function startRun(fromTitle) {
   G.forceBiome = null;
   if (!fromTitle) G.camBlend = 1;
   sound.intensity = 1; sound.startMusic(1);
+  sound.launch();
+  G.fovKick += 7; G.trauma = Math.min(1, G.trauma + 0.15);
+  // 前几局给一个操作提示
+  if ((save.d.runs | 0) < 3) {
+    const touch = matchMedia('(hover: none)').matches || MOBILE;
+    coach.innerHTML = touch ? '滑动屏幕 <b>←→</b> 变道 · <b>↑</b> 跳 · <b>↓</b> 滑铲' : '<b>← →</b> 变道 · <b>↑ / 空格</b> 跳 · <b>↓</b> 滑铲 · <b>P</b> 暂停';
+    coach.classList.add('on');
+    clearTimeout(G.coachT); G.coachT = setTimeout(() => coach.classList.remove('on'), 5200);
+  }
   G.bannerShown = false;
 }
 
+const coach = $('#coach');
 function hideModals() { for (const m of [UI.mPause, UI.mRevive, UI.mOver]) m.classList.remove('show'); }
 
 function pause() {
   if (G.mode !== 'run' && G.mode !== 'countdown') return;
   G.mode = 'paused';
+  coach.classList.remove('on');
   sound.stopLoops(); sound.duckMusic(0.35, 999);
   $('#pause-sub').innerHTML = `已跑 <b>${fmt(sim.dist)}</b> 米 · 得分 <b>${fmt(sim.score)}</b>`;
   $('#p-missions').innerHTML = missionsHtml(save.list(), runStats());
@@ -439,7 +450,8 @@ function gameOver() {
   $('#o-motepts').textContent = fmt(sim.motePts);
   $('#o-near').textContent = `${sim.stats.nearMiss} 次`;
   $('#o-bonus').textContent = fmt(sim.bonusPts);
-  $('#o-mult').textContent = `×${mult}${sim.stats.powerups ? ` · 道具 ${sim.stats.powerups} 个` : ''}`;
+  $('#o-mult').textContent = `×${mult}`;
+  $('#o-pw').textContent = `道具 ${sim.stats.powerups} 个`;
   $('#o-dust').innerHTML = `本局星尘 <b>+${sim.motes}</b> 已存入星尘账户 · 现有 ✦ <b>${fmt(AR.getStardust())}</b>`;
   $('#o-missions').innerHTML = missionsHtml(save.list(), null);
   $('#o-record').classList.toggle('on', isBest && score > 0);
@@ -697,7 +709,11 @@ function frame(now) {
   // 环境与世界弯曲
   envUpdate(dt);
   const dist = sim.dist;
-  BEND.x.value = G.mode === 'title' ? 0.00032 : Math.sin(dist / 420 + 0.6) * Math.sin(dist / 1310 + 1.3) * 0.00065;
+  // 标题画面把弯曲夸张一些：轨道沿着星球弧面向下、向一侧拐去；发车时随镜头过渡回正常
+  const tb = smoother(clamp(G.camBlend, 0, 1));
+  const runBendX = Math.sin(dist / 420 + 0.6) * Math.sin(dist / 1310 + 1.3) * 0.00065;
+  BEND.y.value = lerp(0.00062, 0.00022, tb);
+  BEND.x.value = lerp(0.00075, runBendX, tb);
 
   // 物体
   const { gaps, warn } = props.sync(sim, dist, G.time);
@@ -756,6 +772,7 @@ function frame(now) {
     document.body.classList.remove('is-loading');
     UI.title.classList.add('show');
     refreshTitle();
+    sound.startMusic(0);
     if (params.get('autostart')) setTimeout(() => beginFromTitle(), 300);
   }
 }
@@ -782,6 +799,21 @@ window.__metro = {
   pause, resume, home: goTitle,
   setQuality: (p) => setPR(p),
   cam: (pos, look) => { G.camOverride = pos ? { pos, look } : null; },
+  // 快进：不渲染，直接推进模拟与游戏逻辑（无头浏览器里渲染很慢时用）
+  ff: (sec) => {
+    const n = Math.round(sec * 120);
+    for (let i = 0; i < n; i++) {
+      if (G.mode !== 'run' && G.mode !== 'dying') break;
+      sim.step(1 / 120);
+      if (i % 2 === 1) { handleEvents(); G.missionT += 1 / 60; if (G.missionT > 0.5 && G.mode === 'run') { G.missionT = 0; checkMissions(); } }
+    }
+    handleEvents();
+    // 镜头直接跟到位（真实游玩时镜头是逐帧平滑跟随的）
+    G.camX = sim.p.x * camParams().follow;
+    G.camBase = sim.pw.jet > 0 || sim.p.grounded ? Math.max(0, sim.p.y) : G.camBase;
+    robot.trailPts.length = 0;
+    return window.__metro.state;
+  },
   hideMain: (h) => { mainPass.enabled = !h; },
 };
 

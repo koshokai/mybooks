@@ -125,16 +125,26 @@ export class Sim {
   }
 
   // ——————————————————— 地面与碰撞 ———————————————————
-  *nearFeats(s, back = 50, fwd = 12) {
-    for (const ch of this.chunks) {
-      if (ch.s0 > s + fwd + 120 || ch.s0 + ch.len < s - back) continue;
-      for (const f of ch.feats) if (!f.dead) yield f;
+  // 每一步只收集一次附近的特征（复用同一个数组，避免每帧产生垃圾）
+  gatherNear() {
+    const out = this._near || (this._near = []);
+    out.length = 0;
+    const s = this.p.s;
+    for (let ci = 0; ci < this.chunks.length; ci++) {
+      const ch = this.chunks[ci];
+      if (ch.s0 > s + 280 || ch.s0 + ch.len < s - 90) continue;
+      const fs = ch.feats;
+      for (let i = 0; i < fs.length; i++) if (!fs[i].dead) out.push(fs[i]);
     }
+    return out;
   }
+  near() { return this._near || this.gatherNear(); }
 
   inGap(l, s) {
-    for (const f of this.nearFeats(s, 10, 10)) {
-      if (f.t === GAP && (f.mask & (1 << l)) && s > f.s0 + 0.18 && s < f.s1 - 0.18) return true;
+    const nf = this.near();
+    for (let i = 0; i < nf.length; i++) {
+      const f = nf[i];
+      if (f.t === GAP && (f.mask & (1 << l)) && s > f.s0 + 0.18 && s < f.s1 - 0.18 && !f.dead) return true;
     }
     return false;
   }
@@ -144,8 +154,11 @@ export class Sim {
     const la = laneOf(x - FOOT_HW), lb = laneOf(x + FOOT_HW);
     for (let l = la; l <= lb; l++) if (!this.inGap(l, s)) { best = 0; break; }
     const fx0 = x - FOOT_HW, fx1 = x + FOOT_HW;
-    for (const f of this.nearFeats(s, 60, RAMP_LEN + 2)) {
-      if (f.t !== TRAIN && f.t !== BLOCK) continue;
+    const nf = this.near();
+    for (let i = 0; i < nf.length; i++) {
+      const f = nf[i];
+      if ((f.t !== TRAIN && f.t !== BLOCK) || f.dead) continue;
+      if (f.s0 - RAMP_LEN > s + 1 || f.s1 < s - 1) continue;
       for (let l = 0; l < 3; l++) {
         if (!(f.mask & (1 << l))) continue;
         const hw = f.t === TRAIN ? TRAIN_HW : OBST_HW;
@@ -159,29 +172,29 @@ export class Sim {
     return best;
   }
 
+  // 把特征的碰撞盒写进预分配的数组，返回数量。盒子：[x0,x1,y0,y1,s0,s1,可站立]
   boxesOf(f, ps, out) {
-    out.length = 0;
-    const lanes = [];
-    for (let l = 0; l < 3; l++) if (f.mask & (1 << l)) lanes.push(l);
-    switch (f.t) {
-      case BARRIER: for (const l of lanes) out.push([LANE_X[l] - OBST_HW, LANE_X[l] + OBST_HW, 0, BAR_H, f.s0, f.s1, 1]); break;
-      case GANTRY:
-        if (f.wide) out.push([-DECK_HW, DECK_HW, GANTRY_Y, GANTRY_TOP, f.s0, f.s1, 0]);
-        else for (const l of lanes) {
-          out.push([LANE_X[l] - 1.15, LANE_X[l] + 1.15, GANTRY_Y, GANTRY_TOP, f.s0, f.s1, 0]);
-          out.push([LANE_X[l] - 1.25, LANE_X[l] - 1.06, 0, GANTRY_TOP, f.s0, f.s1, 0]);
-          out.push([LANE_X[l] + 1.06, LANE_X[l] + 1.25, 0, GANTRY_TOP, f.s0, f.s1, 0]);
-        }
-        break;
-      case BLOCK: for (const l of lanes) out.push([LANE_X[l] - OBST_HW, LANE_X[l] + OBST_HW, 0, CONT_H, f.s0, f.s1, 1]); break;
-      case TRAIN: for (const l of lanes) out.push([LANE_X[l] - TRAIN_HW, LANE_X[l] + TRAIN_HW, 0, ROOF_H, f.s0, f.s1, 1]); break;
-      case ONCOMING: {
-        const fr = this.oncFront(f, ps);
-        for (const l of lanes) out.push([LANE_X[l] - TRAIN_HW, LANE_X[l] + TRAIN_HW, 0, SHUTTLE_H, fr, fr + f.Lt, 0]);
-        break;
+    let n = 0;
+    const put = (x0, x1, y0, y1, s0, s1, top) => { const b = out[n++]; b[0] = x0; b[1] = x1; b[2] = y0; b[3] = y1; b[4] = s0; b[5] = s1; b[6] = top; };
+    for (let l = 0; l < 3; l++) {
+      if (!(f.mask & (1 << l))) continue;
+      const lx = LANE_X[l];
+      switch (f.t) {
+        case BARRIER: put(lx - OBST_HW, lx + OBST_HW, 0, BAR_H, f.s0, f.s1, 1); break;
+        case GANTRY:
+          if (f.wide) { if (l === 1) put(-DECK_HW, DECK_HW, GANTRY_Y, GANTRY_TOP, f.s0, f.s1, 0); }
+          else {
+            put(lx - 1.15, lx + 1.15, GANTRY_Y, GANTRY_TOP, f.s0, f.s1, 0);
+            put(lx - 1.25, lx - 1.06, 0, GANTRY_TOP, f.s0, f.s1, 0);
+            put(lx + 1.06, lx + 1.25, 0, GANTRY_TOP, f.s0, f.s1, 0);
+          }
+          break;
+        case BLOCK: put(lx - OBST_HW, lx + OBST_HW, 0, CONT_H, f.s0, f.s1, 1); break;
+        case TRAIN: put(lx - TRAIN_HW, lx + TRAIN_HW, 0, ROOF_H, f.s0, f.s1, 1); break;
+        case ONCOMING: { const fr = this.oncFront(f, ps); put(lx - TRAIN_HW, lx + TRAIN_HW, 0, SHUTTLE_H, fr, fr + f.Lt, 0); break; }
       }
     }
-    return out;
+    return n;
   }
 
   collide(prev) {
@@ -190,14 +203,18 @@ export class Sim {
     const h = this.pH();
     const x0 = p.x - P_HW, x1 = p.x + P_HW, y0 = p.y + 0.06, y1 = p.y + h, s0 = p.s - P_HD, s1 = p.s + P_HD;
     const px0 = prev.x - P_HW, px1 = prev.x + P_HW, py0 = prev.y + 0.06, py1 = prev.y + prev.h, ps0 = prev.s - P_HD, ps1 = prev.s + P_HD;
-    const B = this._boxes || (this._boxes = []);
-    const BP = this._boxesP || (this._boxesP = []);
-    for (const f of this.nearFeats(p.s, 70, 40)) {
-      if (f.t === GAP) continue;
+    const mk = () => { const a = []; for (let i = 0; i < 9; i++) a.push(new Float64Array(7)); return a; };
+    const B = this._boxes || (this._boxes = mk());
+    const BP = this._boxesP || (this._boxesP = mk());
+    const nf = this.near();
+    for (let fi = 0; fi < nf.length; fi++) {
+      const f = nf[fi];
+      if (f.t === GAP || f.dead) continue;
       if (f.t !== ONCOMING && (f.s0 > s1 + 1 || f.s1 < s0 - 1)) continue;
-      this.boxesOf(f, p.s, B);
+      if (f.t === ONCOMING && (f.sm > p.s + 200 || f.sm + f.Lt < p.s - 120)) continue;
+      const nb = this.boxesOf(f, p.s, B);
       if (f.t === ONCOMING) this.boxesOf(f, prev.s, BP);
-      for (let i = 0; i < B.length; i++) {
+      for (let i = 0; i < nb; i++) {
         const b = B[i];
         if (!(x1 > b[0] && x0 < b[1] && y1 > b[2] && y0 < b[3] && s1 > b[4] && s0 < b[5])) continue;
         // 可站立的顶面：脚已接近顶面（坡道末端、跳上车顶）时算台阶，交给地面逻辑抬上去
@@ -266,8 +283,10 @@ export class Sim {
 
   underGantry() {
     const p = this.p;
-    for (const f of this.nearFeats(p.s, 5, 5)) {
-      if (f.t !== GANTRY) continue;
+    const nf = this.near();
+    for (let i = 0; i < nf.length; i++) {
+      const f = nf[i];
+      if (f.t !== GANTRY || f.dead) continue;
       if (f.s1 < p.s - P_HD - 0.1 || f.s0 > p.s + P_HD + 0.1) continue;
       if (f.wide || Math.abs(LANE_X[f.lane] - p.x) < 1.2 + P_HW) return true;
     }
@@ -289,8 +308,10 @@ export class Sim {
     const lf = 0.3 + 0.7 * (1 - Math.pow(1 - this.launch, 3));
     this.speed = speedAt(this.t) * lf;
     const ds = this.speed * dt;
-    const prev = { x: p.x, y: p.y, s: p.s, h: this.pH() };
+    const prev = this._prev || (this._prev = { x: 0, y: 0, s: 0, h: 0 });
+    prev.x = p.x; prev.y = p.y; prev.s = p.s; prev.h = this.pH();
     p.s += ds; this.dist = p.s;
+    this.gatherNear();
 
     // 计时
     for (const k in this.pw) {
@@ -350,8 +371,10 @@ export class Sim {
     this.collect(dt);
 
     // 迎面车：鸣笛 / 擦肩
-    for (const f of this.nearFeats(p.s, 80, 260)) {
-      if (f.t !== ONCOMING) continue;
+    const nf = this.near();
+    for (let i = 0; i < nf.length; i++) {
+      const f = nf[i];
+      if (f.t !== ONCOMING || f.dead) continue;
       const fr = this.oncFront(f);
       if (!f.honked && fr - p.s < 150) { f.honked = true; this.emit('horn', { lane: f.lane, same: f.lane === p.lane }); }
       if (!f.passed && fr <= p.s) {
@@ -384,9 +407,12 @@ export class Sim {
     const h = this.pH();
     const reach = mag ? MAGNET_R : 2.5;
     const pc = p.y + h * 0.5;
-    const lists = this.chunks.map((c) => c.motes);
+    const lists = this._lists || (this._lists = []);
+    lists.length = 0;
+    for (let i = 0; i < this.chunks.length; i++) lists.push(this.chunks[i].motes);
     if (this.sky.motes.length) lists.push(this.sky.motes);
-    for (const ms of lists) {
+    for (let li = 0; li < lists.length; li++) {
+      const ms = lists[li];
       for (let i = 0; i < ms.length; i++) {
         const m = ms[i];
         if (!m.alive) continue;

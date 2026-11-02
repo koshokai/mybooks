@@ -17,7 +17,7 @@ export class Sound {
     this.muted = false;
     this.musicOn = false;
     this.intensity = 0; this.biome = 0; this.bpm = 118;
-    this.step = 0; this.nextT = 0;
+    this.seqStep = 0; this.nextT = 0;
     this.loops = {};
   }
 
@@ -134,6 +134,7 @@ export class Sound {
   nearMiss() { if (!this.ok()) return; [0, 7, 12].forEach((iv, i) => this.tone(N(81 + iv), 0.18, { type: 'triangle', vol: 0.09, at: 0.12 + i * 0.05 })); }
   jetStart() { if (!this.ok()) return; this.noise(0.9, { vol: 0.35, f: 300, to: 2400, q: 0.7 }); this.tone(90, 0.8, { type: 'sawtooth', vol: 0.12, lp: 500, to: 160 }); this.loop('jet', true); }
   countdown(last) { if (!this.ok()) return; this.tone(last ? 1320 : 880, last ? 0.35 : 0.14, { type: 'triangle', vol: 0.16 }); }
+  launch() { if (!this.ok()) return; this.noise(0.9, { vol: 0.28, f: 250, to: 4200, q: 0.8, a: 0.05 }); this.tone(110, 0.7, { type: 'sawtooth', vol: 0.08, lp: 900, to: 330 }); [0, 7, 12].forEach((iv, i) => this.tone(N(62 + iv + 12), 0.25, { type: 'triangle', vol: 0.07, at: 0.12 + i * 0.07 })); }
   revive() { if (!this.ok()) return; this.noise(0.8, { vol: 0.25, f: 600, to: 5000 }); [0, 4, 7, 12, 16, 19].forEach((iv, i) => this.tone(N(62 + iv), 0.3, { type: 'triangle', vol: 0.1, at: i * 0.06 })); }
   click() { if (!this.ok()) return; this.tone(1400, 0.05, { type: 'triangle', vol: 0.06 }); }
   fanfare() { if (!this.ok()) return; [0, 4, 7, 12, 7, 12, 16].forEach((iv, i) => this.tone(N(74 + iv), 0.3, { type: 'triangle', vol: 0.1, at: i * 0.08 })); }
@@ -176,8 +177,8 @@ export class Sound {
     const spb = 60 / this.bpm / 4; // 十六分音符
     if (this.nextT < this.t - 0.2) this.nextT = this.t + 0.05;
     while (this.nextT < this.t + 0.14) {
-      this.playStep(this.step, this.nextT);
-      this.step = (this.step + 1) % 64;
+      this.playStep(this.seqStep, this.nextT);
+      this.seqStep = (this.seqStep + 1) % 64;
       this.nextT += spb;
     }
   }

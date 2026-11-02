@@ -80,6 +80,12 @@
     }
     return out;
   }
+  /** 首领在射程内且可被攻击时返回首领 */
+  function bossIn(x, y, r) {
+    const b = G.boss;
+    if (!b || !b.alive || b.boss.vanish || b.boss.state === 'intro' || b.boss.state === 'dying') return null;
+    return Math.hypot(b.x - x, b.y - y) - b.r < r ? b : null;
+  }
   function nearest(x, y, maxR, skipUids) {
     query(x, y, maxR, QB4);
     let best = null, bd = 1e18;
@@ -112,7 +118,8 @@
     st.crit = H.crit + 0.05 * L('crit');
     st.critMul = 2 + H.critMul + 0.15 * L('crit');
     st.proj = L('multi');
-    st.xpMul = (1 + 0.1 * L('wis')) * (1 + 0.06 * R('xp')) * Q.MODES[G.mode].xpMul;
+    // 手机上同屏魔物较少（×0.72），用经验加成补回成长节奏
+    st.xpMul = (1 + 0.1 * L('wis')) * (1 + 0.06 * R('xp')) * Q.MODES[G.mode].xpMul * (G.mobile ? 1.28 : 1);
     st.armor = H.armor + L('armor') + R('armor');
     st.dr = H.dr || 0;
     st.leech = 0.25 * L('leech');
@@ -136,7 +143,7 @@
       lv: {}, evo: {}, weapons: [], skillLv: 1, dmgBy: {}, totalDmg: 0, dmgTaken: 0, dustPicked: 0, bossKills: 0, eliteKills: 0, evoCount: 0,
       big: [], boss: null, bossPending: false, warned: false, starfall: null, arena: null, nextStageT: 0, wonT: 0, deadT: 0, ended: false,
       events: [], surgeT: 0, spawnAcc: 0, hpMul: 1, dmgMul: 1, spdMul: 1,
-      zones: [], hazards: [], teles: [], beams: [], timers: [], deferred: [], rings: [], flashes: [], slashes: [], bolts: [], meteors: [], texts: [], after: [], items: [],
+      zones: [], hazards: [], teles: [], beams: [], timers: [], deferred: [], rings: [], flashes: [], slashes: [], bolts: [], meteors: [], texts: [], after: [], items: [], pillars: [],
       shake: 0, hurtFlash: 0, flash: 0, flashCol: '#ffffff', ts: 1, slowT: 0, slowK: 1, stop: 0, biomeFrom: 0, biomeFade: 1,
       reviveLeft: Q.runeLv('revive') > 0 ? 1 : 0, bossHit: 0, magnetAll: 0, aimT: 0, aimTgt: null, frostEvo: false, choiceN: 3 + Q.runeLv('choice'),
       eAct, pAct, ebAct, gemAct, bossGen: 1, combo: 0, comboT: 0, bestCombo: 0, noHitStage: true, skillUses: 0, firstPick: true,
@@ -152,7 +159,8 @@
     buildEvents();
     G.cam.x = 0; G.cam.y = 0;
   }
-  function xpFor(L) { return Math.round(5 + (L - 1) * 5.2 + Math.pow(L - 1, 1.82) * 0.42); }
+  function xpFor(L) { return Math.round(4 + (L - 1) * 8 + Math.pow(L - 1, 1.9) * 0.85); }
+  Q.xpFor = xpFor;
 
   function buildEvents() {
     const S = Q.STAGES[G.stage];
@@ -287,7 +295,7 @@
       burst(e.x, e.y, 40, d.pc, 320, 0.8, 3.4, 0);
     } else {
       const r = Math.random();
-      if (r < 0.0045) dropItem('heal', e.x, e.y);
+      if (r < 0.0032) dropItem('heal', e.x, e.y);
       else if (r < 0.0068) dropItem('magnet', e.x, e.y);
       else if (r < 0.0082) dropItem('bomb', e.x, e.y);
       else if (r < 0.021) dropItem('dust', e.x, e.y);
@@ -425,7 +433,7 @@
     w.n++;
     const R = (92 + (L >= 3 ? 16 : 0)) * st.area * (evo ? 1.25 : 1);
     const half = (L >= 3 ? 1.72 : 1.22) * (evo ? 1.08 : 1);
-    const dmg = 20 * (L >= 2 ? 1.3 : 1) * (evo ? 1.55 : 1) * st.might;
+    const dmg = 22 * (L >= 2 ? 1.3 : 1) * (evo ? 1.55 : 1) * st.might;
     const a = P.aim;
     P.swing = 1;
     if (evo && w.n % 3 === 0) {
@@ -447,9 +455,9 @@
   W.w_mage = (w, dt) => {
     w.t -= dt; if (w.t > 0) return;
     const L = w.lvl, evo = w.evo;
-    w.t += 0.6 * st.cd * (evo ? 0.85 : 1);
+    w.t += 0.56 * st.cd * (evo ? 0.85 : 1);
     const n = 1 + (L >= 2) + (L >= 4) + st.proj;
-    const dmg = 14 * (L >= 3 ? 1.3 : 1) * (evo ? 1.3 : 1) * st.might;
+    const dmg = 16 * (L >= 3 ? 1.3 : 1) * (evo ? 1.3 : 1) * st.might;
     for (let i = 0; i < n; i++) {
       const off = (i - (n - 1) / 2) * 0.24;
       shoot('bolt', P.x + Math.cos(P.aim) * 10, P.y - 14, P.aim + off, 450, dmg, { r: 7, life: 1.7, homing: 4.6, pierce: 0, boom: L >= 5 ? 50 * st.area : 0, split: evo ? 2 : 0, src: 'w_mage', kb: 50 });
@@ -508,8 +516,10 @@
     const jumps = evo ? 6 : 3 + (L >= 2) + (L >= 5 ? 2 : 0);
     const dmg = 24 * (L >= 4 ? 1.4 : 1) * (evo ? 1.45 : 1) * st.might;
     const cands = QB2.slice();
+    const bt = bossIn(P.x, P.y, 470);
     for (let s = 0; s < strikes && cands.length; s++) {
-      const idx = (Math.random() * cands.length) | 0;
+      let idx = (Math.random() * cands.length) | 0;
+      if (bt && s === 0) { const bi = cands.indexOf(bt); if (bi >= 0) idx = bi; }
       let cur = cands[idx]; cands.splice(idx, 1);
       const hitU = [cur.uid];
       const pts = evo ? [cur.x + rand(-40, 40), cur.y - 620] : [P.x + Math.cos(P.aim) * 8, P.y - 22];
@@ -569,9 +579,11 @@
     const R = (evo ? 100 : L >= 4 ? 90 : 72) * st.area;
     const dmg = 45 * (L >= 3 ? 1.45 : 1) * (evo ? 1.5 : 1) * st.might;
     query(P.x, P.y, Math.min(G.vw, G.vh) * 0.62, QB2);
+    const bt = bossIn(P.x, P.y, Math.min(G.vw, G.vh) * 0.62);
     for (let i = 0; i < n; i++) {
       let x, y;
-      if (QB2.length) { const e = QB2[(Math.random() * QB2.length) | 0]; x = e.x + rand(-20, 20); y = e.y + rand(-20, 20); }
+      if (bt && i % 2 === 0) { const a = Math.random() * TAU, d = Math.random() * bt.r * 0.6; x = bt.x + Math.cos(a) * d; y = bt.y + Math.sin(a) * d; }
+      else if (QB2.length) { const e = QB2[(Math.random() * QB2.length) | 0]; x = e.x + rand(-20, 20); y = e.y + rand(-20, 20); }
       else { const a = Math.random() * TAU, d = rand(80, 260); x = P.x + Math.cos(a) * d; y = P.y + Math.sin(a) * d; }
       G.meteors.push({ x, y, t: -i * 0.11, dur: 0.6, R, dmg, evo, done: false });
     }
@@ -586,7 +598,7 @@
       if (w.ready < max && w.regen <= 0) { w.ready++; w.regen = 0.14; }
       w.t -= dt;
       if (w.t <= 0 && w.ready > 0) {
-        const tgt = nearest(P.x + rand(-120, 120), P.y + rand(-120, 120), 480);
+        const tgt = (Math.random() < 0.5 && bossIn(P.x, P.y, 480)) || nearest(P.x + rand(-120, 120), P.y + rand(-120, 120), 480);
         if (tgt) {
           const slot = w.ready - 1, an = w.a + (slot / max) * TAU;
           const sx = P.x + Math.cos(an) * 46, sy = P.y - 10 + Math.sin(an) * 46;
@@ -603,8 +615,9 @@
     const dmg = 16 * (L >= 3 ? 1.5 : 1) * (L >= 5 ? 1.15 : 1) * st.might;
     const pierce = L >= 5 ? 3 : 1;
     const used = [];
+    const bt = bossIn(P.x, P.y, 480);
     for (let i = 0; i < n; i++) {
-      const tgt = nearest(P.x, P.y, 480, used) || nearest(P.x, P.y, 480);
+      const tgt = (bt && i % 2 === 0) ? bt : (nearest(P.x, P.y, 480, used) || nearest(P.x, P.y, 480));
       if (tgt) used.push(tgt.uid);
       const an = (i / n) * TAU - Math.PI / 2;
       const ox = Math.cos(an) * 28, oy = Math.sin(an) * 18 - 14;
@@ -799,7 +812,7 @@
       const e = QB4[k];
       const dx = P.x - e.x, dy = P.y - e.y, d = Math.max(8, Math.hypot(dx, dy) - e.r);
       if (d < nd) { nd = d; ne = e; }
-      const w = (e.boss ? 4 : e.elite ? 2 : 1) / (d * d) * (melee && brave ? 1500 : 4000);
+      const w = (e.boss ? 4 : e.elite ? 2 : 1) / (d * d) * (melee && brave ? (d < 34 ? 1500 : 350) : 4000);
       fx += (dx / d) * w; fy += (dy / d) * w;
       if (d < 50) close++;
     }
@@ -834,10 +847,10 @@
     }
     for (const h of G.hazards) { const dx = P.x - h.x, dy = P.y - h.y, d = Math.hypot(dx, dy) || 1; if (d < h.r + 20) { fx += (dx / d) * 2; fy += (dy / d) * 2; } }
     // 星晶吸引
-    let bg = null, bd = 260 * 260;
-    for (let k = 0; k < gemAct.length; k += 3) { const g = gemAct[k]; const dx = g.x - P.x, dy = g.y - P.y, d = dx * dx + dy * dy; if (d < bd) { bd = d; bg = g; } }
+    let bg = null, bd = 340 * 340;
+    for (let k = 0; k < gemAct.length; k += 2) { const g = gemAct[k]; const dx = g.x - P.x, dy = g.y - P.y, d = dx * dx + dy * dy; if (d < bd) { bd = d; bg = g; } }
     for (const it of G.items) { const dx = it.x - P.x, dy = it.y - P.y, d = dx * dx + dy * dy; if (d < 500 * 500 && (it.k === 'chest' || it.k === 'heal' && P.hp < st.maxHp * 0.7)) { const dd = Math.sqrt(d) || 1; fx += (dx / dd) * 1.2; fy += (dy / dd) * 1.2; } }
-    if (bg) { const dx = bg.x - P.x, dy = bg.y - P.y, d = Math.sqrt(bd) || 1; fx += (dx / d) * 0.6; fy += (dy / d) * 0.6; }
+    if (bg) { const dx = bg.x - P.x, dy = bg.y - P.y, d = Math.sqrt(bd) || 1, gw = brave && nd > 70 ? 1.7 : 0.6; fx += (dx / d) * gw; fy += (dy / d) * gw; }
     // 场地中心（防止被逼到结界边缘）
     const ar = G.arena;
     if (ar && ar.on) { const dx = ar.x - P.x, dy = ar.y - P.y, d = Math.hypot(dx, dy) || 1; if (d > ar.r * 0.55) { fx += (dx / d) * 1.5 * (d / ar.r); fy += (dy / d) * 1.5 * (d / ar.r); } }
@@ -944,7 +957,7 @@
       if (!frozen && e.spawnT <= 0) {
         const rr = e.r + P.r - 3;
         const ddx = px - e.x, ddy = py - e.y;
-        if (ddx * ddx + ddy * ddy < rr * rr) hurt(e.arch === 'charger' && e.st === 2 ? e.dmg * 1.4 : e.dmg, e.x, e.y);
+        if (ddx * ddx + ddy * ddy < rr * rr) hurt(e.arch === 'charger' && e.st === 2 ? e.dmg * 1.25 : e.dmg, e.x, e.y);
       }
     }
   }
@@ -1015,6 +1028,8 @@
     ebAct.length = 0;
   }
   function tele(o) { o.t = 0; G.teles.push(o); return o; }
+  /** 预警圈按透视画成椭圆（纵向 ×k），判定也用同一个椭圆，所见即所得 */
+  function inEll(px, py, cx, cy, r, k) { const dx = (px - cx) / r, dy = (py - cy) / (r * k); return dx * dx + dy * dy < 1; }
   function segDist(px, py, x, y, ang, len) {
     const c = Math.cos(ang), s = Math.sin(ang), rx = px - x, ry = py - y;
     const along = clamp(rx * c + ry * s, 0, len);
@@ -1029,7 +1044,7 @@
       if (t.t >= t.dur) {
         G.teles.splice(i, 1);
         if (t.k === 'circle') {
-          if (t.dmg && Math.hypot(P.x - t.x, P.y - t.y) < t.r + P.r * 0.35) hurt(t.dmg, t.x, t.y);
+          if (t.dmg && inEll(P.x, P.y + 10, t.x, t.y, t.r + P.r * 0.3, 0.78)) hurt(t.dmg, t.x, t.y);
           const col = t.fx === 'ice' ? Q.C.ice : t.fx === 'void' ? Q.C.magenta : t.fx === 'star' ? Q.C.gold : Q.C.orange;
           ring(t.x, t.y, t.r * 0.3, t.r * 1.15, 0.35, Q.PAL[col], 5);
           flashAt(t.x, t.y, t.r * 1.3, 0.22, Q.PAL[col]);
@@ -1063,8 +1078,7 @@
       const h = G.hazards[i];
       h.life -= dt;
       if (h.life <= 0) { G.hazards.splice(i, 1); continue; }
-      const dx = P.x - h.x, dy = P.y - h.y;
-      if (dx * dx + dy * dy < h.r * h.r) {
+      if (inEll(P.x, P.y + 10, h.x, h.y, h.r, 0.75)) {
         if (h.k === 'frost') P.slowT = Math.max(P.slowT, 0.15);
         h.tt -= dt;
         if (h.tt <= 0) { h.tt = 0.5; if (h.dmg) hurt(h.dmg, h.x, h.y); }
@@ -1092,7 +1106,7 @@
         if (p.homing) {
           p.retarget -= dt;
           if (!p.tgt || !p.tgt.alive || p.tgt.uid !== p.tgtUid) {
-            if (p.retarget <= 0) { p.retarget = 0.12; p.tgt = nearest(p.x, p.y, 380, p.hit); p.tgtUid = p.tgt ? p.tgt.uid : 0; }
+            if (p.retarget <= 0) { p.retarget = 0.12; const bt = bossIn(p.x, p.y, 300); p.tgt = bt && p.hit.indexOf(bt.uid) < 0 ? bt : nearest(p.x, p.y, 380, p.hit); p.tgtUid = p.tgt ? p.tgt.uid : 0; }
           }
           if (p.tgt && p.tgt.alive) {
             const want = Math.atan2(p.tgt.y - p.y, p.tgt.x - p.x), cur = Math.atan2(p.vy, p.vx);
@@ -1207,7 +1221,7 @@
       } else if (ev[0] === 'blast') {
         const [, x, y, r, dmg, hurtsP, pc] = ev;
         aoe(x, y, r, hurtsP ? dmg * 0.6 : dmg, 'blast', 200, { noCrit: true }, QB3);
-        if (hurtsP && Math.hypot(P.x - x, P.y - y) < r + P.r * 0.4) hurt(dmg, x, y);
+        if (hurtsP && inEll(P.x, P.y + 10, x, y, r + P.r * 0.3, 0.75)) hurt(dmg, x, y);
         ring(x, y, 6, r, 0.32, Q.PAL[pc], 5); flashAt(x, y, r * 1.4, 0.2, Q.PAL[pc]);
         burst(x, y, 16, pc, r * 3, 0.45, 3, 0);
         shake(0.12); sfx('boom');
@@ -1276,7 +1290,7 @@
 
   /* ---------- 视觉效果计时 ---------- */
   function updateFx(dt) {
-    for (const arr of [G.rings, G.flashes, G.slashes, G.bolts]) {
+    for (const arr of [G.rings, G.flashes, G.slashes, G.bolts, G.pillars]) {
       for (let i = arr.length - 1; i >= 0; i--) { const f = arr[i]; f.t += dt; if (f.t >= f.dur) arr.splice(i, 1); }
     }
     for (let i = G.after.length - 1; i >= 0; i--) { const a = G.after[i]; a.t += dt; if (a.t > 0.28) G.after.splice(i, 1); }
@@ -1310,7 +1324,7 @@
     const s = clamp(G.stageT / G.stageDur, 0, 1);
     G.hpMul = S.hpMul * (1 + 0.75 * s);
     G.dmgMul = S.dmgMul * (1 + 0.3 * s);
-    G.spdMul = 1 + 0.05 * G.stage + 0.05 * s;
+    G.spdMul = 1 + 0.08 * G.stage + 0.06 * s;
     if (G.nextStageT > 0) {
       G.nextStageT -= dt;
       if (G.nextStageT <= 0) nextStage();
@@ -1358,6 +1372,7 @@
       const p = spawnPos(40);
       const e = spawnEnemy(S.elite, p[0], p[1], { hpMul: 1 });
       for (let i = 0; i < 5; i++) spawnEnemy(S.roster[0][0], p[0] + rand(-50, 50), p[1] + rand(-50, 50));
+      if (e) { G.pillars.push({ x: e.x, y: e.y, t: 0, dur: 1.2, col: '#ffd76b' }); ring(e.x, e.y, 10, 120, 0.6, '#ffd76b', 5); }
       if (e) banner('精英', Q.ENEMIES[S.elite].name + ' · 击碎护盾可使其眩晕', '#ffd76b');
       sfx('warn');
     } else if (k === 'swarm') {
@@ -1400,8 +1415,8 @@
     const e = eFree.pop();
     if (!e) return;
     Object.assign(e, mkEnemy(e.i));
-    const hp = bd.hp * Q.MODES[G.mode].bossMul * (1 + 0.025 * Math.max(0, G.level - [15, 24, 31][G.stage]));
-    Object.assign(e, { uid: ++G.uidc, alive: true, id: S.boss, d: bd, arch: 'boss', x, y, r: bd.r, hp, mhp: hp, spd: bd.spd, dmg: bd.dmg * (1 + 0.15 * G.stage), mass: 80, big: true, face: 1, spawnT: 0,
+    const hp = bd.hp * Q.MODES[G.mode].bossMul * (G.mobile ? 0.88 : 1) * (1 + 0.025 * Math.max(0, G.level - [14, 23, 31][G.stage]));
+    Object.assign(e, { uid: ++G.uidc, alive: true, id: S.boss, d: bd, arch: 'boss', x, y, r: bd.r, hp, mhp: hp, spd: bd.spd, dmg: bd.dmg, mass: 80, big: true, face: 1, spawnT: 0,
       boss: { id: S.boss, def: bd, phase: 1, state: 'intro', stT: 1.9, inv: 1.9, t: 0, pat: '', last: '', anim: 'idle', animT: 0, charging: 0, chargesLeft: 0, cdx: 0, cdy: 0, trailT: 0, strafe: 1, vanish: false, alpha: 1, emit: 0, emitT: 0, spA: 0, arms: 2, bgT: 0, bgA: 0, stagger: 0, enraged: false, fightT: 0, moving: false } });
     e.ai = eAct.length; eAct.push(e); G.big.push(e);
     G.boss = e; G.bossPending = false; G.bossHit = 0;
@@ -1553,8 +1568,8 @@
     start(e, b, pat) {
       if (pat === 'slam') {
         b.stT = 1.75; b.anim = 'raise'; b.animT = 0;
-        const pts = [[P.x, P.y, 100]], n = b.phase > 1 ? 4 : 2;
-        for (let i = 0; i < n; i++) { const a = Math.random() * TAU, d = rand(120, 240); pts.push([P.x + Math.cos(a) * d, P.y + Math.sin(a) * d, 82]); }
+        const pts = [[P.x, P.y + 12, 100]], n = b.phase > 1 ? 4 : 2;
+        for (let i = 0; i < n; i++) { const a = Math.random() * TAU, d = rand(120, 240); pts.push([P.x + Math.cos(a) * d, P.y + 12 + Math.sin(a) * d, 82]); }
         for (const [x, y, r] of pts) tele({ k: 'circle', x, y, r, dur: 1.05, dmg: e.dmg * 1.15, fx: 'fire', haz: b.phase > 1 ? 'fire' : null });
         bAfter(0.95, () => { b.anim = 'slam'; b.animT = 0; });
         bAfter(1.05, () => { shake(0.4); sfx('slam'); });
@@ -1584,7 +1599,7 @@
   function heyanCharge(e, b) {
     const a = Math.atan2(P.y - e.y, P.x - e.x);
     b.cdx = Math.cos(a); b.cdy = Math.sin(a); b.anim = 'charge'; b.face = b.cdx >= 0 ? 1 : -1;
-    tele({ k: 'line', x: e.x, y: e.y, ang: a, len: 900, w: e.r * 1.6, dur: 0.85, dmg: 0, follow: e, col: '#ff6a2a' });
+    tele({ k: 'line', x: e.x, y: e.y, ang: a, len: 900, w: e.r * 2, dur: 0.85, dmg: 0, follow: e, col: '#ff6a2a' });
     sfx('tele');
     bAfter(0.85, () => { if (!e.alive || b.state === 'dying') return; b.charging = 0.9; b.trailT = 0; sfx('bash'); shake(0.2); });
   }
@@ -1607,8 +1622,8 @@
       if (b.emit > 0) {
         b.emit -= dt; b.emitT -= dt;
         while (b.emitT <= 0 && b.emit > 0) {
-          b.emitT += 0.075; b.spA += 0.29;
-          for (let k = 0; k < b.arms; k++) fireBullet('ice', e.x, e.y, b.spA + (k / b.arms) * TAU, 160, e.dmg * 0.7);
+          b.emitT += 0.115; b.spA += 0.34;
+          for (let k = 0; k < b.arms; k++) fireBullet('ice', e.x, e.y, b.spA + (k / b.arms) * TAU, 150, e.dmg * 0.6);
         }
       }
     },
@@ -1636,8 +1651,8 @@
         const n = b.phase > 1 ? 4 : 3;
         for (let i = 0; i < n; i++) {
           const a = Math.random() * TAU, d = i === 0 ? 0 : rand(120, 260);
-          const x = P.x + P.vx * 0.5 + Math.cos(a) * d, y = P.y + P.vy * 0.5 + Math.sin(a) * d;
-          tele({ k: 'circle', x, y, r: 96, dur: 0.9, dmg: e.dmg * 0.6, fx: 'ice', haz: 'frost' });
+          const x = P.x + P.vx * 0.5 + Math.cos(a) * d, y = P.y + 12 + P.vy * 0.5 + Math.sin(a) * d;
+          tele({ k: 'circle', x, y, r: 96, dur: 1.0, dmg: e.dmg * 0.5, fx: 'ice', haz: 'frost' });
         }
         sfx('tele');
       }
@@ -1645,14 +1660,14 @@
   };
   function linyuanBlink(e, b, more) {
     b.vanish = true;
-    const tx = P.x + P.vx * 0.3, ty = P.y + P.vy * 0.3;
+    const tx = P.x + P.vx * 0.3, ty = P.y + 12 + P.vy * 0.3;
     tele({ k: 'circle', x: tx, y: ty, r: 125, dur: 1.15, dmg: e.dmg * 1.2, fx: 'ice' });
     burst(e.x, e.y, 30, Q.C.ice, 260, 0.6, 3, 0);
     sfx('tele');
     bAfter(1.15, () => {
       if (!e.alive || b.state === 'dying') return;
       e.x = tx; e.y = ty; b.vanish = false; b.alpha = 0.2;
-      for (let i = 0; i < 14; i++) fireBullet('ice', e.x, e.y, (i / 14) * TAU + Math.random() * 0.2, 170, e.dmg * 0.7);
+      for (let i = 0; i < 12; i++) fireBullet('ice', e.x, e.y, (i / 12) * TAU + Math.random() * 0.2, 160, e.dmg * 0.6);
       ring(e.x, e.y, 10, 180, 0.4, '#bff4ff', 6); shake(0.3); sfx('frost');
       if (more > 0) bAfter(0.5, () => { if (e.alive && b.state !== 'dying') linyuanBlink(e, b, more - 1); });
     });
@@ -1689,7 +1704,7 @@
         for (let i = 0; i < n; i++) bAfter(i * 0.13, () => {
           if (!e.alive || b.state === 'dying') return;
           const a = Math.random() * TAU, d = i === 0 ? 0 : rand(60, 280);
-          const x = P.x + P.vx * 0.4 + Math.cos(a) * d, y = P.y + P.vy * 0.4 + Math.sin(a) * d;
+          const x = P.x + P.vx * 0.4 + Math.cos(a) * d, y = P.y + 12 + P.vy * 0.4 + Math.sin(a) * d;
           G.meteors.push({ x, y, t: 0, dur: 0.95, R: 0, dmg: 0, evo: false, done: true, enemy: true });
           tele({ k: 'circle', x, y, r: 72, dur: 0.95, dmg: e.dmg, fx: 'star' });
         });
@@ -1731,8 +1746,8 @@
     const base = buildBase(pool);
     function buildBase(pre) {
       const out = pre.slice();
-      if ((G.lv[H.weapon] | 0) < 5) out.push({ type: 'up', id: H.weapon, w: 9 });
-      if ((G.lv[H.skill] | 0) < 3) out.push({ type: 'up', id: H.skill, w: 4.5 });
+      if ((G.lv[H.weapon] | 0) < 5) out.push({ type: 'up', id: H.weapon, w: 15 });
+      if ((G.lv[H.skill] | 0) < 3) out.push({ type: 'up', id: H.skill, w: 5 });
       for (const id of Q.SPELLS) {
         const L = G.lv[id] | 0;
         if (L >= 5 || (L === 0 && spellsOwned >= 5)) continue;
@@ -1793,7 +1808,13 @@
     G.choices.forEach((c, i) => {
       let s = Math.random();
       if (c.type === 'evo') s += 100;
-      else if (c.type === 'up') { const U = Q.UPG[c.id]; if (U.kind === 'weapon') s += 3; if (U.kind === 'spell') s += 2 + (G.lv[c.id] | 0) * 0.5; if (['might', 'haste', 'area', 'vital'].includes(c.id)) s += 1.5; }
+      else if (c.type === 'up') {
+        const U = Q.UPG[c.id], L = G.lv[c.id] | 0, nsp = Q.SPELLS.filter((id) => G.lv[id] > 0).length;
+        if (U.kind === 'weapon') s += 3.2;
+        if (U.kind === 'spell') s += L ? 2 + L * 0.5 : (nsp >= 3 ? 0.2 : 2.2);
+        if (U.kind === 'skill') s += 0.8;
+        if (['might', 'haste', 'area', 'vital', 'crit'].includes(c.id)) s += 1.5;
+      }
       if (s > bs) { bs = s; bi = i; }
     });
     return bi;
@@ -1898,8 +1919,9 @@
         const q = G.queue.shift();
         if (q.kind === 'level') {
           ring(P.x, P.y, 6, 120, 0.5, '#ffe9b0', 5); burst(P.x, P.y, 30, Q.C.gold, 260, 0.8, 2.6, 0, 2, -80);
+          G.pillars.push({ x: P.x, y: P.y, t: 0, dur: 0.9, col: '#ffe9b0' });
           sfx('levelup');
-        }
+        } else G.pillars.push({ x: P.x, y: P.y, t: 0, dur: 0.9, col: '#ffd76b' });
         openChoices(q.kind);
       }
     }

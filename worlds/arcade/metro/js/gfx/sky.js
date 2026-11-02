@@ -102,7 +102,7 @@ export class Sky {
           vec4 nb = textureLod(uNebTex, uv, 0.0);
           col += (uNebA * nb.r + uNebB * nb.g) * uNeb * 1.6;
           float sd = max(dot(d, uSunDir), 0.0);
-          col += uSunCol * (pow(sd, 2600.0) * 40.0 + pow(sd, 380.0) * 2.4 + pow(sd, 40.0) * 0.3 + pow(sd, 8.0) * 0.05) * uSunAmt;
+          col += uSunCol * (pow(sd, 3000.0) * 9.0 + pow(sd, 420.0) * 1.3 + pow(sd, 48.0) * 0.28 + pow(sd, 9.0) * 0.06) * uSunAmt;
           gl_FragColor = vec4(col, 1.0);
         }`,
     }));
@@ -223,7 +223,7 @@ export class Sky {
         void main() {
           float a = vUv.x * 720.0;
           float dash = smoothstep(0.85, 1.0, fract(a * 0.5 - uTime * 0.6)) * 0.8;
-          float train = smoothstep(0.992, 1.0, fract(vUv.x * 9.0 + uTime * 0.012)) * 2.2;
+          float train = smoothstep(0.994, 1.0, fract(vUv.x * 9.0 + uTime * 0.012)) * 0.9;
           float base = 0.28 + dash + train;
           gl_FragColor = vec4(uCol * base * uAmt, 1.0);
         }`,
