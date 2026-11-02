@@ -497,7 +497,7 @@ export function createShafts(scene) {
         gl_FragColor = vec4(uCol * edge * fade * flick * uOp, 1.0); }`,
   });
   const group = new THREE.Group();
-  const geo = new THREE.CylinderGeometry(3.6, 0.5, 34, 28, 1, true).translate(0, -17, 0);
+  const geo = new THREE.CylinderGeometry(0.5, 3.6, 34, 28, 1, true).translate(0, -17, 0);
   const defs = [[-4, 30, -3, 0.25, 0.35, 1.0], [5, 30, 2, -0.2, -0.3, 0.8], [1, 30, 6, -0.32, 0.1, 0.6], [-8, 28, 4, 0.1, 0.4, 0.5]];
   for (const [x, y, z, rx, rz, s] of defs) {
     const m = new THREE.Mesh(geo, mat);

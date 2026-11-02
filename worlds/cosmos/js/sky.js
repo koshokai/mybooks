@@ -107,7 +107,7 @@ export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, ba
     disk.material.opacity = 0.25 * opacity * f;
     group.visible = f > 0.001;
   };
-  group.material = mat;
+  group.galaxyMat = mat;
   return group;
 }
 

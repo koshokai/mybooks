@@ -232,7 +232,7 @@ export function buildDeep() {
       // 银心聚焦时压暗银河，免得遮住黑洞
       const dim = focusId === 'sgra' ? 0.3 : 1;
       dimS += (dim - dimS) * Math.min(1, dt * 2);
-      mw.material.uniforms.uOpacity.value = opacity * dimS;
+      mw.galaxyMat.uniforms.uOpacity.value = opacity * dimS;
       const t = shared.time.value;
       for (let i = 0; i < hereRings.length; i++) {
         const k = ((t * 0.5 + i * 0.5) % 1);

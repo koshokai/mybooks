@@ -145,7 +145,8 @@ const GEN = {
       }
       const m = fbm2(x * 3, y * 3, z * 3, 5); // 湿度
       const dry = clamp(0.5 + m * 1.5 - Math.abs(alat - 0.28) * 1.2 + (alat < 0.15 ? -0.5 : 0));
-      let c = e < 0.02 ? sand : mixc(mixc(green, dgreen, clamp(m * 2 + 0.5)), desert, smooth(0.45, 0.7, dry));
+      let c = mixc(mixc(green, dgreen, clamp(m * 2 + 0.5)), desert, smooth(0.45, 0.7, dry));
+      c = mixc(sand, c, smooth(0.0, 0.035, e) * 0.85 + 0.15);
       if (alat > 0.62) c = mixc(c, tundra, smooth(0.62, 0.78, alat));
       c = mixc(c, mount, smooth(0.16, 0.3, e));
       if (e > 0.3) c = mixc(c, ice, smooth(0.3, 0.38, e));

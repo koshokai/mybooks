@@ -65,8 +65,8 @@ export function sunMaterial() {
         vec3 col = mix(vec3(1.0,0.28,0.03), vec3(1.0,0.66,0.22), t);
         col = mix(col, vec3(1.0,0.93,0.75), smoothstep(0.72, 1.0, t));
         col *= 1. - spots*0.7;
-        col *= mix(0.45, 1.0, pow(mu, 0.5)) * 2.6;
-        col += vec3(1.0,0.45,0.1) * pow(1.-mu, 2.5) * 1.6;
+        col *= mix(0.4, 1.0, pow(mu, 0.5)) * 1.35;
+        col += vec3(1.0,0.4,0.08) * pow(1.-mu, 2.5) * 0.9;
         gl_FragColor = vec4(col, 1.);
       }`,
   });
@@ -86,9 +86,9 @@ export function coronaMaterial(core = 0.14, tint = [1.0, 0.5, 0.12]) {
         float d = max(r - uCore, 0.);
         float rays = snoise(vec3(cos(ang)*2.5, sin(ang)*2.5, uTime*0.12 - d*2.0))*.5+.5;
         float rays2 = snoise(vec3(cos(ang)*7., sin(ang)*7., uTime*0.2 - d*4.0))*.5+.5;
-        rays = pow(rays, 3.0)*1.4 + pow(rays2, 4.0)*0.6;
-        float glow = exp(-d*9.)*1.3 + exp(-d*2.6)*0.35 + exp(-d*1.0)*0.08;
-        float a = (glow + rays*exp(-d*3.2)) * smoothstep(1.0, 0.55, r);
+        rays = pow(rays, 3.0)*0.9 + pow(rays2, 4.0)*0.4;
+        float glow = exp(-d*10.)*0.9 + exp(-d*3.0)*0.22 + exp(-d*1.2)*0.05;
+        float a = (glow + rays*exp(-d*3.2)) * (1.0 - smoothstep(0.55, 1.0, r));
         vec3 col = mix(uTint, vec3(1.0,0.9,0.7), exp(-d*5.));
         gl_FragColor = vec4(col*a*uOpacity, 1.);
       }`,
@@ -131,7 +131,7 @@ export function starMaterial() {
     fragmentShader: `varying vec3 vC; varying float vT; uniform float uOpacity;
       void main(){
         vec2 c = gl_PointCoord - .5; float d = length(c);
-        float a = smoothstep(.5, .0, d); a = a*a*a + smoothstep(.12, .0, d)*0.6;
+        float a = 1.0 - smoothstep(.0, .5, d); a = a*a*a + (1.0 - smoothstep(.0, .12, d))*0.6;
         if (a < 0.003) discard;
         gl_FragColor = vec4(vC * a * (0.55 + 0.45*vT) * uOpacity, 1.);
       }`,
@@ -213,7 +213,7 @@ export function photonRingMaterial() {
         float halo = exp(-max(r-0.36,0.)*7.) * 0.25 * step(0.33, r);
         float bright = 0.6 + 0.4*cos(ang + 1.0);
         vec3 col = mix(vec3(1.0, 0.5, 0.15), vec3(1.0, 0.85, 0.6), ring*0.4);
-        gl_FragColor = vec4(col * (ring*bright + halo) * uOpacity * smoothstep(1.,.7,r), 1.);
+        gl_FragColor = vec4(col * (ring*bright + halo) * uOpacity * (1.0 - smoothstep(.7, 1., r)), 1.);
       }`,
   });
 }

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#120d22" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>植 · 万木有灵 Flora</title>
+  <script type="importmap">{"imports":{"three":"../../shared/vendor/three/three.module.min.js","three/addons/":"../../shared/vendor/three/addons/"}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="flora.css" />
+</head>
+<body>
+  <canvas id="scene" aria-label="植物世界：世界之树与漂浮的植物"></canvas>
+
+  <div id="tags" aria-hidden="false"></div>
+
+  <header class="top">
+    <a class="back" href="../../index.html" title="返回选择世界"><span class="arr">←</span> 返回 <b>植</b></a>
+    <div class="brand">
+      <b>植<i>·</i>万木有灵</b>
+      <em>Flora · A Living Herbarium</em>
+    </div>
+    <nav class="seasons" aria-label="切换季节"></nav>
+  </header>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <p id="hint">拖动环顾 · 点选漂浮的植物查看图鉴 · 轻点夜空撒落花雨</p>
+
+  <aside id="panel" class="panel" aria-label="植物图鉴">
+    <button id="pClose" class="pclose" title="关闭（Esc）" aria-label="关闭">✕</button>
+    <div class="pbody">
+      <div class="phead">
+        <div class="pglyph"><span id="pGlyph"></span></div>
+        <div class="pnames">
+          <div class="ptitle" id="pTitle"></div>
+          <h2 id="pName"></h2>
+          <div class="platin" id="pLatin"></div>
+        </div>
+      </div>
+      <div class="ptags" id="pTags"></div>
+      <button class="phint" id="pHint" hidden></button>
+      <section>
+        <h3>属性 <small>相对示意</small></h3>
+        <div id="pStats" class="stats"></div>
+      </section>
+      <section>
+        <h3>原产地</h3>
+        <p id="pOrigin"></p>
+      </section>
+      <section>
+        <h3>趣闻</h3>
+        <ul id="pFacts" class="facts"></ul>
+      </section>
+      <section class="quote">
+        <h3>文化意象</h3>
+        <p id="pCulture"></p>
+      </section>
+    </div>
+    <div class="pnav">
+      <button id="pPrev">‹ 上一株</button>
+      <span id="pCount"></span>
+      <button id="pNext">下一株 ›</button>
+    </div>
+  </aside>
+
+  <nav id="roster" class="roster" aria-label="植物图鉴列表"></nav>
+
+  <div id="intro" aria-hidden="true">
+    <div class="intro-glyph">植</div>
+    <div class="intro-sub">万 木 有 灵</div>
+    <div class="intro-en">Flora</div>
+  </div>
+
+  <noscript><p class="noscript">此页面需要启用 JavaScript 与 WebGL。</p></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
