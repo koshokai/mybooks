@@ -116,7 +116,7 @@
       </div>
       <p class="dlg-sub">花一点星尘重启核心，原地继续（每局一次）</p>
       <div class="col-btns">
-        <button class="btn btn-primary" id="rv-yes" type="button">续航 <span id="rv-cost">50</span> ✦</button>
+        <button class="btn btn-primary" id="rv-yes" type="button">续航 <span id="rv-cost">30</span> ✦</button>
         <button class="btn btn-text" id="rv-no" type="button">不用了，结算</button>
       </div>
       <p class="rv-have" id="rv-have"></p>
@@ -133,7 +133,8 @@
         <tr><td>里程</td><td id="o-dist">0 米</td><td id="o-distpts">0</td></tr>
         <tr><td>星尘</td><td id="o-motes">0</td><td id="o-motepts">0</td></tr>
         <tr><td>擦肩奖励</td><td id="o-near">0 次</td><td id="o-bonus">0</td></tr>
-        <tr class="o-mult"><td>永久倍率</td><td id="o-pw">道具 0 个</td><td id="o-mult">×1</td></tr>
+        <tr><td>道具</td><td id="o-pw">0 个</td><td></td></tr>
+        <tr class="o-mult"><td>永久倍率</td><td></td><td id="o-mult">×1</td></tr>
       </table>
       <p class="o-dust" id="o-dust"></p>
       <ol class="m-list compact" id="o-missions"></ol>
@@ -148,5 +149,9 @@
   <noscript><div class="nojs">需要启用 JavaScript 才能游玩星环列车。</div></noscript>
   <script src="../../../shared/arcade.js"></script>
   <script type="module" src="js/main.js"></script>
+  <script>/* 离线缓存 */
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || /[?&]sw\b/.test(location.search)))
+      addEventListener("load", () => navigator.serviceWorker.register("../../../sw.js", { scope: "../../../" }).catch(() => {}));
+  </script>
 </body>
 </html>

@@ -31,7 +31,15 @@ const AR = window.WXArcade || {
   getStardust: () => 0, addStardust: () => 0, spendStardust: () => false, getBest: () => null, recordBest: () => false, unlock: () => false,
 };
 const GAME_ID = 'metro';
-const REVIVE_COST = 50;
+const REVIVE_COST = 30;
+// 星尘账户折算：本局每收集 3 颗星尘，存入共享账户 1 点（与游戏厅其他游戏的收益持平）
+const DUST_PER_MOTE = 1 / 3;
+const toDust = (m) => Math.floor(m * DUST_PER_MOTE);
+function commitMotes() {
+  const add = toDust(sim.motes) - toDust(G.committed);
+  if (add > 0) AR.addStardust(add, GAME_ID);
+  G.committed = sim.motes;
+}
 const TITLE_BIOME = 4;
 
 function fail(msg) {
@@ -403,17 +411,18 @@ function resume() {
 function showCount(n) { UI.count.innerHTML = `<span>${n}</span>`; sound.countdown(false); }
 
 function onDead() {
-  const have = AR.getStardust() + (sim.motes - G.committed);
+  const pending = toDust(sim.motes) - toDust(G.committed);
+  const have = AR.getStardust() + pending;
   if (!sim.revived && have >= REVIVE_COST) {
     G.mode = 'revive'; G.reviveT = 5;
     $('#rv-cost').textContent = REVIVE_COST;
-    $('#rv-have').textContent = `可用星尘 ✦ ${fmt(have)}（含本局已收集 ${sim.motes - G.committed}）`;
+    $('#rv-have').textContent = `可用星尘 ✦ ${fmt(have)}（含本局折算 ${pending}）`;
     UI.mRevive.classList.add('show');
   } else gameOver();
 }
 function acceptRevive() {
   if (G.mode !== 'revive') return;
-  if (AR.getStardust() < REVIVE_COST) { const add = sim.motes - G.committed; AR.addStardust(add, GAME_ID); G.committed += add; }
+  if (AR.getStardust() < REVIVE_COST) commitMotes();
   if (!AR.spendStardust(REVIVE_COST)) { gameOver(); return; }
   UI.mRevive.classList.remove('show');
   sim.revive();
@@ -428,7 +437,7 @@ function gameOver() {
   G.mode = 'over';
   UI.mRevive.classList.remove('show');
   sound.stopLoops();
-  const add = sim.motes - G.committed; AR.addStardust(add, GAME_ID); G.committed = sim.motes;
+  commitMotes();
   const score = sim.score;
   const isBest = AR.recordBest(GAME_ID, score, 'high');
   checkMissions();
@@ -452,8 +461,8 @@ function gameOver() {
   $('#o-near').textContent = `${sim.stats.nearMiss} 次`;
   $('#o-bonus').textContent = fmt(sim.bonusPts);
   $('#o-mult').textContent = `×${mult}`;
-  $('#o-pw').textContent = `道具 ${sim.stats.powerups} 个`;
-  $('#o-dust').innerHTML = `本局星尘 <b>+${sim.motes}</b> 已存入星尘账户 · 现有 ✦ <b>${fmt(AR.getStardust())}</b>`;
+  $('#o-pw').textContent = `${sim.stats.powerups} 个`;
+  $('#o-dust').innerHTML = `收集 ✦ ${sim.motes}，折算 <b>+${toDust(sim.motes)}</b> 存入星尘账户 · 现有 ✦ <b>${fmt(AR.getStardust())}</b>`;
   $('#o-missions').innerHTML = missionsHtml(save.list(), null);
   $('#o-record').classList.toggle('on', isBest && score > 0);
   UI.mOver.classList.add('show');
@@ -813,6 +822,7 @@ window.__metro = {
     G.camX = sim.p.x * camParams().follow;
     G.camBase = sim.pw.jet > 0 || sim.p.grounded ? Math.max(0, sim.p.y) : G.camBase;
     robot.trailPts.length = 0;
+    robot.root.rotation.y = 0; robot.flipOn = false; robot.flip = 0;
     return window.__metro.state;
   },
   hideMain: (h) => { mainPass.enabled = !h; },

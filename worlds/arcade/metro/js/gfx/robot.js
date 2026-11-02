@@ -303,16 +303,23 @@ export class Robot {
       const head = pts.length > this.TN - 1 ? pts.pop() : {};
       head.x = wp.x; head.y = wp.y - 0.05; head.s = st.dist;
       pts.unshift(head);
-      while (pts.length > 1 && st.dist - pts[pts.length - 1].s > 22) pts.pop();
+      while (pts.length > 1 && st.dist - pts[pts.length - 1].s > 5.5) pts.pop(); // 拖尾止于镜头前方
     } else pts.length = 0;
     const pos = this.trail.geometry.attributes.position;
     const w0 = 0.2 + 0.12 * this.jetW;
+    // 把记录的点沿整条光带重新采样：光带总是从头到尾平滑淡出
+    const last = Math.max(0, pts.length - 1);
     for (let i = 0; i < this.TN; i++) {
-      const p = pts[Math.min(i, pts.length - 1)] || { x: st.x, y: st.y + 0.8, s: st.dist };
-      const z = st.dist - p.s + 0.32;
+      let x = st.x, y = st.y + 0.8, ss = st.dist;
+      if (pts.length) {
+        const u = (i / (this.TN - 1)) * last, k = Math.floor(u), f = u - k;
+        const a = pts[k], b = pts[Math.min(last, k + 1)];
+        x = a.x + (b.x - a.x) * f; y = a.y + (b.y - a.y) * f; ss = a.s + (b.s - a.s) * f;
+      }
+      const z = st.dist - ss + 0.32;
       const w = w0 * (1 - i / this.TN);
-      pos.setXYZ(i * 2, p.x - w, p.y, z);
-      pos.setXYZ(i * 2 + 1, p.x + w, p.y, z);
+      pos.setXYZ(i * 2, x - w, y, z);
+      pos.setXYZ(i * 2 + 1, x + w, y, z);
     }
     pos.needsUpdate = true;
     this.trailU.uCol.value.set(st.double ? '#ff6fd8' : st.jet ? '#ff9a4a' : st.magnet ? '#6fc8ff' : '#ffb547');

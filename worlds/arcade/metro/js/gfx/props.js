@@ -77,7 +77,7 @@ export class Props {
     this.atlas = atlas;
     const paint = bend(new THREE.MeshStandardMaterial({ map: atlas, vertexColors: true, roughness: 0.55, metalness: 0.25 }));
     const frame = bend(new THREE.MeshStandardMaterial({ map: atlas, vertexColors: true, roughness: 0.6, metalness: 0.45 }));
-    const glow = bend(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(2.6, 2.6, 2.6) }));
+    const glow = bend(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(1.7, 1.7, 1.7) }));
     this.glowMat = glow;
     this.blinkMat = bend(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(3, 3, 3) }));
     const signMat = bend(new THREE.MeshBasicMaterial({ map: atlas, vertexColors: true, toneMapped: false, color: new THREE.Color(1.5, 1.5, 1.5) }));
@@ -141,8 +141,8 @@ export class Props {
       }
       f.box(2.12, 0.26, 0.1, { y: 0.82, z: 0.04, color: 0xffffff, uv: ATLAS.hazard });
       f.box(0.32, 0.3, 1.2, { y: 0.8, z: -10.5, color: 0x22262e });
-      g.box(0.05, 0.05, 9.4, { x: -0.98, y: 2.44, z: -5, color: AMBER });
-      g.box(0.05, 0.05, 9.4, { x: 0.98, y: 2.44, z: -5, color: AMBER });
+      g.box(0.05, 0.05, 9.4, { x: -0.98, y: 2.44, z: -5, color: AMBER.clone().multiplyScalar(0.6) });
+      g.box(0.05, 0.05, 9.4, { x: 0.98, y: 2.44, z: -5, color: AMBER.clone().multiplyScalar(0.6) });
       for (const sx of [-0.78, 0.78]) g.box(0.22, 0.16, 0.05, { x: sx, y: 1.25, z: 0.03, color: RED });
       this.car = new Pool(scene, 48, [[p.build(), paint, true], [f.build(), frame, false], [g.build(), glow, false]]);
     }
@@ -153,13 +153,13 @@ export class Props {
       f.box(2.1, 0.12, L, { y: ROOF_H / 2 - 0.06, z: -RAMP_LEN / 2, rx: th, color: 0xffffff, uv: ATLAS.ramp });
       for (const sx of [-1.02, 1.02]) {
         f.box(0.1, 0.32, L, { x: sx, y: ROOF_H / 2 + 0.06, z: -RAMP_LEN / 2, rx: th, color: 0x2a3040 });
-        g.box(0.06, 0.05, L, { x: sx, y: ROOF_H / 2 + 0.24, z: -RAMP_LEN / 2, rx: th, color: AMBER });
+        g.box(0.05, 0.04, L, { x: sx, y: ROOF_H / 2 + 0.24, z: -RAMP_LEN / 2, rx: th, color: AMBER.clone().multiplyScalar(0.5) });
         f.box(0.16, ROOF_H, 0.16, { x: sx * 0.85, y: ROOF_H / 2, z: -RAMP_LEN + 0.3, color: 0x2a3040 });
         f.box(0.14, ROOF_H * 0.5, 0.14, { x: sx * 0.85, y: ROOF_H * 0.25, z: -RAMP_LEN / 2, color: 0x2a3040 });
       }
       for (let i = 0; i < 4; i++) {
         const t = (i + 0.7) / 4.4, z = -RAMP_LEN * t, y = ROOF_H * t + 0.02;
-        for (const sd of [-1, 1]) g.box(0.6, 0.03, 0.12, { x: sd * 0.26, y, z: z + 0.12, rx: th, ry: sd * 0.7, color: AMBER });
+        for (const sd of [-1, 1]) g.box(0.5, 0.03, 0.085, { x: sd * 0.22, y, z: z + 0.1, rx: th, ry: sd * 0.7, color: AMBER.clone().multiplyScalar(0.8) });
       }
       this.ramp = new Pool(scene, 14, [[f.build(), frame, false], [g.build(), glow, false]]);
     }
@@ -330,7 +330,7 @@ export class Props {
     const blink = 0.35 + 0.65 * (Math.sin(time * 7) > 0 ? 1 : 0.15);
     this.blinkMat.color.setRGB(3 * blink, 3 * blink, 3 * blink);
     this.beaconMat.color.setRGB(Math.sin(time * 14) > 0 ? 5 : 0.4, 0.5, 0.3);
-    this.glowMat.color.setScalar(2.4);
+    this.glowMat.color.setScalar(1.7);
 
     // 星尘
     let n = 0;
@@ -340,12 +340,13 @@ export class Props {
       for (let i = 0; i < ms.length && n < 700; i++) {
         const m = ms[i];
         if (!m.alive) continue;
-        if (m.s < near) continue;
+        if (m.s < dist - 2.6 && !(m.home > 0)) continue; // 错过的星尘越过小轨后就收起，不在镜头前放大
         if (m.s > far) break;
         const ph = m.s * 0.37;
         _e.set(0, time * 2.6 + ph, 0); _q.setFromEuler(_e);
         _p.set(m.x, m.y + Math.sin(time * 3 + ph) * 0.07, dist - m.s);
-        const sc = m.home > 0 ? 1 - Math.min(1, m.home) * 0.6 : 1;
+        const passed = m.home > 0 ? 1 : Math.min(1, Math.max(0, (m.s - dist + 2.6) / 2.6));
+        const sc = (m.home > 0 ? 1 - Math.min(1, m.home) * 0.6 : 1) * passed;
         _s.set(sc, sc, sc);
         _m.compose(_p, _q, _s);
         this.motes.setMatrixAt(n, _m);

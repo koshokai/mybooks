@@ -36,7 +36,7 @@ export const BIOMES = [
     hemiSky: '#6a8cff', hemiGround: '#1a1a3a', hemiInt: 0.75, keyCol: '#9fc0ff', keyInt: 1.5, keyDir: [-0.3, 0.9, 0.2],
     haze: '#1a2a6a', hazeAmt: 0.6,
     deckBase: '#232a44', deckLine: '#ff5ad8', deckGlow: '#5ae8ff', rail: '#b8c8ff', lamp: '#8fd8ff',
-    exposure: 1.1, bloom: 0.85, asteroids: 0, aurora: 0, auroraA: '#3dffb0', auroraB: '#7a5cff', dust: '#9fb8ff',
+    exposure: 1.1, bloom: 0.74, asteroids: 0, aurora: 0, auroraA: '#3dffb0', auroraB: '#7a5cff', dust: '#9fb8ff',
   },
   {
     id: 'belt', name: '碎星带', en: 'ASTEROID BELT', sub: '穿过古老的岩石环',
@@ -60,7 +60,7 @@ export const BIOMES = [
     hemiSky: '#6affd0', hemiGround: '#0a2030', hemiInt: 0.85, keyCol: '#a8ffe8', keyInt: 1.6, keyDir: [0.2, 0.9, -0.3],
     haze: '#0a4a4a', hazeAmt: 0.6,
     deckBase: '#1e3038', deckLine: '#5affb0', deckGlow: '#ff6ad8', rail: '#c8fff0', lamp: '#b8ffe8',
-    exposure: 1.1, bloom: 0.85, asteroids: 0, aurora: 1, auroraA: '#3dffb0', auroraB: '#c45cff', dust: '#b8ffe8',
+    exposure: 1.1, bloom: 0.74, asteroids: 0, aurora: 1, auroraA: '#3dffb0', auroraB: '#c45cff', dust: '#b8ffe8',
   },
 ];
 

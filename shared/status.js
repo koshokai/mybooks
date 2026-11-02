@@ -15,5 +15,5 @@ window.WX_READY = {
   racing: true,
   orbit: true,
   shadow: true,
-  metro: false,
+  metro: true,
 };
