@@ -14,6 +14,6 @@ window.WX_READY = {
   quest: false,
   racing: false,
   orbit: true,
-  shadow: false,
+  shadow: true,
   metro: false,
 };

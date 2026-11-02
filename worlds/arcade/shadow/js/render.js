@@ -17,8 +17,8 @@
 
   const QUAL = [
     { ls: 0.36, los: 180, flash: 60, beam: 36, dust: 36, grain: false, dpr: 1.25 },
-    { ls: 0.5, los: 260, flash: 84, beam: 50, dust: 70, grain: true, dpr: 1.75 },
-    { ls: 0.62, los: 360, flash: 112, beam: 66, dust: 110, grain: true, dpr: 2 },
+    { ls: 0.5, los: 260, flash: 84, beam: 50, dust: 70, grain: false, dpr: 1.75, haze: true },
+    { ls: 0.62, los: 360, flash: 112, beam: 66, dust: 110, grain: true, dpr: 2, haze: true },
   ];
 
   const R = (U.Render = {
@@ -1289,11 +1289,13 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'multiply';
     ctx.drawImage(R.light, 0, 0, R.cv.width, R.cv.height);
-    // 体积光雾
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = attract ? 0.16 : 0.11;
-    ctx.drawImage(R.light, 0, 0, R.cv.width, R.cv.height);
-    ctx.globalAlpha = 1;
+    // 体积光雾（最低档省掉这一遍全屏绘制）
+    if (Q.haze) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = attract ? 0.16 : 0.11;
+      ctx.drawImage(R.light, 0, 0, R.cv.width, R.cv.height);
+      ctx.globalAlpha = 1;
+    }
     ctx.globalCompositeOperation = 'source-over';
 
     /* ---- 记忆中的轮廓 ---- */
@@ -1763,11 +1765,21 @@
   };
 
   // 自适应画质：根据每帧实际耗时升降
+  // 同时看脚本耗时和真实帧间隔（GPU 合成吃紧时脚本耗时并不高）
+  R.frameAvg = 1 / 60;
   R.adapt = function (dt) {
     if (R.qLock) return;
+    if (dt > 0 && dt < 0.1) R.frameAvg += (dt - R.frameAvg) * 0.05;
     R.qTimer += dt;
     if (R.qTimer < 2) return;
-    if (R.workAvg > 13 && R.q > 0) { R.setQuality(R.q - 1); R.qTimer = 0; R.workAvg = 8; }
-    else if (R.workAvg < 5 && R.q < R.qMax && R.qTimer > 6) { R.setQuality(R.q + 1); R.qTimer = 0; R.workAvg = 8; }
+    const slow = R.workAvg > 13 || R.frameAvg > 0.027;
+    if (slow && R.q > 0) {
+      if (R.raisedAt != null && R.qTimer < 8) R.noRaise = true; // 刚升档又卡：这次不再尝试
+      R.setQuality(R.q - 1);
+      R.qTimer = 0; R.workAvg = 8; R.frameAvg = 1 / 60; R.raisedAt = null;
+    } else if (!R.noRaise && R.workAvg < 5 && R.frameAvg < 0.019 && R.q < R.qMax && R.qTimer > 6) {
+      R.setQuality(R.q + 1);
+      R.qTimer = 0; R.workAvg = 8; R.raisedAt = 0;
+    }
   };
 })();

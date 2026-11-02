@@ -68,6 +68,7 @@
       recoverT: 0, stunT: 0, ripT: 0, lookT: 0, idleT: 1.5, searchT: 0, sniff: null, sniffT: 0, sniffed: [],
       gait: 0, stepPh: 0, stuckT: 0, lastPos: { x: ws.x, y: ws.y },
       sawHide: null, enraged: false, eyeK: 1, room: ws.room, prevRoom: -1, nearT: -99, minRecent: 99,
+      stateT: 0, prevState: 'patrol', strikes: 0, finRef: null, finBest: 99, finT: 0,
     };
     this.warden.faceTarget = this.warden.face;
   }
@@ -672,6 +673,16 @@
     }
   };
 
+  G.giveUp = function () {
+    const w = this.warden;
+    w.state = 'patrol';
+    w.idleT = 0.5;
+    w.susp *= 0.5;
+    w.sniff = null;
+    w.path = null;
+    this.emit('giveUp', {});
+  };
+
   G.pickPatrolRoom = function () {
     const M = this.map, p = this.player, w = this.warden, D = this.D;
     const calm = this.t - this.lastTension;
@@ -702,7 +713,13 @@
     while (tgt && w.pi < w.path.length - 1 && Math.hypot(tgt.x - w.x, tgt.y - w.y) < 0.35) { w.pi++; tgt = w.path[w.pi]; }
     if (!tgt) { w.path = null; return true; }
     const dx = tgt.x - w.x, dy = tgt.y - w.y, d = Math.hypot(dx, dy);
-    if (w.pi >= w.path.length - 1 && d < 0.18) { w.path = null; w.vx *= 0.5; w.vy *= 0.5; return true; }
+    if (w.pi >= w.path.length - 1) {
+      // 终点：到了，或者 0.5 秒没有更靠近（被道具挡住一点点），都算到达，绝不原地僵住
+      if (w.finRef !== tgt) { w.finRef = tgt; w.finBest = d; w.finT = 0; }
+      else if (d < w.finBest - 0.02) { w.finBest = d; w.finT = 0; }
+      else w.finT += dt;
+      if (d < 0.18 || (w.finT > 0.5 && d < 1.2)) { w.path = null; w.vx *= 0.5; w.vy *= 0.5; return true; }
+    }
     w.gait += dt * speed * 1.6;
     const lurch = 0.76 + 0.48 * Math.pow(Math.abs(Math.sin(w.gait)), 0.65);
     const v = speed * lurch * Math.min(1, d / 0.35 + 0.35);
@@ -768,6 +785,7 @@
         break;
       }
       case 'investigate': {
+        if (w.stateT > 22 + 12 * w.urgency) { this.startSearch(w.x, w.y); break; }
         if (w.stare > 0 && w.urgency < 0.9) { this.stareAt(dt); break; }
         const sp = Math.min(U.lerp(D.wInvest * 0.85, D.wChase * 0.95, w.urgency) * sm, this.chaseSpeed());
         const arrived = this.moveAlong(sp, dt);
@@ -780,8 +798,10 @@
       }
       case 'chase': this.chase(dt, sm); look = 0; break;
       case 'search': {
-        if (w.stare > 0) { this.stareAt(dt); break; }
         w.searchT -= dt;
+        // 搜寻有硬性时限：无论走没走到、闻没闻完，到点就放弃
+        if (w.searchT < -5) { this.giveUp(); break; }
+        if (w.stare > 0) { this.stareAt(dt); break; }
         if (w.sniff) {
           // 在你藏身的柜子前停下……
           const L = w.sniff;
@@ -806,7 +826,7 @@
           look = 1.4;
           if (w.lookT > 1.5) {
             w.lookT = 0;
-            if (w.searchT <= 0) { w.state = 'patrol'; w.idleT = 0.5; w.susp *= 0.5; this.emit('giveUp', {}); break; }
+            if (w.searchT <= 0) { this.giveUp(); break; }
             const L = p.hidden && !p.hidden.attract ? p.hidden : null;
             if (L && !w.sniffed.includes(L) && Math.hypot(L.cx - w.x, L.cy - w.y) < 6 && this.rng() < 0.7) {
               w.sniff = L; w.sniffT = 0; w.sniffed.push(L);
@@ -835,8 +855,11 @@
         if (w.recoverT <= 0) {
           w.state = 'chase';
           w.lastSeenT = this.t;
-          w.lastSeen = { x: p.x, y: p.y };
-          w.lastVel = { x: p.vx, y: p.vy };
+          // 只有真的还看得见你，才更新你的位置；否则只记得出手那一刻
+          if (!p.hidden && !p.vent && M.los(w.x, w.y, p.x, p.y)) {
+            w.lastSeen = { x: p.x, y: p.y };
+            w.lastVel = { x: p.vx, y: p.vy };
+          }
           w.repath = 0;
         }
         break;
@@ -844,6 +867,7 @@
       case 'openLocker': {
         const L = w.sawHide;
         if (!L || p.hidden !== L) { w.sawHide = null; w.state = 'chase'; w.lastSeenT = this.t; break; }
+        if (w.stateT > 12) { w.sawHide = null; this.startSearch(w.x, w.y); break; }
         const d = Math.hypot(L.cx - w.x, L.cy - w.y);
         if (d > 0.8) {
           w.repath -= dt;
@@ -880,17 +904,20 @@
     const turn = w.state === 'chase' ? 7 : w.state === 'stunned' ? 0.5 : 3.2;
     if (w.windup <= 0 && w.dash <= 0) w.face = U.turnTo(w.face, w.faceTarget, turn * dt);
 
-    // 卡住检测
+    // 卡住检测：先重新寻路，再不行就放弃这个目标
     w.stuckT += dt;
     if (w.stuckT > 1.3) {
       const moved = Math.hypot(w.x - w.lastPos.x, w.y - w.lastPos.y);
-      if (moved < 0.2 && w.path && (w.state === 'patrol' || w.state === 'search' || w.state === 'investigate')) {
-        if (w.state === 'patrol') { w.path = null; w.idleT = 0; }
+      if (moved < 0.2 && w.path && (w.state === 'patrol' || w.state === 'search' || w.state === 'investigate' || w.state === 'openLocker')) {
+        w.strikes = (w.strikes || 0) + 1;
+        if (w.state === 'patrol' || w.strikes >= 2) { w.path = null; w.strikes = 0; if (w.state === 'patrol') w.idleT = 0; }
         else if (w.goal) this.setGoal(w.goal.x, w.goal.y);
-      }
+      } else w.strikes = 0;
       w.stuckT = 0;
       w.lastPos = { x: w.x, y: w.y };
     }
+    // 每个状态持续了多久（各状态的硬性时限用）
+    if (w.state !== w.prevState) { w.prevState = w.state; w.stateT = 0; } else w.stateT += dt;
 
     // 眼睛亮度
     let ek = 1;
@@ -1058,6 +1085,8 @@
     const a = Math.atan2(p.y - w.y, p.x - w.x);
     p.vx = Math.cos(a) * 7.5;
     p.vy = Math.sin(a) * 7.5;
+    w.lastSeen = { x: p.x, y: p.y };
+    w.lastVel = { x: p.vx, y: p.vy };
     w.state = 'recover';
     w.recoverT = 1.65;
     w.windup = 0; w.dash = 0; w.path = null;

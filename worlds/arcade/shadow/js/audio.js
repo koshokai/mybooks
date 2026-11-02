@@ -533,6 +533,8 @@
     [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, null, t + i * 0.07, 0.6, 0.06, d, 0.01));
   };
 
+  A._names = () => Object.keys(S); // 调试用
+  A._raw = (name, o) => S[name](o || {});
   A.play = function (name, o) {
     if (!A.ready || A.muted) return;
     const fn = S[name];

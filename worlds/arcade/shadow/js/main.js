@@ -344,6 +344,7 @@
     acc = 0;
     fx.hurt = 0; fx.cracks = null; fx.crackLvl = 0; fx.glitch = 0; fx.endFade = 0;
     toastQ = []; hintQ = []; hintBusy = false; el.hint.classList.remove('show');
+    achQ = []; // 上一局的成就已经列在结算卡上了
     $$('.modal').forEach(m => m.classList.remove('show'));
     showScreen('play');
     R.camInit = false;

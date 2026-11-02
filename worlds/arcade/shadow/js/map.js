@@ -247,10 +247,17 @@
     const raw = [];
     for (let c = gIdx; c >= 0; c = from[c]) raw.push(c);
     raw.reverse();
+    // 终点必须是实体真正能站到的位置：
+    // 目标格不可走时用最近可走格的中心；可走时也只允许偏离格心 0.12，
+    // 这样半径 0.36 的守夜者永远够得着，不会被道具卡住“永远差一点到”
+    const gcx = gx + 0.5, gcy = gy + 0.5;
+    const fin = exactGoal
+      ? { x: U.clamp(tx, gcx - 0.12, gcx + 0.12), y: U.clamp(ty, gcy - 0.12, gcy + 0.12) }
+      : { x: gcx, y: gcy };
     const pts = [{ x: sx, y: sy }];
     for (let k = 1; k < raw.length; k++) pts.push({ x: (raw[k] % W) + 0.5, y: ((raw[k] / W) | 0) + 0.5 });
-    if (exactGoal && pts.length > 1) pts[pts.length - 1] = { x: tx, y: ty };
-    if (pts.length === 1) pts.push({ x: tx, y: ty });
+    if (pts.length > 1) pts[pts.length - 1] = fin;
+    else pts.push(fin);
     return this.smoothPath(pts, r || 0.36);
   };
 
