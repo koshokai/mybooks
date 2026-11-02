@@ -205,7 +205,7 @@
 
   /* ---------- 模式 ---------- */
   Q.MODES = {
-    normal: { id: 'normal', name: '远征', sub: '约 10 分钟 · 三程三首领', stageDur: 180, xpMul: 1, bossMul: 1, dustMul: 1 },
-    quick: { id: 'quick', name: '速战', sub: '约 5 分钟 · 节奏更快', stageDur: 90, xpMul: 2.1, bossMul: 0.7, dustMul: 0.6 },
+    normal: { id: 'normal', name: '远征', sub: '约 11 分钟 · 三程三首领', stageDur: 160, xpMul: 1.12, bossMul: 1, dustMul: 1 },
+    quick: { id: 'quick', name: '速战', sub: '约 6 分钟 · 节奏加倍', stageDur: 80, xpMul: 2.35, bossMul: 0.7, dustMul: 0.6 },
   };
 })();

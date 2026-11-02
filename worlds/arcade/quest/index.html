@@ -11,7 +11,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" /></noscript>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -55,8 +56,8 @@
     </div>
     <footer class="sel-foot">
       <div class="modes" id="modes" role="radiogroup" aria-label="模式">
-        <button class="mode" data-mode="normal" type="button"><b>远征</b><small>约 10 分钟 · 三程三首领</small></button>
-        <button class="mode" data-mode="quick" type="button"><b>速战</b><small>约 5 分钟 · 节奏加倍</small></button>
+        <button class="mode" data-mode="normal" type="button"><b>远征</b><small>约 11 分钟 · 三程三首领</small></button>
+        <button class="mode" data-mode="quick" type="button"><b>速战</b><small>约 6 分钟 · 节奏加倍</small></button>
       </div>
       <button class="btn btn-primary big" id="btn-go" type="button">出征</button>
     </footer>
@@ -181,5 +182,9 @@
   <script src="js/input.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
+  <script>/* 离线缓存 */
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || /[?&]sw\b/.test(location.search)))
+      addEventListener("load", () => navigator.serviceWorker.register("../../../sw.js", { scope: "../../../" }).catch(() => {}));
+  </script>
 </body>
 </html>

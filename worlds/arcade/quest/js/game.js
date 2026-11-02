@@ -159,7 +159,7 @@
     buildEvents();
     G.cam.x = 0; G.cam.y = 0;
   }
-  function xpFor(L) { return Math.round(4 + (L - 1) * 8 + Math.pow(L - 1, 1.9) * 0.85); }
+  function xpFor(L) { return Math.round(3 + (L - 1) * 7 + Math.pow(L - 1, 1.9) * 0.72); }
   Q.xpFor = xpFor;
 
   function buildEvents() {
@@ -1608,7 +1608,7 @@
   }
   BAI.linyuan = {
     pats: ['spikes', 'spiral', 'blink', 'wolves', 'field', 'spikes'],
-    idle: (b) => (b.phase > 1 ? 0.6 : 0.95),
+    idle: (b) => (b.phase > 1 ? 0.8 : 1.15),
     move(e, b, dt) {
       if (b.vanish) { b.alpha = Math.max(0, b.alpha - dt * 4); return; }
       b.alpha = Math.min(1, b.alpha + dt * 4);
@@ -1646,12 +1646,12 @@
         linyuanBlink(e, b, b.phase > 1 ? 1 : 0);
       } else if (pat === 'wolves') {
         b.stT = 1.1;
-        const n = b.phase > 1 ? 12 : 9, R = 340;
+        const n = b.phase > 1 ? 9 : 7, R = 390;
         for (let i = 0; i < n; i++) { const a = (i / n) * TAU; const w = spawnEnemy('wolf', P.x + Math.cos(a) * R, P.y + Math.sin(a) * R); if (w) burst(w.x, w.y, 6, Q.C.ice, 120, 0.4, 2.4, 0); }
         sfx('roar'); banner('', '霜狼群自林中扑出', '#9fe8ff');
       } else if (pat === 'field') {
         b.stT = 1.0;
-        const n = b.phase > 1 ? 4 : 3;
+        const n = b.phase > 1 ? 3 : 2;
         for (let i = 0; i < n; i++) {
           const a = Math.random() * TAU, d = i === 0 ? 0 : rand(120, 260);
           const x = P.x + P.vx * 0.5 + Math.cos(a) * d, y = P.y + 12 + P.vy * 0.5 + Math.sin(a) * d;

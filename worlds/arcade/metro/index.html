@@ -148,7 +148,8 @@
 
   <noscript><div class="nojs">需要启用 JavaScript 才能游玩星环列车。</div></noscript>
   <script src="../../../shared/arcade.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <!-- 先把标题画面画出来，再开始构建 3D 场景 -->
+  <script type="module">requestAnimationFrame(() => setTimeout(() => import("./js/main.js"), 30));</script>
   <script>/* 离线缓存 */
     if ("serviceWorker" in navigator && (location.protocol === "https:" || /[?&]sw\b/.test(location.search)))
       addEventListener("load", () => navigator.serviceWorker.register("../../../sw.js", { scope: "../../../" }).catch(() => {}));

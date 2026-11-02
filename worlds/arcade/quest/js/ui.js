@@ -168,7 +168,7 @@
     }, 400);
     if ((Q.save.stats.runs | 0) < 2) {
       setTimeout(() => { if (UI.runId === runId && G.state === 'play') UI.banner('', '拾取星晶升级 · 法术满级再配上对应天赋，即可进化', '#ffe9b0'); }, 3600);
-      setTimeout(() => { if (UI.runId === runId && G.state === 'play') UI.banner('', (mode === 'quick' ? '九十秒' : '三分钟') + '后，首领将随坠星降临 · 留意地面的预警圈', '#ff9a3c'); }, 7400);
+      setTimeout(() => { if (UI.runId === runId && G.state === 'play') UI.banner('', Q.MODES[mode].stageDur + ' 秒后，首领将随坠星降临 · 留意地面的预警圈', '#ff9a3c'); }, 7400);
     }
   }
   UI.startRun = startRun;
