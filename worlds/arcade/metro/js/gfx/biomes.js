@@ -18,7 +18,7 @@ export const BIOMES = [
     id: 'dusk', name: '晨昏线', en: 'TERMINATOR', sub: '白昼与黑夜在脚下交界',
     skyTop: '#06030f', skyMid: '#3a1838', skyBot: '#120a1c', nebA: '#6a2a5a', nebB: '#2a2a6a', neb: 0.22, stars: 0.5,
     sunDir: [-0.636, -0.135, -0.758], sunCol: '#ffb070', sunAmt: 1.0,
-    pLight: [-0.62, 0.07, -0.78], pOcean: '#173f86', pDeep: '#071637', pLand: '#4a6e3c', pDesert: '#b88a5a', pCloud: '#ffe6d0', pCloudAmt: 0.95,
+    pLight: [-0.75, 0.45, -0.48], pOcean: '#173f86', pDeep: '#071637', pLand: '#4a6e3c', pDesert: '#b88a5a', pCloud: '#ffe6d0', pCloudAmt: 0.95,
     pCity: '#ffbe5c', pCityAmt: 0.8, pAtmo: '#ff9a5a', pAtmoN: '#3a2a7a', pTerm: '#ff6a2a', pSpec: 1.0,
     ring: '#ffc890', ringAmt: 0.8,
     hemiSky: '#ffb890', hemiGround: '#40284a', hemiInt: 1.0, keyCol: '#ffae6e', keyInt: 2.4, keyDir: [-0.8, 0.45, -0.3],

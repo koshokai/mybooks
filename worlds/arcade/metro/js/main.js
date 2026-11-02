@@ -32,7 +32,7 @@ const AR = window.WXArcade || {
 };
 const GAME_ID = 'metro';
 const REVIVE_COST = 50;
-const TITLE_BIOME = 1;
+const TITLE_BIOME = 4;
 
 function fail(msg) {
   document.body.classList.remove('is-loading');
@@ -87,6 +87,7 @@ const robot = new Robot(scene);
 const fx = new FX(scene, renderer);
 const decor = new Decor(scene);
 const sound = new Sound();
+sound.biome = TITLE_BIOME;
 const save = new Save();
 const sim = new Sim();
 
