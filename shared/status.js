@@ -12,7 +12,7 @@ window.WX_READY = {
   books: true,
   // 游戏厅里的游戏
   quest: false,
-  racing: false,
+  racing: true,
   orbit: true,
   shadow: true,
   metro: false,

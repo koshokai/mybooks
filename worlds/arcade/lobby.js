@@ -8,15 +8,23 @@
     { id: "quest", glyph: "征", name: "远征", en: "Starfall Expedition", genre: "奇幻 · 动作 RPG", color: "#ff6b4a",
       desc: "选一位英雄，在星陨之地的怪潮里升级、挑技能、打首领。", href: "quest/", best: (v) => `最佳 ${fmtTime(v)}` },
     { id: "racing", glyph: "速", name: "星际竞速", en: "Star Racer", genre: "飞船 · 竞速", color: "#4de8ff",
-      desc: "悬浮飞船在霓虹赛道上漂移、蓄力加速，和五名对手抢第一。", href: "racing/" },
+      desc: "悬浮飞船在霓虹赛道上漂移、蓄力加速，和五名对手抢第一。", href: "racing/",
+      rec: () => pickRecord([["abyss", "幽冥视界"], ["ember", "赤炎环带"], ["harbor", "霓虹星港"]], "racing", (v, n) => `最快 ${n} ${fmtMs(v)}`) },
     { id: "orbit", glyph: "轨", name: "星轨", en: "Orbit Sling", genre: "引力 · 解谜", color: "#ff7ad9",
       desc: "拉开、松手，借行星引力绕出完美弧线，收集星尘、穿过虫洞。", href: "../game/", best: (v) => `已得 ${v} 星` },
     { id: "shadow", glyph: "影", name: "暗域", en: "Umbra Station", genre: "潜行 · 追逐", color: "#b48cff",
-      desc: "漂流的废弃空间站里，打着手电修复信标——有什么东西在跟着你。", href: "shadow/" },
+      desc: "漂流的废弃空间站里，打着手电修复信标——有什么东西在跟着你。", href: "shadow/",
+      rec: () => pickRecord([["nightmare", "噩梦"], ["normal", "标准"], ["easy", "轻松"]], "shadow", (v, n) => `${n}逃脱 ${fmtTime(v / 1000)}`) },
     { id: "metro", glyph: "驰", name: "星环列车", en: "Ring Rail", genre: "跑酷 · 列车", color: "#ffb547",
       desc: "小机器人「小轨」在环绕星球的货运轨道上狂奔、换轨、飞跃。", href: "metro/", best: (v) => `最高 ${Number(v).toLocaleString()} 分` },
   ];
   const fmtTime = (s) => { s = Math.round(+s || 0); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const fmtMs = (ms) => { const s = (+ms || 0) / 1000; return `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}`; };
+  // 依次查找各赛道 / 难度的纪录，显示最难的那一项
+  const pickRecord = (list, prefix, fmt) => {
+    for (const [id, name] of list) { const v = A.getBest(`${prefix}:${id}`); if (v != null) return fmt(v, name); }
+    return null;
+  };
 
   /* ---------- 机台 ---------- */
   const hall = $("#hall");
@@ -103,7 +111,8 @@
       const el = hall.querySelector(`[data-rec="${g.id}"]`);
       const best = A.getBest(g.id), earned = A.earnedBy(g.id);
       const parts = [];
-      if (best != null && g.best) parts.push(g.best(best));
+      if (g.rec) { const r = g.rec(); if (r) parts.push(r); }
+      else if (best != null && g.best) parts.push(g.best(best));
       if (earned) parts.push(`累计星尘 ${earned.toLocaleString()}`);
       el.textContent = parts.join(" · ") || "尚未开局";
     });
