@@ -514,18 +514,14 @@ function setMode(mode) {
   ui.dockTitle.textContent = mode === 'solar' ? '选择天体' : '深空图鉴';
   ui.dockSub.textContent = mode === 'solar' ? 'Choose your world' : 'Deep-sky atlas';
   buildCards();
-  const f0 = state.deepFade, b0 = state.bandFade;
   if (mode === 'deep') {
     setOrbitHighlight(null);
-    tween(3.6, (e) => { state.deepFade = lerp(f0, 1, clamp(e * 1.4 - 0.2)); state.bandFade = lerp(b0, 0, clamp(e * 1.6)); },
-      () => { solar.group.visible = false; });
-    // 从太阳系一路拉远到银河系全景
+    // 从太阳系一路拉远到银河系全景（淡入淡出在主循环里平滑完成）
     const o = deep.objects.get('milkyway');
     controls.minDistance = 300; controls.maxDistance = 26000;
     flyTo({ getTarget: (v) => v.copy(GAL_CENTER), dir: o.view, dist: o.dist * (isMobile() ? 1.6 : 1), dur: 4.2, arc: 0.0 });
   } else {
     solar.group.visible = true;
-    tween(3.6, (e) => { state.deepFade = lerp(f0, 0, clamp(e * 1.5)); state.bandFade = lerp(b0, 1, clamp(e * 1.4 - 0.3)); });
     goSolarOverview(4.0);
   }
 }
@@ -672,6 +668,14 @@ function frame() {
     state.simTime += dt * state.timeScale;
     solar.update(dt, state.simTime, camera, state.focus);
   }
+  // 模式淡入淡出：深空里聚焦太阳附近的天体时，重新显出银河光带作背景
+  const approach = (x, t, k) => x + (t - x) * (1 - Math.exp(-dt * k));
+  const deepMode = state.mode === 'deep';
+  state.deepFade = approach(state.deepFade, deepMode ? 1 : 0, deepMode ? 0.9 : 1.8);
+  state.bandFade = approach(state.bandFade, deepMode ? (NEAR_SUN.has(state.focus) ? 0.75 : 0) : 1, deepMode ? 1.6 : 1.0);
+  if (state.deepFade < 0.002) state.deepFade = 0;
+  if (state.deepFade > 0.998) state.deepFade = 1;
+  if (deepMode && state.deepFade > 0.97 && solar.group.visible && !fly) solar.group.visible = false;
   deep.setOpacity(state.deepFade);
   deep.update(dt, camera, state.focus);
   sky.setBandOpacity(state.bandFade);
