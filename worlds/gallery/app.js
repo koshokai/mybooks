@@ -32,7 +32,7 @@
     const job = queue.shift();
     active++;
     try {
-      const res = await fetch(job.url);
+      const res = await fetch(job.url, typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { signal: AbortSignal.timeout(15000) } : undefined);
       if (res.status === 429 && job.tries < 2) { job.tries++; await sleep(4000); queue.unshift(job); }
       else if (!res.ok) job.reject(new Error("HTTP " + res.status));
       else job.resolve(await res.json());

@@ -31,7 +31,7 @@ export function createSky(scene) {
       float hash(vec3 p){ p = fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
       void main(){
         vec3 d = normalize(vDir); float h = d.y;
-        vec3 col = mix(uFog, uBot, smoothstep(-0.03, 0.05, h));
+        vec3 col = mix(uFog, uBot, smoothstep(-0.02, 0.12, h));
         col = mix(col, uMid, smoothstep(0.04, 0.32, h));
         col = mix(col, uTop, smoothstep(0.25, 0.9, h));
         vec3 sp = d*180.0; vec3 id = floor(sp); float r = hash(id);
@@ -91,7 +91,7 @@ export function createGround(scene) {
         float ring2 = smoothstep(0.05, 0.0, abs(r - uRing)) * step(0.0, sin(ang*60.0 - uTime*0.3));
         float ring3 = smoothstep(0.03, 0.0, abs(r - uRing - 0.6)) * 0.5;
         col += uGlow * ((veins*(0.4 + pulse) * 1.6 + ring1*1.2) * reach + (ring2*0.6 + ring3) * smoothstep(0.5, 0.9, uGrow));
-        float f = smoothstep(14.0, 60.0, r);
+        float f = smoothstep(12.0, 48.0, r);
         col = mix(col, uFog, f);
         gl_FragColor = vec4(col, 1.0);
       }`,

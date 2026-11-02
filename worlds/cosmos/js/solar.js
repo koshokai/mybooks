@@ -64,7 +64,8 @@ export function buildSolar(tex) {
   const S = LAYOUT.sun.r;
   const sun = new THREE.Mesh(new THREE.SphereGeometry(S, 96, 64), sunMaterial());
   group.add(sun);
-  const corona = new THREE.Mesh(new THREE.PlaneGeometry(S * 2 / 0.14, S * 2 / 0.14), coronaMaterial(0.14));
+  const CORE = 0.19;
+  const corona = new THREE.Mesh(new THREE.PlaneGeometry(S * 2 / CORE, S * 2 / CORE), coronaMaterial(CORE));
   group.add(corona);
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({
     map: glowTexture('rgba(255,170,90,1)', 'rgba(255,120,40,0)', 128, 0.08), blending: THREE.AdditiveBlending,

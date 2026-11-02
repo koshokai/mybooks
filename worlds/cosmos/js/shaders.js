@@ -87,8 +87,8 @@ export function coronaMaterial(core = 0.14, tint = [1.0, 0.5, 0.12]) {
         float rays = snoise(vec3(cos(ang)*2.5, sin(ang)*2.5, uTime*0.12 - d*2.0))*.5+.5;
         float rays2 = snoise(vec3(cos(ang)*7., sin(ang)*7., uTime*0.2 - d*4.0))*.5+.5;
         rays = pow(rays, 3.0)*0.9 + pow(rays2, 4.0)*0.4;
-        float glow = exp(-d*10.)*0.9 + exp(-d*3.0)*0.22 + exp(-d*1.2)*0.05;
-        float a = (glow + rays*exp(-d*3.2)) * (1.0 - smoothstep(0.55, 1.0, r));
+        float glow = exp(-d*12.)*0.9 + exp(-d*4.2)*0.16 + exp(-d*1.8)*0.03;
+        float a = (glow + rays*exp(-d*4.6)*0.85) * (1.0 - smoothstep(0.55, 1.0, r));
         vec3 col = mix(uTint, vec3(1.0,0.9,0.7), exp(-d*5.));
         gl_FragColor = vec4(col*a*uOpacity, 1.);
       }`,
@@ -145,10 +145,11 @@ export function dustMaterial(opts = {}) {
       uPR: shared.pr, uScale: shared.scale, uTime: shared.time,
       uOpacity: { value: opts.opacity ?? 1 }, uMax: { value: opts.max ?? 48 },
       uSoft: { value: opts.soft ?? 1.0 }, uSpin: { value: opts.spin ?? 0 },
+      uNear: { value: new THREE.Vector2(...(opts.near || [0, 0])) },
     },
     transparent: true, depthWrite: false, blending: opts.blending ?? THREE.AdditiveBlending,
     vertexShader: `attribute float aSize; attribute vec3 aColor;
-      uniform float uPR; uniform float uScale; uniform float uMax; uniform float uTime; uniform float uSpin;
+      uniform float uPR; uniform float uScale; uniform float uMax; uniform float uTime; uniform float uSpin; uniform vec2 uNear;
       varying vec3 vC;
       void main(){
         vec3 p = position;
@@ -161,7 +162,9 @@ export function dustMaterial(opts = {}) {
         vec4 mv = modelViewMatrix*vec4(p,1.);
         gl_Position = projectionMatrix*mv;
         gl_PointSize = clamp(aSize * uPR * uScale / -mv.z, 0.0, uMax * uPR);
-        vC = aColor;
+        // 离镜头太近的粒子淡出，避免出现巨大的光斑
+        float nearFade = uNear.y > 0. ? smoothstep(uNear.x, uNear.y, -mv.z) : 1.;
+        vC = aColor * nearFade;
       }`,
     fragmentShader: `varying vec3 vC; uniform float uOpacity; uniform float uSoft;
       void main(){
@@ -188,13 +191,13 @@ export function diskMaterial(inner, outer) {
         float swirl = ang + uTime*1.6/(0.3 + t*2.0) ;
         float n = snoise(vec3(cos(swirl)*2.0, sin(swirl)*2.0, t*6.0)) * .5 + .5;
         float n2 = snoise(vec3(cos(swirl)*6.0, sin(swirl)*6.0, t*18.0 - uTime*0.3)) * .5 + .5;
-        float band = pow(n, 1.5)*0.7 + n2*0.5;
+        float band = pow(n, 1.5)*0.8 + n2*0.3;
         float fall = smoothstep(0.0, 0.06, t) * pow(1.0 - clamp(t,0.,1.), 1.6);
         float doppler = 0.55 + 0.45*cos(ang - 0.6);
-        vec3 hot = vec3(1.0, 0.95, 0.85), warm = vec3(1.0, 0.55, 0.15), cool = vec3(0.7, 0.15, 0.05);
-        vec3 col = mix(hot, warm, smoothstep(0.0, 0.35, t));
-        col = mix(col, cool, smoothstep(0.35, 1.0, t));
-        float a = fall * band * doppler * 2.6;
+        vec3 hot = vec3(1.0, 0.82, 0.55), warm = vec3(1.0, 0.45, 0.1), cool = vec3(0.55, 0.1, 0.03);
+        vec3 col = mix(hot, warm, smoothstep(0.0, 0.3, t));
+        col = mix(col, cool, smoothstep(0.3, 1.0, t));
+        float a = fall * band * doppler * 1.7;
         gl_FragColor = vec4(col * a * uOpacity, 1.);
       }`,
   });

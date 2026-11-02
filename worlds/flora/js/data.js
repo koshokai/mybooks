@@ -16,7 +16,7 @@ export const SEASONS = [
     ground: '#0d2622', groundIn: '#123329', glow: '#62ffc0', rim: '#6dffd2', spore: '#d6ff73',
     shaft: '#8dffd6', moon: '#e3fff6', grassTip: '#7dffb0', grassBase: '#0a1d18', grassH: 1.25,
     hemiSky: '#7fd8d0', hemiGround: '#0f2a22', key: '#d8fff3',
-    leafA: '#4bf2a6', leafB: '#b6ff66', shape: 1, scale: 1.0, bloom: 0.95, stars: 1.0,
+    leafA: '#2fe39a', leafB: '#a6ff5a', shape: 1, scale: 1.0, bloom: 0.95, stars: 1.0,
   },
   {
     key: 'autumn', glyph: '秋', en: 'Autumn', name: '秋 · 金叶纷飞', line: '一夜霜风，满树尽染金黄',

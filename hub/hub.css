@@ -191,3 +191,11 @@ kbd { font-family: var(--latin); display: inline-block; min-width: 24px; padding
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- 建设中 ---------- */
+.soon-tag { font-style: normal; display: inline-block; font-size: 11px; letter-spacing: .15em; padding: 2px 8px; border-radius: 999px; color: #0b0a08; background: color-mix(in srgb, var(--c) 70%, #fff); vertical-align: middle; }
+.collapsed .soon-tag { writing-mode: horizontal-tb; }
+.enter.disabled { cursor: default; color: var(--ink); background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent); letter-spacing: .15em; font-weight: 400; }
+.enter.disabled:hover { transform: none; }
+.card.nudge { animation: nudge .4s ease; }
+@keyframes nudge { 20%, 60% { translate: -6px 0; } 40%, 80% { translate: 6px 0; } }

@@ -326,7 +326,12 @@ function updateLabels() {
     if (vis !== L.visible) { L.el.classList.toggle('hidden', !vis); L.visible = vis; }
     if (vis) {
       const pr = Math.min(projRadius(pos, r), 120);
-      L.el.style.transform = `translate3d(${(scr.x + pr + 6) | 0}px, ${(scr.y - 10) | 0}px, 0)`;
+      if (!L.w) L.w = L.el.offsetWidth;
+      // 靠近右边缘时把标签翻到左侧，避免被裁掉
+      const flip = scr.x + pr + 6 + L.w > innerWidth - 6;
+      const x = flip ? scr.x - pr - 6 - L.w : scr.x + pr + 6;
+      L.el.classList.toggle('flip', flip);
+      L.el.style.transform = `translate3d(${x | 0}px, ${(scr.y - 10) | 0}px, 0)`;
     }
   }
 }
@@ -425,7 +430,7 @@ function closePanelUI() {
 function setOrbitHighlight(id) {
   for (const [bid, line] of solar.orbitLines) {
     const on = bid === id || (id === 'moon' && bid === 'earth');
-    line.material.opacity = on ? 0.32 : (id ? 0.06 : line.userData.base);
+    line.material.opacity = on ? 0.2 : (id ? 0.05 : line.userData.base);
     line.material.color.set(on ? bodyData.get(bid).color : 0x8fa8ff);
   }
 }
@@ -696,7 +701,9 @@ function frame() {
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   const sunFrac = solar.group.visible ? 7 / (camera.position.length() * tanV) : 0;
   const sunK = clamp((sunFrac - 0.06) / 0.4);
-  bloom.strength = lerp(0.82, 0.3, sunK);
+  let bloomTarget = lerp(0.82, 0.3, sunK);
+  if (state.mode === 'deep' && (state.focus === 'sgra' || state.focus === 'm87')) bloomTarget = 0.42;
+  bloom.strength = lerp(bloom.strength, bloomTarget, 1 - Math.exp(-dt * 4));
   solar.corona.material.uniforms.uOpacity.value = lerp(1, 0.45, sunK);
   solar.halo.material.opacity = lerp(0.22, 0.06, sunK);
 

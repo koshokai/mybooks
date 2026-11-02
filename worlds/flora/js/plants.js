@@ -432,8 +432,8 @@ function orchid() {
   P.add('rock', new THREE.IcosahedronGeometry(0.32, 1), new M4().compose(new V3(0, -0.04, 0), new Q(), new V3(1.2, 0.35, 1.1)), '#233a28', '#4e7a44');
   for (let i = 0; i < 16; i++) {
     const az = (i / 16) * TAU + R() * 0.3;
-    const len = 0.9 + R() * 0.5;
-    const g = leafGeo(len, 0.04, { bend: 0.7 + R() * 0.5, fold: 0.35, segs: 12, prof: (v) => Math.min(1, v * 10) * (1 - v * 0.75), twist: (R() - 0.5) * 0.8 });
+    const len = 0.8 + R() * 0.45;
+    const g = leafGeo(len, 0.045, { bend: 0.3 + R() * 0.3, fold: 0.35, segs: 12, prof: (v) => Math.min(1, v * 10) * (1 - v * 0.75), twist: (R() - 0.5) * 0.8 });
     const dir = new V3(Math.cos(az) * 0.35, 1, Math.sin(az) * 0.35).normalize();
     // 让叶片向外弯：-Z 方向对准外侧
     const m = orientM(new V3(Math.cos(az) * 0.03, 0.05, Math.sin(az) * 0.03), dir, -az - Math.PI / 2, 1);
@@ -599,7 +599,7 @@ function nepenthes() {
     const mid = leafTip.clone().lerp(pp, 0.5).add(new V3(out.x * 0.12, ground ? 0.02 : -0.1, out.z * 0.12));
     const tc = new THREE.QuadraticBezierCurve3(leafTip, mid, pp.clone().add(new V3(0, 0.0, 0)));
     P.add('solid', taperTube(tc, 0.006, 0.005, 8, 4), null, '#5a8a2e', '#8a6a2e');
-    const ps = s * 0.95;
+    const ps = s * 1.35;
     const PM = new M4().compose(pp, new Q().setFromEuler(new THREE.Euler((R() - 0.5) * 0.2, az, ground ? 0 : 0.08)), new V3(ps, ps, ps));
     P.add('leaf', pitcherG, PM, '#6fb23a', '#d0304e');
     P.add('glow', new THREE.TorusGeometry(0.068, 0.014, 6, 20), PM.clone().multiply(new M4().makeTranslation(0, 0.31, 0)).multiply(new M4().makeRotationX(Math.PI / 2)), '#ff4a6a', '#7a0e2a');

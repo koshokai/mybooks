@@ -8,7 +8,8 @@
   <link rel="icon" href="../../icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" /></noscript>
   <link rel="stylesheet" href="arcade.css" />
 </head>
 <body>
@@ -46,6 +47,7 @@
 
   <div class="zoom" id="zoom" aria-hidden="true"></div>
 
+  <script src="../../shared/status.js"></script>
   <script src="../../shared/arcade.js"></script>
   <script src="lobby.js"></script>
 </body>

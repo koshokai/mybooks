@@ -55,7 +55,7 @@ const shafts = W.createShafts(scene);
 const burst = W.createBurst(scene);
 const SEASON_FX = [
   W.createSeasonParticles(scene, { mode: 'fall', shape: 0, count: LOW ? 450 : 900, box: new V3(16, 22, 16), size: 2.3, colA: '#ffd6e8', colB: '#ff86b8', fall: 0.9, sway: 1.0, bright: 1.2 }),
-  W.createSeasonParticles(scene, { mode: 'wander', shape: 1, count: LOW ? 160 : 280, box: new V3(18, 11, 18), size: 2.0, colA: '#eaff7a', colB: '#7dffb0', rise: 0.12, blink: 1, additive: true, bright: 2.6 }),
+  W.createSeasonParticles(scene, { mode: 'wander', shape: 1, count: LOW ? 160 : 280, box: new V3(18, 11, 18), size: 3.4, colA: '#eaff7a', colB: '#7dffb0', rise: 0.12, blink: 1, additive: true, bright: 3.2 }),
   W.createSeasonParticles(scene, { mode: 'fall', shape: 2, count: LOW ? 380 : 700, box: new V3(16, 22, 16), size: 2.6, colA: '#ffd84a', colB: '#ff9a2a', fall: 0.8, sway: 1.4, bright: 1.15 }),
   W.createSeasonParticles(scene, { mode: 'fall', shape: 3, count: LOW ? 900 : 1700, box: new V3(24, 24, 24), size: 1.25, colA: '#ffffff', colB: '#cfe8ff', fall: 1.25, sway: 0.6, additive: true, bright: 1.1 }),
 ];
@@ -108,7 +108,7 @@ function computeLayout() {
   L.H0 = L.portrait ? 8.5 : 8.5;
   L.ty = L.portrait ? 6.4 : 6.2;
   L.fov = L.portrait ? 56 : 45;
-  L.dist = L.portrait ? 9.6 : 7.4;
+  L.dist = L.portrait ? 12 : 7.4;
 }
 computeLayout();
 camera.fov = L.fov; camera.updateProjectionMatrix();
@@ -117,14 +117,14 @@ const SEL = 1.5;
 function makePedestal(color) {
   const c = new THREE.Color(color);
   const g = new THREE.Group();
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.0, 0.22, 6), new THREE.MeshStandardMaterial({ color: '#191626', roughness: 0.25, metalness: 0.7, flatShading: true, emissive: c, emissiveIntensity: 0.08 }));
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 0.92, 0.22, 6), new THREE.MeshStandardMaterial({ color: '#191626', roughness: 0.25, metalness: 0.7, flatShading: true, emissive: c, emissiveIntensity: 0.08 }));
   top.position.y = -0.11;
   g.add(top);
   const under = new THREE.Mesh(new THREE.ConeGeometry(0.98, 1.1, 6), new THREE.MeshStandardMaterial({ color: '#120f1c', roughness: 0.4, metalness: 0.6, flatShading: true, emissive: c, emissiveIntensity: 0.12 }));
   under.rotation.x = Math.PI; under.position.y = -0.77;
   g.add(under);
-  const ringMat = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2.2), transparent: true, opacity: 0.9, depthWrite: false });
-  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.29, 6, 1), ringMat);
+  const ringMat = new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(1.25), transparent: true, opacity: 0.9, depthWrite: false });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.18, 6, 1), ringMat);
   ring.rotation.x = -Math.PI / 2; ring.position.y = 0.005;
   g.add(ring);
   const runeU = { uCol: { value: c.clone().multiplyScalar(1.6) }, uTime: W.U.uTime, uOp: { value: 0.8 } };
@@ -193,6 +193,23 @@ function placeSpecimens() {
   ground.u.uRing.value = L.ringR;
 }
 placeSpecimens();
+
+/* ---------------- 详情背景（聚光） ---------------- */
+const backU = { uDark: { value: new THREE.Color() }, uAcc: { value: new THREE.Color() }, uOp: { value: 0 }, uTime: W.U.uTime };
+const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
+  uniforms: backU, transparent: true, depthWrite: false,
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv*2.0-1.0; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader: `uniform vec3 uDark, uAcc; uniform float uOp, uTime; varying vec2 vUv;
+    void main(){ float r = length(vUv); float a = atan(vUv.y, vUv.x);
+      float dark = smoothstep(1.0, 0.15, r) * 0.78;
+      float ring = smoothstep(0.012, 0.0, abs(r - 0.42)) * (0.55 + 0.45*sin(a*3.0 + uTime*0.6));
+      float ring2 = smoothstep(0.006, 0.0, abs(r - 0.47)) * step(0.5, fract(a/6.2831*64.0 - uTime*0.04)) * 0.7;
+      float glow = exp(-r*4.0) * 0.35;
+      vec3 c = mix(uDark, uAcc * 1.4, clamp(ring + ring2 + glow, 0.0, 1.0));
+      gl_FragColor = vec4(c, clamp(dark + ring + ring2, 0.0, 1.0) * uOp); }`,
+}));
+backdrop.renderOrder = -1;
+scene.add(backdrop);
 
 /* ---------------- UI ---------------- */
 const tagsEl = $('#tags');
@@ -293,9 +310,9 @@ function updateCamera(dt, t) {
   if (state.mode === 'detail') {
     const sp = specimens[state.sel];
     const d = L.dist * dzoom;
-    dTheta = sp.angle; dR = L.ringR + d;
+    dTheta = sp.angle + 0.2; dR = L.ringR + d;
     dT = sp.holder.position.clone(); dT.y += 1.25 * SEL;
-    dH = dT.y + d * 0.26;
+    dH = dT.y + d * 0.14;
   } else {
     if (t - lastInteract > 3.5 && introT > 4) userTheta += dt * 0.035;
     dTheta = userTheta; dR = L.R0 * zoom; dH = userH; dT = tmpV.set(0, L.ty, 0);
@@ -322,8 +339,8 @@ function updateCamera(dt, t) {
     const dist = camera.position.distanceTo(cam.target);
     const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist;
     const pr = panel.getBoundingClientRect();
-    if (L.mobile) look.addScaledVector(upV, -halfH * (pr.height / innerHeight) * 0.95 * shift);
-    else look.addScaledVector(right, halfH * camera.aspect * (pr.width + 24) / innerWidth * shift);
+    if (L.mobile) look.addScaledVector(upV, -halfH * (pr.height / innerHeight) * 0.86 * shift);
+    else look.addScaledVector(right, halfH * camera.aspect * (pr.width + 24) / innerWidth * shift).addScaledVector(upV, -halfH * 0.26 * shift);
   }
   camera.lookAt(look);
 }
@@ -513,13 +530,25 @@ function step(dt) {
     const bt = isSel ? 0.12 : state.hover === i ? 0.4 : 0;
     sp.boost += (bt - sp.boost) * (1 - Math.exp(-dt * 6));
     for (const u of sp.mats) u.value = sp.boost;
-    sp.ped.bubU.uOp.value += ((isSel ? 0 : state.hover === i ? 1.3 : 0.55) - sp.ped.bubU.uOp.value) * (1 - Math.exp(-dt * 5));
+    sp.ped.bubU.uOp.value += ((isSel ? 0 : state.hover === i ? 1.3 : state.mode === 'detail' ? 0.18 : 0.55) - sp.ped.bubU.uOp.value) * (1 - Math.exp(-dt * 5));
     sp.ped.beamU.uOp.value += ((isSel ? 0.06 : state.hover === i ? 0.5 : 0.2) - sp.ped.beamU.uOp.value) * (1 - Math.exp(-dt * 5));
     sp.ped.rune.rotation.z = t * 0.15 * (i % 2 ? 1 : -1);
     sp.api.update && sp.api.update(dt);
   });
 
   updateCamera(dt, t);
+  if (state.sel >= 0) {
+    const sp = specimens[state.sel];
+    const c = sp.holder.position.clone(); c.y += 1.2 * sp.s;
+    const away = c.clone().sub(camera.position).normalize();
+    backdrop.position.copy(c).addScaledVector(away, 2.4 * sp.s / SEL + 0.4);
+    backdrop.lookAt(camera.position);
+    backdrop.scale.setScalar(13);
+    backU.uAcc.value.set(sp.p.color);
+    backU.uDark.value.copy(cur.fog).multiplyScalar(0.25);
+  }
+  backU.uOp.value += ((state.mode === 'detail' ? 1 : 0) - backU.uOp.value) * (1 - Math.exp(-dt * 3));
+  backdrop.visible = backU.uOp.value > 0.01;
   burst.update(dt);
   updateTags();
 }
@@ -558,4 +587,5 @@ if (params.has('plant')) { const i = PLANTS.findIndex((p) => p.id === params.get
 // 供调试/截图
 window.__flora = { select, closeDetail, setSeason, specimens, state, camera, cam, scene, composer, renderer,
   advance(sec) { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) step(1 / 30); composer.render(); },
-  tapAt(x, y) { tap(x, y); } };
+  tapAt(x, y) { tap(x, y); },
+  resume() { last = performance.now(); renderer.setAnimationLoop(loop); } };

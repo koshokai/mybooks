@@ -23,6 +23,7 @@
   ];
 
   const $ = (s) => document.querySelector(s);
+  const isReady = (w) => (window.WX_READY || {})[w.id] !== false;
   const roster = $("#roster");
   const store = { get() { try { return +localStorage.getItem("wx.sel") || 0; } catch { return 0; } }, set(v) { try { localStorage.setItem("wx.sel", v); } catch {} } };
   let sel = Math.min(store.get(), WORLDS.length - 1);
@@ -51,17 +52,17 @@
   }
 
   roster.innerHTML = WORLDS.map((w, i) => `
-    <article class="card" role="option" tabindex="0" data-i="${i}" style="--c:${w.color};--deep:${w.deep};animation-delay:${0.12 + i * 0.07}s">
+    <article class="card ${isReady(w) ? "" : "soon"}" role="option" tabindex="0" data-i="${i}" style="--c:${w.color};--deep:${w.deep};animation-delay:${0.12 + i * 0.07}s">
       ${scene(w)}
       <div class="shade"></div>
       <div class="glyph-big">${w.glyph}</div>
-      <div class="collapsed"><b>${w.glyph}</b><span>${w.name}</span></div>
+      <div class="collapsed"><b>${w.glyph}</b><span>${w.name}</span>${isReady(w) ? "" : '<em class="soon-tag">建设中</em>'}</div>
       <div class="detail">
-        <div class="tag">${String(i + 1).padStart(2, "0")} · ${w.tag}</div>
+        <div class="tag">${String(i + 1).padStart(2, "0")} · ${w.tag}${isReady(w) ? "" : ' <em class="soon-tag">建设中</em>'}</div>
         <h2>${w.name}<em>${w.en}</em></h2>
         <p>${w.desc}</p>
         <ul class="stats">${w.stats.map(([k, v]) => `<li><span>${k}</span><i><b style="--v:${v}%"></b></i><em>${v}</em></li>`).join("")}</ul>
-        <a class="enter" href="${w.href}" data-enter="${i}">进入世界<span>→</span></a>
+        ${isReady(w) ? `<a class="enter" href="${w.href}" data-enter="${i}">进入世界<span>→</span></a>` : `<span class="enter disabled" aria-disabled="true">正在建造 · 敬请期待</span>`}
       </div>
     </article>`).join("");
   $("#total").textContent = String(WORLDS.length).padStart(2, "0");
@@ -84,6 +85,7 @@
 
   function enter(i) {
     const w = WORLDS[i];
+    if (!isReady(w)) { const c = cards[i]; c.classList.remove("nudge"); void c.offsetWidth; c.classList.add("nudge"); return; }
     const card = cards[i].getBoundingClientRect();
     const warp = $("#warp");
     warp.style.setProperty("--x", card.left + card.width / 2 + "px");

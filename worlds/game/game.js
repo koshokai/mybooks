@@ -224,7 +224,7 @@
     for (let i = 0; i < 6; i++) {
       const a = rnd() * TAU, d = rnd() * r * 0.75, cr = r * (0.05 + rnd() * 0.1);
       g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, cr, 0, TAU);
-      g.fillStyle = `hsla(${h + 20},50%,20%,0.16)`; g.fill();
+      g.fillStyle = `hsla(${h + 20},50%,20%,0.09)`; g.fill();
     }
     // 明暗交界
     const sh = g.createLinearGradient(-r * 0.7, -r * 0.7, r * 0.8, r * 0.8);
@@ -304,13 +304,15 @@
   };
 
   function loadLevel(def, opts) {
+    closeModals(); G.paused = false;
     G.def = def;
     G.L = P.prepare(def);
     G.got = G.L.motes.map(() => false);
     G.used = 0; G.phase = 'aim'; G.s = null;
     G.trail = []; G.ghost = []; G.curGhost = []; G.preview = []; G.drag = null; G.aim = null;
+    G.lastAim = null; G.kbAim = false;
     parts = []; G.shake = 0; G.ts = 1; G.slow = 0; G.acc = 0;
-    G.moonT = 0; G.rewindFrom = 0; G.portalOpen = G.L.motes.length === 0 ? 1 : 0; G.hand = 0;
+    G.moonT = 0; G.rewindFrom = 0; G.portalOpen = G.L.motes.length === 0 ? 1 : 0; G.hand = 0; G.handOff = false;
     G.t0 = performance.now();
     G.rocksGeo = G.L.rocks.map((a, i) => {
       const rnd = LV.mulberry32(i * 977 + Math.round(a.x * 13 + a.y));
@@ -338,7 +340,6 @@
     const tip = LV.TIPS[i];
     if (tip) showTip(tip, 5200, 1400);
     else hideTip();
-    if (QS.get('lv') == null) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* noop */ } }
   }
 
   function startDaily() {
@@ -367,11 +368,12 @@
     if (G.phase !== 'aim' || launchesLeft() <= 0) return;
     G.used++;
     if (G.daily) G.daily.pool--;
+    G.lastAim = { angle, power }; G.kbAim = false;
     G.s = P.launch(G.L, angle, power, G.got);
     G.phase = 'fly'; G.flightN = 0; G.acc = 0;
     G.trail = []; G.curGhost = [];
     G.drag = null; G.aim = null; G.preview = [];
-    G.hand = -1;
+    G.handOff = true;
     const [x, y] = G.L.start;
     burst(x, y, 26, { col: COL.cyan, sp: 260, life: 0.6, r: 2.6, a: undefined });
     ringFx(x, y, 6, 40 + power * 30, COL.cyan, 0.5, 4);
@@ -525,6 +527,8 @@
         if (launchesLeft() > 0) respawn();
         else { G.phase = 'over'; setTimeout(() => showFail(), 250); }
       }
+    } else if (G.phase === 'aim') {
+      if (!G.handOff) G.hand += dt;
     } else if (G.phase === 'respawn') {
       G.timer -= dt;
       G.moonT = G.rewindFrom * ease(clamp(G.timer / 0.65, 0, 1));
@@ -731,13 +735,14 @@
       const x = m[0], y = m[1] + bob;
       const tw = 0.75 + 0.25 * Math.sin(T * 5 + i * 2);
       ctx.globalCompositeOperation = 'lighter';
-      dGlow(x, y, 26 * tw, COL.gold, 0.55);
+      dGlow(x, y, 34 * tw, COL.gold, 0.6);
+      dGlow(x, y, 12, COL.white, 0.5);
       ctx.globalAlpha = 0.95; ctx.fillStyle = '#fff3cf';
-      starPath(x, y, 9 * tw, T * 0.8 + i);
+      starPath(x, y, 11 * tw, T * 0.8 + i);
       ctx.fill();
-      ctx.globalAlpha = 0.5; ctx.fillStyle = '#fff';
-      starPath(x, y, 14 * tw, -T * 0.5 + i + 0.39);
-      ctx.globalAlpha = 0.14; ctx.fill();
+      ctx.fillStyle = '#ffe9a8';
+      starPath(x, y, 18 * tw, -T * 0.5 + i + 0.39);
+      ctx.globalAlpha = 0.16; ctx.fill();
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     });
   }
@@ -796,21 +801,43 @@
     ctx.globalAlpha = 1;
   }
 
+  /** 彗尾：按段填充的锥形光带（段间不重叠，避免叠加混合出现亮点） */
   function drawTrail() {
     const tr = G.trail, n = tr.length;
     if (n < 2) return;
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
-    for (let i = 1; i < n; i++) {
-      const a = tr[i - 1], b = tr[i];
-      if (!a || !b) continue;
-      const t = i / n;
-      ctx.globalAlpha = t * t * 0.9;
-      ctx.strokeStyle = t > 0.7 ? '#e9fbff' : '#6fdcff';
-      ctx.lineWidth = 0.8 + t * 6;
-      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    const runs = []; let cur = [];
+    for (let i = 0; i < n; i++) {
+      const q = tr[i];
+      if (!q) { if (cur.length > 1) runs.push(cur); cur = []; } else cur.push([q[0], q[1], (i + 1) / n]);
     }
-    ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+    if (cur.length > 1) runs.push(cur);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const run of runs) {
+      const m = run.length, Lp = [], Rp = [];
+      for (let i = 0; i < m; i++) {
+        const a = run[Math.max(0, i - 1)], b = run[Math.min(m - 1, i + 1)];
+        let dx = b[0] - a[0], dy = b[1] - a[1];
+        const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+        const w = 0.3 + run[i][2] * 3.4;
+        Lp.push([run[i][0] - dy * w, run[i][1] + dx * w]);
+        Rp.push([run[i][0] + dy * w, run[i][1] - dx * w]);
+      }
+      const K = Math.min(10, m - 1);
+      for (let c = 0; c < K; c++) {
+        const i0 = Math.floor(c * (m - 1) / K), i1 = Math.floor((c + 1) * (m - 1) / K);
+        if (i1 <= i0) continue;
+        const t = run[i1][2];
+        ctx.globalAlpha = t * t * 0.95;
+        ctx.fillStyle = t > 0.72 ? '#e4faff' : '#5fd2ff';
+        ctx.beginPath();
+        ctx.moveTo(Lp[i0][0], Lp[i0][1]);
+        for (let i = i0 + 1; i <= i1; i++) ctx.lineTo(Lp[i][0], Lp[i][1]);
+        for (let i = i1; i >= i0; i--) ctx.lineTo(Rp[i][0], Rp[i][1]);
+        ctx.closePath(); ctx.fill();
+      }
+      for (let i = m - 1; i >= 0; i -= 5) { const t = run[i][2]; dGlow(run[i][0], run[i][1], 6 + t * 12, COL.cyan, 0.16 * t); }
+    }
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
 
@@ -834,6 +861,19 @@
     }
   }
 
+  /** 上一发的瞄准记号：帮助玩家在上一发基础上微调 */
+  function drawLastAim() {
+    const A = G.lastAim; if (!A) return;
+    const [x, y] = G.L.start;
+    const L = 18 + A.power * 70;
+    const bx = x - Math.cos(A.angle) * L, by = y - Math.sin(A.angle) * L;
+    ctx.globalAlpha = 0.35; ctx.strokeStyle = '#a9c8ff'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + Math.cos(A.angle) * 30, y + Math.sin(A.angle) * 30); ctx.lineTo(x + Math.cos(A.angle) * 58, y + Math.sin(A.angle) * 58); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(bx, by, 5, 0, TAU); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   function powerCol(p) { return p < 0.5 ? COL.cyan : p < 0.8 ? COL.gold : COL.rose; }
   function drawAim(T) {
     const A = G.aim; if (!A) return;
@@ -870,8 +910,7 @@
   function drawHand(T) {
     const def = G.def;
     if (G.idx !== 0 || G.daily || G.used > 0 || G.phase !== 'aim' || G.drag || !def.hint) return;
-    G.hand += 1 / 60;
-    if (G.hand < 0.9) return;
+    if (G.handOff || G.hand < 0.9) return;
     const cyc = ((G.hand - 0.9) % 3.0);
     const ang = def.hint[0] * D2R, pw = def.hint[1];
     const [x, y] = G.L.start;
@@ -925,7 +964,7 @@
     drawTrail();
     drawParts();
     const [x0, y0] = G.L.start;
-    if (G.phase === 'aim') { drawComet(x0, y0, 1, T); drawAim(T); drawHand(T); }
+    if (G.phase === 'aim') { drawLastAim(); drawComet(x0, y0, 1, T); drawAim(T); drawHand(T); }
     else if (G.phase === 'respawn') { drawComet(x0, y0, ease(1 - clamp(G.timer / 0.65, 0, 1)), T); }
     else if (G.phase === 'fly') drawComet(G.s.x, G.s.y, 1, T);
     else if (G.phase === 'won' && G.winAt) {
@@ -980,7 +1019,7 @@
   /* ---------------- 主循环 ---------------- */
   let last = performance.now(), T = 0;
   function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const dt = clamp((now - last) / 1000, 0, 0.05); last = now;
     T += dt;
     update(dt);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -994,15 +1033,16 @@
   }
 
   /* ---------------- 输入 ---------------- */
-  function maxPull() { return clamp(Math.min(VW, VH) * 0.3, 110, 200); }
+  function maxPull() { return clamp(Math.min(VW, VH) * 0.4, 120, 220); }
   function computeAim() {
     const d = G.drag;
     const dx = d.x - d.x0, dy = d.y - d.y0;
-    const len = Math.hypot(dx, dy);
-    const power = clamp(len / maxPull(), 0, 1);
+    const power = clamp(Math.hypot(dx, dy) / maxPull(), 0, 1);
     const [wx, wy] = s2wVec(dx, dy);
-    const angle = Math.atan2(-wy, -wx);
     if (power < 0.04) { G.aim = null; G.preview = []; return; }
+    setAim(Math.atan2(-wy, -wx), power);
+  }
+  function setAim(angle, power) {
     G.aim = { angle, power, hit: false };
     // 预览：仅前 0.6 秒
     const s = P.launch(G.L, angle, power, G.got);
@@ -1019,6 +1059,14 @@
     const tick = Math.floor(power * 12);
     if (tick !== G.lastPowTick) { G.lastPowTick = tick; Sfx.tick(power); }
   }
+  /** 键盘微调（桌面）：←→ 转向，↑↓ 力度，按住 Shift 更精细，空格发射 */
+  function nudgeAim(da, dp) {
+    if (G.phase !== 'aim' || G.drag) return;
+    const base = G.aim || G.lastAim || { angle: -Math.PI / 2, power: 0.5 };
+    setAim(base.angle + da, clamp(base.power + dp, 0.06, 1));
+    G.kbAim = true;
+    hideTip();
+  }
   let firstGesture = false;
   function gesture() {
     if (!firstGesture) { firstGesture = true; Sfx.init(); Sfx.setMuted(!!save.muted); }
@@ -1030,7 +1078,7 @@
     if (G.mode !== 'play' || G.paused || G.phase !== 'aim' || anyModal()) return;
     if (G.drag) return;
     G.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY };
-    G.lastPowTick = -1;
+    G.lastPowTick = -1; G.kbAim = false; G.aim = null; G.preview = [];
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
     hideTip();
   });
@@ -1053,8 +1101,17 @@
     if (G.mode !== 'play') return;
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { if (G.paused) resume(); else if (!anyModal()) pause(); }
     else if (e.key === 'r' || e.key === 'R') { if (!G.daily) { closeModals(); G.paused = false; playLevel(G.idx); } }
+    else if (/^Arrow/.test(e.key) && !G.paused && !anyModal()) {
+      const f = e.shiftKey ? 0.2 : 1;
+      if (e.key === 'ArrowLeft') nudgeAim(-0.5 * D2R * f, 0);
+      else if (e.key === 'ArrowRight') nudgeAim(0.5 * D2R * f, 0);
+      else if (e.key === 'ArrowUp') nudgeAim(0, 0.02 * f);
+      else if (e.key === 'ArrowDown') nudgeAim(0, -0.02 * f);
+      e.preventDefault();
+    }
     else if (e.key === ' ' || e.key === 'Enter') {
-      if (G.phase === 'fly') recall();
+      if (G.phase === 'aim' && G.kbAim && G.aim && !G.paused && !anyModal()) { const A = G.aim; G.kbAim = false; doLaunch(A.angle, A.power); }
+      else if (G.phase === 'fly') recall();
       else if ($('#m-done').classList.contains('show')) $('#done-next').click();
       e.preventDefault();
     }
@@ -1261,7 +1318,10 @@
       else { showScreen('scr-map'); }
     }
   }));
-  document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'play' && !G.paused && G.phase !== 'won') pause(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { Sfx.suspend(); if (G.mode === 'play' && !G.paused && G.phase !== 'won') pause(); }
+    else if (firstGesture) Sfx.resume();
+  });
   window.addEventListener('resize', layout);
 
   document.body.classList.toggle('muted', !!save.muted);

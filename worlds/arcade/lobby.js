@@ -2,6 +2,7 @@
   "use strict";
   const A = window.WXArcade;
   const $ = (s) => document.querySelector(s);
+  const isReady = (g) => (window.WX_READY || {})[g.id] !== false;
 
   const GAMES = [
     { id: "quest", glyph: "征", name: "远征", en: "Starfall Expedition", genre: "奇幻 · 动作 RPG", color: "#ff6b4a",
@@ -20,7 +21,7 @@
   /* ---------- 机台 ---------- */
   const hall = $("#hall");
   hall.innerHTML = GAMES.map((g, i) => `
-    <article class="cab" style="--c:${g.color};animation-delay:${0.08 * i}s" data-i="${i}" tabindex="0" aria-label="${g.name}">
+    <article class="cab ${isReady(g) ? "" : "soon"}" style="--c:${g.color};animation-delay:${0.08 * i}s" data-i="${i}" tabindex="0" aria-label="${g.name}">
       <div class="marquee"><b>${g.glyph}</b><span>${g.en}</span></div>
       <div class="bezel">
         <canvas class="screen" width="320" height="240"></canvas>
@@ -30,7 +31,7 @@
           <h2>${g.name}</h2>
           <p>${g.desc}</p>
           <div class="rec" data-rec="${g.id}"></div>
-          <a class="play" href="${g.href}" data-play="${i}">开始游戏 <span>▶</span></a>
+          ${isReady(g) ? `<a class="play" href="${g.href}" data-play="${i}">开始游戏 <span>▶</span></a>` : `<div class="play off">即将开放</div>`}
         </div>
       </div>
       <div class="panel"><i class="stick"></i><i class="btn b1"></i><i class="btn b2"></i><i class="btn b3"></i></div>
@@ -54,6 +55,7 @@
 
   function start(i) {
     const g = GAMES[i];
+    if (!isReady(g)) { const c = cabs[i]; c.classList.remove("nudge"); void c.offsetWidth; c.classList.add("nudge"); return; }
     const scr = cabs[i].querySelector(".bezel").getBoundingClientRect();
     const z = $("#zoom");
     z.style.cssText = `--c:${g.color};left:${scr.left}px;top:${scr.top}px;width:${scr.width}px;height:${scr.height}px`;

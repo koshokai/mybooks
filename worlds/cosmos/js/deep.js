@@ -60,17 +60,19 @@ function blackHole(R, withJet) {
   g.add(glow);
   let jet = null;
   if (withJet) {
-    jet = cloud(2200, (o) => {
-      const t = Math.pow(Math.random(), 1.4);
-      const side = Math.random() < 0.82 ? 1 : -1;
+    jet = cloud(3200, (o) => {
+      const t = Math.pow(Math.random(), 1.6);
+      const side = Math.random() < 0.85 ? 1 : -1;
       const L = R * 60 * t;
-      const w = R * (0.4 + t * 3.5) * Math.abs(gauss()) * 0.5;
+      const w = R * (0.25 + t * 2.2) * Math.abs(gauss()) * 0.5;
       const a = rand(0, Math.PI * 2);
-      o.p = [Math.cos(a) * w, side * (R * 1.3 + L), Math.sin(a) * w];
-      const f = (1 - t * 0.7) * rand(0.4, 0.9) * (side > 0 ? 1 : 0.4);
-      o.c = [f * 0.55, f * 0.75, f * 1.1];
-      o.s = R * rand(0.4, 1.2);
-    }, { max: 30, soft: 1.2 });
+      // 喷流里的亮结
+      const knot = Math.pow(Math.abs(Math.sin(t * 23.0)), 8);
+      o.p = [Math.cos(a) * w, side * (R * 1.6 + L), Math.sin(a) * w];
+      const f = (1 - t * 0.75) * rand(0.12, 0.3) * (side > 0 ? 1 : 0.35) * (1 + knot * 1.5);
+      o.c = [f * 0.55, f * 0.72, f * 1.15];
+      o.s = R * rand(0.18, 0.5);
+    }, { max: 18, soft: 1.8 });
     jet.rotation.z = 0.22;
     g.add(jet);
   }
@@ -93,7 +95,7 @@ export function buildDeep() {
   const fade = []; // setOpacity 回调
 
   // —— 银河系 ——
-  const mw = makeGalaxy({ count: 62000, R: GAL_R, arms: 4, minor: true, pitch: 0.27, bar: 0.24, thick: 0.016, bright: 0.85, size: 1.0 });
+  const mw = makeGalaxy({ count: 62000, R: GAL_R, arms: 4, minor: true, near: [260, 1400], pitch: 0.27, bar: 0.24, thick: 0.016, bright: 0.85, size: 1.0 });
   mw.position.copy(GAL_CENTER);
   mw.rotation.y = 0.5;
   group.add(mw);
@@ -101,11 +103,11 @@ export function buildDeep() {
   objects.set('milkyway', { id: 'milkyway', pos: GAL_CENTER.clone(), view: new THREE.Vector3(0.0, 0.62, 0.78), dist: 7600, anchor: mw });
 
   // 银心黑洞 人马座 A*
-  const sgr = blackHole(10, false);
+  const sgr = blackHole(22, false);
   sgr.group.position.copy(GAL_CENTER);
   group.add(sgr.group);
   fade.push((f) => sgr.setOpacity(f));
-  objects.set('sgra', { id: 'sgra', pos: GAL_CENTER.clone(), view: new THREE.Vector3(0.3, 0.28, 1).normalize(), dist: 150, bh: sgr });
+  objects.set('sgra', { id: 'sgra', pos: GAL_CENTER.clone(), view: new THREE.Vector3(0.3, 0.28, 1).normalize(), dist: 330, bh: sgr });
 
   // 「你在这里」标记
   const here = new THREE.Group();
@@ -127,17 +129,40 @@ export function buildDeep() {
   const orion = new THREE.Group();
   orion.position.set(80, -14, -40);
   const oR = 16;
+  // 若干不规则「团块」叠加出星云形态：外围 Hα 红粉，核心 OIII 青绿
+  const lobes = Array.from({ length: 8 }, (_, i) => ({
+    c: [gauss() * 0.45, gauss() * 0.35, gauss() * 0.2], s: [rand(0.18, 0.5), rand(0.15, 0.4), rand(0.1, 0.25)], teal: i < 2,
+  }));
+  lobes[0].c = [0.05, 0.02, 0]; lobes[1].c = [-0.1, -0.08, 0.05];
   const orionCloud = cloud(4200, (o) => {
-    let x, y, z, d;
-    do { x = rand(-1, 1); y = rand(-1, 1); z = rand(-1, 1); d = x * x + y * y + z * z; } while (d > 1 || Math.random() > Math.pow(1 - Math.sqrt(d), 0.6) * (0.5 + 0.5 * Math.sin(x * 7 + y * 5) * Math.cos(z * 6 - x * 3)));
-    o.p = [x * oR * 1.3, y * oR, z * oR * 0.6];
-    const core = Math.exp(-d * 6);
+    const L = lobes[Math.floor(Math.random() * lobes.length)];
+    const x = L.c[0] + gauss() * L.s[0], y = L.c[1] + gauss() * L.s[1], z = L.c[2] + gauss() * L.s[2];
+    o.p = [x * oR * 1.4, y * oR, z * oR];
+    const d = Math.sqrt(x * x + y * y + z * z);
     const k = Math.random();
-    o.c = core > 0.4 && k < 0.6 ? [0.4, 0.9, 0.85] : (k < 0.65 ? [1.0, 0.25, 0.42] : (k < 0.85 ? [0.9, 0.45, 0.7] : [0.5, 0.6, 1.0]));
-    const f = rand(0.25, 0.6) * (0.5 + core);
-    o.c = o.c.map((v) => v * f);
-    o.s = rand(1.5, 4.5);
-  }, { max: 70, soft: 2 });
+    let c;
+    if (L.teal && k < 0.7) c = [0.35, 0.95, 0.85];
+    else if (k < 0.6) c = [1.0, 0.22, 0.4];
+    else if (k < 0.82) c = [0.95, 0.4, 0.75];
+    else if (k < 0.93) c = [1.0, 0.6, 0.45];
+    else c = [0.45, 0.55, 1.0];
+    const f = rand(0.06, 0.2) * (1.4 - Math.min(d, 1));
+    o.c = c.map((v) => v * f);
+    o.s = rand(2.5, 7);
+  }, { max: 90, soft: 2.4 });
+  const orionStars = cloud(160, (o) => {
+    o.p = [gauss() * oR * 0.5, gauss() * oR * 0.4, gauss() * oR * 0.3];
+    const f = rand(0.5, 1.2); o.c = [f * 0.85, f * 0.9, f]; o.s = rand(0.25, 0.6);
+  }, { max: 6, soft: 0.5 });
+  orion.add(orionStars);
+  orion.add(sprite(nebulaTexture('#ff3f6a', '#ff9a7a', 42, 256), oR * 3.8, 0.4));
+  const tealNeb = sprite(nebulaTexture('#3fd9c8', '#7fb0ff', 43, 256), oR * 2.0, 0.45);
+  tealNeb.position.set(0.5, 0.3, 1);
+  orion.add(tealNeb);
+  const violetNeb = sprite(nebulaTexture('#8f4fff', '#ff5fb0', 44, 256), oR * 3.0, 0.25);
+  violetNeb.position.set(-oR * 0.5, oR * 0.4, -2);
+  violetNeb.material.rotation = 1.3;
+  orion.add(violetNeb);
   orion.add(orionCloud);
   orion.add(sprite(nebulaTexture('#ff4f7a', '#5fd4ff', 42, 256), oR * 3.4, 0.55));
   for (let i = 0; i < 4; i++) {
@@ -146,7 +171,7 @@ export function buildDeep() {
     orion.add(s);
   }
   group.add(orion);
-  fade.push((f) => { orionCloud.material.uniforms.uOpacity.value = f; orion.children.forEach((c) => { if (c.isSprite) c.material.opacity = c.userData.base * f; }); orion.visible = f > 0.01; });
+  fade.push((f) => { orionCloud.material.uniforms.uOpacity.value = f; orionStars.material.uniforms.uOpacity.value = f; orion.children.forEach((c) => { if (c.isSprite) c.material.opacity = c.userData.base * f; }); orion.visible = f > 0.01; });
   objects.set('orion', { id: 'orion', pos: orion.position, view: new THREE.Vector3(0.2, 0.25, 1).normalize(), dist: oR * 4.6 });
 
   // —— 昴星团 M45 ——
@@ -174,21 +199,26 @@ export function buildDeep() {
   const crab = new THREE.Group();
   crab.position.set(240, 4, -70);
   const cR = 12;
-  const crabFil = cloud(3200, (o) => {
-    // 椭球壳上的丝状结构
-    const a = rand(0, 6.28), b = Math.acos(rand(-1, 1));
-    const fil = Math.sin(a * 9 + b * 5) * Math.sin(a * 4 - b * 11);
-    const shell = 0.75 + 0.25 * Math.random() + (fil > 0.6 ? 0.1 : 0);
-    const r = cR * shell;
-    o.p = [r * Math.sin(b) * Math.cos(a) * 1.35, r * Math.cos(b) * 0.95, r * Math.sin(b) * Math.sin(a)];
-    const f = rand(0.35, 0.8) * (fil > 0.3 ? 1.3 : 0.6);
-    o.c = Math.random() < 0.7 ? [f, f * 0.42, f * 0.2] : [f, f * 0.75, f * 0.35];
-    o.s = rand(0.8, 2.2);
-  }, { max: 40, soft: 1.4 });
+  const strands = Array.from({ length: 90 }, () => {
+    const u = new THREE.Vector3(gauss(), gauss(), gauss()).normalize();
+    const v = new THREE.Vector3(gauss(), gauss(), gauss()).cross(u).normalize();
+    return { u, v, p0: rand(0, 6.28), len: rand(0.4, 1.4), r: rand(0.72, 1.0), warm: Math.random() < 0.72 };
+  });
+  const tv = new THREE.Vector3();
+  const crabFil = cloud(3600, (o) => {
+    const S = strands[Math.floor(Math.random() * strands.length)];
+    const ph = S.p0 + Math.random() * S.len;
+    tv.copy(S.u).multiplyScalar(Math.cos(ph)).addScaledVector(S.v, Math.sin(ph));
+    const r = cR * (S.r + gauss() * 0.025);
+    o.p = [tv.x * r * 1.35 + gauss() * 0.15, tv.y * r * 0.95 + gauss() * 0.15, tv.z * r + gauss() * 0.15];
+    const f = rand(0.3, 0.75);
+    o.c = S.warm ? [f, f * 0.36, f * 0.16] : [f * 0.95, f * 0.8, f * 0.4];
+    o.s = rand(0.5, 1.3);
+  }, { max: 24, soft: 1.2 });
   const crabCore = cloud(1400, (o) => {
     const r = Math.abs(gauss()) * cR * 0.4, a = rand(0, 6.28), b = Math.acos(rand(-1, 1));
     o.p = [r * Math.sin(b) * Math.cos(a) * 1.3, r * Math.cos(b), r * Math.sin(b) * Math.sin(a)];
-    const f = rand(0.2, 0.5); o.c = [f * 0.55, f * 0.75, f * 1.2]; o.s = rand(2, 5);
+    const f = rand(0.08, 0.22); o.c = [f * 0.55, f * 0.75, f * 1.2]; o.s = rand(3, 7);
   }, { max: 60, soft: 2 });
   const pulsar = sprite(spikes, cR * 0.5, 1, 0xd8e8ff);
   crab.add(crabFil, crabCore, pulsar);
@@ -197,17 +227,18 @@ export function buildDeep() {
   objects.set('crab', { id: 'crab', pos: crab.position, view: new THREE.Vector3(0.4, 0.3, 1).normalize(), dist: cR * 4.4 });
 
   // —— 仙女座星系 M31 ——（距离为示意）
-  const m31 = makeGalaxy({ count: 22000, R: 2400, arms: 2, pitch: 0.2, bar: 0.0, thick: 0.02, bright: 0.85, size: 1.1,
+  const m31 = makeGalaxy({ count: 22000, R: 2400, arms: 2, near: [200, 900], pitch: 0.2, bar: 0.0, thick: 0.02, bright: 0.85, size: 1.1,
     bulgeColor: [1.0, 0.8, 0.55], armColor: [0.7, 0.75, 1.0] });
-  m31.position.set(-6500, 3200, -10500);
+  m31.position.set(-8500, -1500, -9000);
   m31.rotation.set(1.25, 0.3, 0.4);
   group.add(m31);
   fade.push((f) => m31.setOpacity(f));
-  objects.set('andromeda', { id: 'andromeda', pos: m31.position, view: new THREE.Vector3(0.5, 0.35, 1).normalize(), dist: 6800, anchor: m31 });
+  m31.updateMatrixWorld();
+  objects.set('andromeda', { id: 'andromeda', pos: m31.position, view: new THREE.Vector3(0.2, 0.27, 1).normalize().applyQuaternion(m31.quaternion), dist: 6400, anchor: m31 });
 
   // —— M87* ——（距离为示意）
   const m87 = blackHole(40, true);
-  m87.group.position.set(9000, -1800, -9500);
+  m87.group.position.set(6500, -2000, -9000);
   m87.group.rotation.set(0.2, 0.4, 0.15);
   const m87host = cloud(6000, (o) => {
     const r = Math.abs(gauss()) * 650, a = rand(0, 6.28), b = Math.acos(rand(-1, 1));
@@ -230,9 +261,9 @@ export function buildDeep() {
       m31.rotation.y += dt * 0.006;
       sgr.update(cam); m87.update(cam);
       // 银心聚焦时压暗银河，免得遮住黑洞
-      const dim = focusId === 'sgra' ? 0.3 : 1;
+      const dim = focusId === 'sgra' ? 0.16 : 1;
       dimS += (dim - dimS) * Math.min(1, dt * 2);
-      mw.galaxyMat.uniforms.uOpacity.value = opacity * dimS;
+      mw.setOpacity(opacity * dimS);
       const t = shared.time.value;
       here.visible = opacity > 0.01 && (!focusId || focusId === 'milkyway');
       for (let i = 0; i < hereRings.length; i++) {

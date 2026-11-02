@@ -145,6 +145,8 @@
       tone({ f: 440, to: 180, dur: 0.6, type: 'triangle', v: 0.1, echo: 0.4 });
     },
     fizzle() { noise({ f: 3000, to: 300, dur: 0.5, v: 0.1, q: 2 }); },
+    suspend() { try { if (ac && ac.state === 'running') ac.suspend(); } catch (e) { /* noop */ } },
+    resume() { try { if (ac && ac.state === 'suspended') ac.resume(); } catch (e) { /* noop */ } },
     ui() { tone({ f: 880, dur: 0.07, type: 'triangle', v: 0.06 }); tone({ f: 1320, dur: 0.05, type: 'sine', v: 0.03, at: 0.03 }); },
     fail() { [0, -3, -7].forEach((s, k) => tone({ f: 330 * Math.pow(2, s / 12), dur: 0.6, type: 'triangle', v: 0.09, at: k * 0.12, echo: 0.4 })); },
   };

@@ -39,9 +39,9 @@ function points(count, fill, material) {
 }
 
 // 通用螺旋星系生成器（银河系、仙女座星系、背景小星系共用）
-export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, bar = 0.22, thick = 0.02, minor = false,
+export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, bar = 0.22, thick = 0.02, minor = false, near = null,
   bulgeColor = [1.0, 0.78, 0.5], armColor = [0.62, 0.72, 1.0], hii = 0.05, size = 1, bright = 1, opacity = 1 } = {}) {
-  const mat = dustMaterial({ opacity, max: 40, soft: 1.2 });
+  const mat = dustMaterial({ opacity, max: 24, soft: 1.2, near });
   const b = Math.max(0.15, pitch);
   const T0 = bar > 0 ? Math.max(0.1, bar * 0.55) : 0.08;
   const pts = points(count, (o) => {
@@ -74,7 +74,7 @@ export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, ba
       if (Math.random() < hii * ridge) { c = [1.0, 0.32, 0.55]; s = rand(2.4, 4.6); }
       else if (Math.random() < 0.1 * ridge) { c = [0.78, 0.88, 1.0]; s = rand(2.0, 3.4); }
       else {
-        const f = (tight ? 0.45 : 0.22) + Math.random() * 0.45;
+        const f = (tight ? 0.55 : 0.24) + Math.random() * 0.5;
         const m = Math.min(1, (t - T0) * 2.2);
         c = [(bulgeColor[0] * (1 - m) + armColor[0] * m) * f, (bulgeColor[1] * (1 - m) + armColor[1] * m) * f, (bulgeColor[2] * (1 - m) + armColor[2] * m) * f];
         s = rand(1, 2.0);

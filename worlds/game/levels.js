@@ -38,7 +38,7 @@
     {name: "加速环", planets: [{x: 320, y: 470, r: 52, m: 9000000, hue: 260, ring: true}], rings: [{x: 250, y: 380, k: 1.5}], motes: [[243,653],[251,425]], portal: [461,148], hint: [-105.4,0.3013]},
     {name: "碎石迷宫", planets: [{x: 520, y: 760, r: 30, m: 2500000, hue: 60}], rocks: [{x: 200, y: 600, r: 28},{x: 410, y: 570, r: 30},{x: 300, y: 400, r: 26},{x: 140, y: 300, r: 24},{x: 460, y: 270, r: 28},{x: 300, y: 230, r: 20}], motes: [[327,736],[397,411],[382,476]], portal: [301,128], hint: [-80.8,0.6388]},
     {name: "环中弹弓", planets: [{x: 380, y: 420, r: 48, m: 6000000, hue: 350}], rocks: [{x: 480, y: 720, r: 30},{x: 110, y: 240, r: 26}], rings: [{x: 180, y: 540, k: 1.5}], motes: [[235,697],[171,452],[302,217]], portal: [500,181], hint: [-109.3,0.3825]},
-    {name: "陨石雨", planets: [{x: 80, y: 180, r: 30, m: 3000000, hue: 210}], rocks: [{x: 120, y: 650, r: 18},{x: 250, y: 560, r: 20},{x: 390, y: 650, r: 18},{x: 510, y: 540, r: 20},{x: 170, y: 420, r: 18},{x: 340, y: 390, r: 22},{x: 470, y: 320, r: 18},{x: 230, y: 250, r: 18},{x: 410, y: 190, r: 20}], rings: [{x: 300, y: 760, k: 1.35}], motes: [[333,656],[361,457],[250,236]], portal: [307,113], hint: [-81.85,0.795]},
+    {name: "陨石雨", planets: [{x: 80, y: 180, r: 30, m: 3000000, hue: 210}], rocks: [{x: 120, y: 650, r: 18},{x: 250, y: 560, r: 20},{x: 390, y: 650, r: 18},{x: 510, y: 540, r: 20},{x: 170, y: 420, r: 18},{x: 340, y: 390, r: 22},{x: 470, y: 320, r: 18},{x: 230, y: 250, r: 18},{x: 410, y: 190, r: 20}], rings: [{x: 300, y: 760, k: 1.35}], motes: [[360,669],[423,427],[310,235]], portal: [150,132], hint: [-74.8,0.6263]},
     {name: "伴月", planets: [{x: 300, y: 460, r: 44, m: 5000000, hue: 160}], moons: [{cx: 300, cy: 460, orbit: 112, r: 13, m: 1000000, w: 1.1, ph: 0.4}], motes: [[215,656],[211,425],[334,265]], portal: [458,168], hint: [-112.45,0.195]},
     {name: "深渊", holes: [{x: 300, y: 430, r: 16, m: 22000000}], motes: [[215,651],[218,434],[339,346]], portal: [519,377], hint: [-115.15,0.195]},
     {name: "双月舞", planets: [{x: 300, y: 480, r: 48, m: 6000000, hue: 25, ring: true}], moons: [{cx: 300, cy: 480, orbit: 108, r: 12, m: 900000, w: 1.5, ph: 0},{cx: 300, cy: 480, orbit: 168, r: 15, m: 1400000, w: -0.8, ph: 2.2}], motes: [[399,711],[417,447],[285,268]], portal: [140,170], hint: [-56.8,0.2012]},
@@ -79,6 +79,10 @@
     const d = Math.min(1, k / 7);
     const rr = (a, b) => a + rnd() * (b - a);
     for (let attempt = 0; attempt < 400; attempt++) {
+      // 尝试次数越多，约束越宽松，保证总能生成
+      const relax = attempt / 400;
+      const minTurn = (d < 0.3 ? 0.6 : 0.9) * (1 - 0.45 * relax);
+      const minWins = (d < 0.4 ? 4 : 3) - (attempt > 250 ? 1 : 0);
       const lv = { start: [R(rr(200, 400)), 890], planets: [], holes: [], rocks: [], moons: [], worms: [], rings: [] };
       const bodies = [];
       const place = (r, ymin, ymax, gap) => {
@@ -90,6 +94,7 @@
         return null;
       };
       const np = 1 + Math.floor(rnd() * 2) + (d > 0.5 && rnd() < 0.5 ? 1 : 0);
+      const hue0 = rnd() * 360;
       for (let i = 0; i < np; i++) {
         const r = R(rr(26, 54));
         const withMoon = d > 0.35 && i === 0 && rnd() < 0.55;
@@ -97,7 +102,7 @@
         const at = place(withMoon ? orbit + 14 : r, 160, 720);
         if (!at) continue;
         const m = R(r * r * rr(2300, 3600) / 1000) * 1000;
-        lv.planets.push({ x: at[0], y: at[1], r, m, hue: R(rnd() * 360), ring: rnd() < 0.3 });
+        lv.planets.push({ x: at[0], y: at[1], r, m, hue: R((hue0 + i * 137.5 + rnd() * 30) % 360), ring: rnd() < 0.3 });
         if (withMoon) lv.moons.push({ cx: at[0], cy: at[1], orbit, r: R(rr(10, 14)), m: R(rr(6, 12)) * 1e5, w: +((rnd() < 0.5 ? -1 : 1) * rr(0.8, 1.9)).toFixed(2), ph: +(rnd() * 6.28).toFixed(2) });
       }
       if (d > 0.1) {
@@ -123,7 +128,7 @@
           const a2 = Math.atan2(path[i][1] - path[i - 2][1], path[i][0] - path[i - 2][0]);
           let da = Math.abs(a2 - a1); if (da > Math.PI) da = 2 * Math.PI - da; turn += da;
         }
-        if (turn < 0.9) continue;
+        if (turn < minTurn) continue;
         const tp = rr(1.4, Math.min(tEnd, 4.5 + d));
         const pi = path.findIndex(q => q[2] >= tp);
         if (pi < 0) continue;
@@ -149,7 +154,7 @@
         let wins = 0;
         const pert = [[0.5, 0], [-0.5, 0], [1, 0], [-1, 0], [0, 0.015], [0, -0.015], [0, 0.03], [0, -0.03]];
         for (const [da, dp] of pert) if (P.simulate(L2, ang + da * D2R, pow + dp).end === 'win') wins++;
-        if (wins < (d < 0.4 ? 5 : 3)) continue;
+        if (wins < minWins) continue;
         lv.name = '星图 ' + (k + 1);
         lv.hint = [+(ang / D2R).toFixed(2), +pow.toFixed(4)];
         return lv;
