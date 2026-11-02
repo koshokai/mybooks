@@ -116,7 +116,7 @@ function hullGeometry(body) {
   const nozzlePos = [new THREE.Vector3(-podX, 0.04, 1.64), new THREE.Vector3(podX, 0.04, 1.64), new THREE.Vector3(0, 0.05, 1.88)];
   const discs = [];
   nozzlePos.forEach((np, i) => {
-    const d = new THREE.CircleGeometry(i < 2 ? 0.24 * pr : 0.16, 20);
+    const d = new THREE.CircleGeometry(i < 2 ? 0.19 * pr : 0.13, 20);
     if (i === 2) d.scale(1.8, 0.7, 1);
     d.translate(np.x, np.y, np.z + 0.005);
     discs.push(d);
@@ -128,9 +128,9 @@ function hullGeometry(body) {
     dark.push(r);
   }
   const out = {
-    primary: mergeGeos([hull]),
-    secondary: mergeGeos([...pods, ...fins]),
-    dark: mergeGeos([...wings, ...dark]),
+    primary: mergeGeos([hull, ...pods]),
+    secondary: mergeGeos([...fins, ...wings]),
+    dark: mergeGeos(dark),
     canopy,
     glow: mergeGeos(glow),
     discs: mergeGeos(discs),
@@ -262,7 +262,7 @@ export class ShipModel {
     this.matSecondary.color.set(paint.secondary);
     this.matSecondary.metalness = 0.7; this.matSecondary.roughness = 0.35;
     this.matGlow.color.set(paint.glow).multiplyScalar(2.2);
-    this.matDisc.color.set(paint.glow).lerp(new THREE.Color('#ffffff'), 0.35).multiplyScalar(1.15);
+    this.matDisc.color.set(paint.glow).lerp(new THREE.Color('#ffffff'), 0.25).multiplyScalar(0.85);
     this.matCanopy.emissive = new THREE.Color(paint.glow).multiplyScalar(0.06);
     if (this.flameMat) this.flameMat.uniforms.uColor.value.set(paint.glow);
   }
@@ -301,9 +301,9 @@ export class Trail {
     g.setIndex(idx);
     this.geo = g;
     this.mat = new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(color) }, uAlpha: { value: 1 } },
-      vertexShader: /* glsl */`attribute float aT; varying float vT; void main(){ vT = aT; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-      fragmentShader: /* glsl */`uniform vec3 uColor; uniform float uAlpha; varying float vT; void main(){ float a = pow(clamp(1.0 - vT, 0.0, 1.0), 1.5) * uAlpha; gl_FragColor = vec4(uColor * a * 1.5, 1.0); }`,
+      uniforms: { uColor: { value: new THREE.Color(color) }, uAlpha: { value: 1 }, uNear: { value: new THREE.Vector2(5, 16) } },
+      vertexShader: /* glsl */`attribute float aT; varying float vT; varying float vZ; void main(){ vT = aT; vec4 mv = modelViewMatrix * vec4(position,1.0); vZ = -mv.z; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: /* glsl */`uniform vec3 uColor; uniform float uAlpha; uniform vec2 uNear; varying float vT; varying float vZ; void main(){ float a = pow(clamp(1.0 - vT, 0.0, 1.0), 1.5) * uAlpha * smoothstep(uNear.x, uNear.y, vZ); gl_FragColor = vec4(uColor * a * 1.5, 1.0); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     });
     this.mesh = new THREE.Mesh(g, this.mat);

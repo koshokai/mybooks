@@ -117,7 +117,7 @@ async function loadTrack(idx) {
   showLoading(true, '正在生成赛道 · ' + TRACKS[idx].name);
   await nextFrame(); await nextFrame();
   clearShips();
-  if (showcase) { showcase.dispose(); showcase = null; }
+  if (showcase) { shipLayer.remove(showcase.root); showcase.dispose(); showcase = null; }
   world.clear();
   trackIdx = idx;
   const def = TRACKS[idx];
@@ -145,6 +145,7 @@ async function loadTrack(idx) {
 }
 
 function clearShips() {
+  $('#nametags').innerHTML = ''; tagEls.clear();
   for (const v of ships.values()) { shipLayer.remove(v.model.root); v.trails.forEach((t) => { shipLayer.remove(t.mesh); t.geo.dispose(); t.mat.dispose(); }); v.model.dispose(); }
   ships.clear();
   if (ghostShip) { shipLayer.remove(ghostShip.root); ghostShip.dispose(); ghostShip = null; }
@@ -153,8 +154,9 @@ function clearShips() {
 function addShip(r, paint, body) {
   const model = new ShipModel(paint, body, { envMap: world.envMap, low: Q.low });
   const n = Q.low ? 22 : 34;
-  const tw = r.isPlayer ? 0.13 : 0.24;
+  const tw = r.isPlayer ? 0.12 : 0.24;
   const trails = [new Trail(paint.glow, n, tw), new Trail(paint.glow, n, tw)];
+  if (r.isPlayer) trails.forEach((t) => t.mat.uniforms.uNear.value.set(9, 26));
   shipLayer.add(model.root);
   trails.forEach((t) => shipLayer.add(t.mesh));
   ships.set(r, { model, trails, seed: Math.random() * 10, gapSign: 0, paint, col: new THREE.Color(paint.glow) });
@@ -377,6 +379,10 @@ async function startRace(m, idx) {
   state = 'race';
   paused = false;
   resultTimer = 0;
+  lastPlace = 0;
+  fireworks = 0;
+  hintState = null;
+  $('#h-hint').classList.remove('show');
   hud.show(true);
   hud.cache = {};
   document.body.classList.add('racing');
@@ -386,8 +392,8 @@ async function startRace(m, idx) {
   audio.playMusic(track.def.music, 1);
   audio.setLevel(1);
   audio.setDuck(1);
-  if (m === 'trial') hud.message(ghost ? '计时赛' : '计时赛', ghost ? `最佳单圈幽灵 ${fmt(ghost.lap)}` : '跑出好成绩，留下你的幽灵', '', 2.2);
-  else hud.message(track.def.name, track.def.en + ' · 3 LAPS', '', 2.2);
+  if (m === 'trial') hud.message('计时赛', ghost ? `幽灵 · 最佳单圈 ${fmt(ghost.lap)}` : '跑出好成绩，留下你的幽灵', 'top', 2.6);
+  else hud.message(track.def.name, track.def.en + ' · 3 LAPS', 'top', 2.6);
 }
 
 function setLights(stage) {
@@ -522,6 +528,22 @@ function onPlayerFinish() {
   audio.setLevel(1);
   flash = 0.4;
   resultTimer = 2.8;
+  fireworks = place <= 3 || mode === 'trial' ? 2.2 : 0.8;
+}
+let fireworks = 0, fwAcc = 0;
+const FW_COLS = [new THREE.Color('#ffd36b'), new THREE.Color('#ff5ad1'), new THREE.Color('#4de8ff'), new THREE.Color('#ffffff')];
+function updateFireworks(dt) {
+  if (fireworks <= 0 || !race) return;
+  fireworks -= dt;
+  fwAcc += dt;
+  if (fwAcc < 0.18) return;
+  fwAcc = 0;
+  const p = race.player;
+  const f = track.frameAt(p.dist + 18 + Math.random() * 20);
+  V1.copy(f.P).addScaledVector(f.L, (Math.random() - 0.5) * track.width * 0.8).addScaledVector(f.U, 6 + Math.random() * 10);
+  racerVelocity(p, V2).multiplyScalar(0.9);
+  const c = FW_COLS[(Math.random() * FW_COLS.length) | 0];
+  sparks.emit(V1, V2, c, Q.low ? 40 : 70, { spread: 26, life: 1.1, size: 0.6, bright: 3, jitter: 0.2 });
 }
 
 function showResults() {
@@ -556,6 +578,7 @@ function showResults() {
   if (newLap) rec.lap = bestLap;
   if (mode === 'race' && (!rec.place || place < rec.place)) rec.place = place;
   S.races = (S.races | 0) + 1;
+  S.hinted = (S.hinted | 0) + 1;
   if (mode === 'race' && place === 1) { S.wins[def.id] = (S.wins[def.id] | 0) + 1; }
   // 幽灵
   let ghostMsg = '';
@@ -616,6 +639,7 @@ function placeModel(model, r, dist, x, psi, roll, pitch, hover) {
   model.root.quaternion.setFromRotationMatrix(M4);
   model.root.position.copy(f.P).addScaledVector(f.L, x).addScaledVector(f.U, hover);
   model.tilt.rotation.set(-pitch, 0, -roll);
+  model.root.updateMatrixWorld(true);
   return f;
 }
 
@@ -637,7 +661,7 @@ function updateShips(dt, rc) {
     v.trailAcc = (v.trailAcc || 0) + dt;
     if (v.trailAcc > 1 / 60) { v.trailAcc = 0; v.trails[0].push(nozL, sideV, time); v.trails[1].push(nozR, sideV, time); }
     v.trails[0].update(nozL, sideV, time); v.trails[1].update(nozR, sideV, time);
-    const ta = clamp((r.speed - 20) / 60, 0, 1) * (0.55 + v.boostV * 0.9) * (r.isPlayer && rc.mode !== 'attract' ? 0.45 : 1);
+    const ta = clamp((r.speed - 20) / 60, 0, 1) * (0.55 + v.boostV * 0.9) * (r.isPlayer && rc.mode !== 'attract' ? 0.3 : 1);
     v.trails[0].mat.uniforms.uAlpha.value = ta; v.trails[1].mat.uniforms.uAlpha.value = ta;
     // 路面光斑
     if (k < 6) {
@@ -727,6 +751,8 @@ function update(dt) {
     grindT = Math.max(0, grindT - dt);
     audio.setEngine(state !== 'result', clamp(p.speed / (p.topSpeed * 1.35), 0, 1), bv, p.drifting ? Math.min(1, p.energy / 3) + 0.2 : 0, grindT > 0 ? 1 : 0);
     if (state === 'race' || state === 'finishing') { hud.update(race, p, time); hud.drawMap(race.racers, p, time); }
+    updateNameTags();
+    updateHints();
     // 名次变化
     if (state === 'race' && race.started) {
       if (lastPlace && p.place < lastPlace) { const el = $('#h-pos'); el.classList.remove('up'); void el.offsetWidth; el.classList.add('up'); }
@@ -745,8 +771,9 @@ function update(dt) {
       showcase.tilt.rotation.set(0, time * 0.25, Math.sin(time * 1.3) * 0.04);
       showcase.updateFlames(time, 0.5, 0);
       director.orbitS = 40;
-      V2.copy(V1).addScaledVector(f.U, -0.2);
-      director.updateOrbit(dt, V2, null, LOW && world.camera.aspect < 0.9 ? 12.5 : 8.6, 2.2, 0.18);
+      const portrait = world.camera.aspect < 0.9;
+      V2.copy(V1).addScaledVector(f.U, portrait ? -3.6 : -0.9);
+      director.updateOrbit(dt, V2, null, portrait ? 13.5 : 9.2, portrait ? 4.6 : 2.6, 0.18);
     } else director.updateCine(dt, attract);
     speedLines.update(dt, 0, 0);
     const fu = world.final.uniforms;
@@ -764,10 +791,64 @@ function update(dt) {
   if (scenery) scenery.userData.update(time, dt, world.camera);
   if (world.stars) { world.stars.position.copy(world.camera.position); world.starMat.uniforms.uTime.value = time; }
   if (startGate) startGate.group.traverse((o) => { if (o.userData.holo) o.userData.holo.uniforms.uTime.value = time; });
+  updateFireworks(dt);
   flash *= Math.exp(-dt * 6);
   world.final.uniforms.uFlash.value = flash * 0.5;
 }
 let lastPlace = 0;
+
+/* ---------- 新手提示（前几场比赛） ---------- */
+let hintState = null;
+function hint(html, dur = 3.2) {
+  const el = $('#h-hint');
+  el.innerHTML = html; el.classList.add('show');
+  clearTimeout(hint.t); hint.t = setTimeout(() => el.classList.remove('show'), dur * 1000);
+}
+function updateHints() {
+  if (!race || state !== 'race' || !race.started || (S.hinted | 0) >= 3) return;
+  const p = race.player, touch = document.body.classList.contains('touch');
+  const h = hintState || (hintState = { drift: false, boost: false });
+  if (!h.drift && race.clock > 2.5 && Math.abs(track.maxKappaAhead(p.s, 60)) > 0.005) {
+    h.drift = true;
+    hint(touch ? '弯道来了：按住方向，再点一下「漂移」，过弯蓄能' : '弯道来了：按住 <kbd>←</kbd>/<kbd>→</kbd> 的同时按住 <kbd>Shift</kbd> 漂移蓄能', 4);
+  } else if (h.drift && !h.boost && p.energy >= 1 && !p.drifting) {
+    h.boost = true;
+    hint(touch ? '能量已就绪 · 点「加速」冲刺！' : '能量已就绪 · 按 <kbd>E</kbd> 冲刺！', 3.4);
+  }
+}
+
+/* ---------- 对手名牌 ---------- */
+const tagEls = new Map();
+const TAGV = new THREE.Vector3();
+function updateNameTags() {
+  const box = $('#nametags');
+  const show = race && (state === 'race') && race.started;
+  if (!show) { if (box.childElementCount) { box.innerHTML = ''; tagEls.clear(); } return; }
+  const cam = world.camera, W = world.w, H = world.h;
+  cam.updateMatrixWorld();
+  for (const r of race.racers) {
+    if (r === race.player) continue;
+    let el = tagEls.get(r);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'ntag';
+      el.style.setProperty('--c', r.color);
+      el.innerHTML = `<i></i><span>${r.name}</span><b></b>`;
+      box.appendChild(el); tagEls.set(r, el);
+    }
+    track.worldPos(r.dist, r.x, 3.1, TAGV);
+    const d = TAGV.distanceTo(cam.position);
+    TAGV.project(cam);
+    const vis = TAGV.z < 1 && d < 150 && d > 7 && Math.abs(TAGV.x) < 1.1 && Math.abs(TAGV.y) < 1.1;
+    const op = vis ? Math.min(1, (150 - d) / 50) * Math.min(1, (d - 7) / 6) : 0;
+    el.style.opacity = op.toFixed(2);
+    if (op > 0) {
+      el.style.transform = `translate3d(${((TAGV.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-TAGV.y * 0.5 + 0.5) * H).toFixed(1)}px, 0) translate(-50%, -100%)`;
+      const pl = String(r.place);
+      if (el._pl !== pl) { el._pl = pl; el.lastChild.textContent = 'P' + pl; }
+    }
+  }
+}
 
 /* ============ 界面事件 ============ */
 document.addEventListener('click', (e) => {
@@ -839,6 +920,7 @@ window.__SR = {
       length: track ? track.length : 0 };
   },
   autopilot(on) { if (race) race.setAutopilot(on); },
+  giveEnergy() { if (race && race.player) race.player.energy = Math.max(race.player.energy, 1.2); },
   timeScale(n) { timeScale = n; },
   start(m, i) { return startRace(m || 'race', i | 0); },
   toTitle() { toTitle(); },

@@ -137,7 +137,7 @@ export class AudioEngine {
     e.wh.frequency.setTargetAtTime(520 + speed01 * 1500 + boost * 500, t, k);
     e.whG.gain.setTargetAtTime(0.012 + speed01 * 0.025, t, k);
     e.lp.frequency.setTargetAtTime(260 + speed01 * 1500 + boost * 1600, t, k);
-    e.out.gain.setTargetAtTime(0.32 + speed01 * 0.12, t, k);
+    e.out.gain.setTargetAtTime(0.2 + speed01 * 0.1, t, k);
     e.wind.g.gain.setTargetAtTime(speed01 * speed01 * 0.16 + boost * 0.08, t, k);
     e.wind.fl.frequency.setTargetAtTime(600 + speed01 * 2200, t, k);
     e.roar.g.gain.setTargetAtTime(boost * 0.4, t, 0.08);

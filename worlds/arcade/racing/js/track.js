@@ -225,12 +225,12 @@ export class Track {
             vec3 R = reflect(V, N);
             vec3 env = textureCube(uEnv, R).rgb;
             float fres = pow(1.0 - clamp(dot(-V, N), 0.0, 1.0), 4.0);
-            col += env * (0.025 + 0.3 * fres);
+            col += env * (0.02 + 0.22 * fres);
             // 飞船灯光投影
             for (int i = 0; i < 6; i++) {
               vec3 d = vWorld - uShipPos[i];
               float dd = dot(d, d);
-              col += uShipCol[i] * (exp(-dd * 0.045) * 0.55 + exp(-dd * 0.5) * 0.5);
+              col += uShipCol[i] * (exp(-dd * 0.05) * 0.4 + exp(-dd * 0.5) * 0.35);
             }
             float dist = length(vWorld - cameraPosition);
             col = mix(col, uFog, 1.0 - exp(-dist * 0.00045));
@@ -539,7 +539,7 @@ export class Track {
     mtx.setPosition(f.P);
     grp.applyMatrix4(mtx);
     const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(palette.under).multiplyScalar(1.8), metalness: 0.9, roughness: 0.25, envMap: envTex });
-    const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(palette.accent).multiplyScalar(1.8) });
+    const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(palette.accent).multiplyScalar(1.4) });
     const pillarG = new THREE.BoxGeometry(2.2, 20, 2.6);
     for (const sd of [-1, 1]) {
       const p = new THREE.Mesh(pillarG, dark); p.position.set(sd * w, 8, 0); grp.add(p);
@@ -623,9 +623,13 @@ export function makeTextPlane(lines, color, w = 512, h = 128) {
         vec3 col = (t.rgb * 1.6 + uColor * 0.25 * t.a) * t.a * scan * flick;
         gl_FragColor = vec4(col, 1.0);
       }`,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide,
   });
+  // 正反两面各一张，从背面看文字也不会镜像
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  const backFace = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  backFace.rotation.y = Math.PI;
+  mesh.add(backFace);
   mesh.userData.holo = mat;
   return mesh;
 }

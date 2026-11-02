@@ -520,6 +520,12 @@
     tone('triangle', 220, 220, t + 0.2, 2.4, 0.03, d, 1.2);
     S.torch();
   };
+  S.zap = o => {
+    const t = now();
+    const d = out(0.35, { x: o.x, y: o.y, ref: 24, verb: 0.3 });
+    for (let k = 0; k < 4; k++) noise(A.white, t + Math.random() * 0.12, 0.012, 0.8, d, { type: 'highpass', f: 3000 });
+    tone('sawtooth', 120, 60, t, 0.08, 0.15, d);
+  };
   S.relaySeen = () => { const t = now(); tone('sine', 1568, null, t, 0.25, 0.035, out(0.6, { verb: 0.3 })); tone('sine', 2093, null, t + 0.08, 0.3, 0.025, out(0.6, { verb: 0.3 })); };
   S.ach = () => {
     const t = now();
@@ -536,8 +542,18 @@
 
   /* ---------------- 每帧更新：持续层 ---------------- */
   A.update = function (dt, g, mode) {
+    A.active = A.ready && !A.muted;
     if (!A.ready) return;
     const t = now();
+    if (A.muted) {
+      // 静音时不再创建新的声音节点
+      A.buzzG.gain.setTargetAtTime(0, t, 0.1);
+      A.humG.gain.setTargetAtTime(0, t, 0.05);
+      A.calG.gain.setTargetAtTime(0, t, 0.05);
+      A.droneG.gain.setTargetAtTime(0, t, 0.1);
+      A.chase = 0;
+      return;
+    }
     const play = mode === 'play' && g && !g.attract;
     const w = g ? g.warden : null;
     if (w) A.wardenPos = { x: w.x, y: w.y };

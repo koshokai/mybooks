@@ -545,19 +545,17 @@
       }
     };
     if (B.amb === 'ember') {
-      crack(18, 'rgba(0,0,0,.5)', 2.2, 0, 22);
-      crack(9, B.crack, 1.3, 0.16, 20);
-      for (let i = 0; i < 70; i++) { const x = rnd() * T, y = rnd() * T; g.fillStyle = Q.rgba(rnd() < 0.5 ? B.crack : B.crack2, 0.25 + rnd() * 0.5); g.fillRect(x, y, 1.4, 1.4); }
-      for (let i = 0; i < 10; i++) { const x = rnd() * T, y = rnd() * T, R = 20 + rnd() * 40; wrap(x, y, R, (X, Y) => { g.fillStyle = rad(g, X, Y, 0, R, [[0, 'rgba(120,110,105,.12)'], [1, 'rgba(120,110,105,0)']]); g.fillRect(X - R, Y - R, R * 2, R * 2); }); }
+      crack(7, 'rgba(0,0,0,.32)', 1.6, 0, 16);
+      for (let i = 0; i < 40; i++) { const x = rnd() * T, y = rnd() * T; g.fillStyle = Q.rgba(rnd() < 0.5 ? B.crack : B.crack2, 0.15 + rnd() * 0.3); g.fillRect(x, y, 1.2, 1.2); }
+      for (let i = 0; i < 8; i++) { const x = rnd() * T, y = rnd() * T, R = 20 + rnd() * 40; wrap(x, y, R, (X, Y) => { g.fillStyle = rad(g, X, Y, 0, R, [[0, 'rgba(120,110,105,.08)'], [1, 'rgba(120,110,105,0)']]); g.fillRect(X - R, Y - R, R * 2, R * 2); }); }
     } else if (B.amb === 'snow') {
-      for (let i = 0; i < 22; i++) { const x = rnd() * T, y = rnd() * T, R = 30 + rnd() * 90; wrap(x, y, R, (X, Y) => { g.fillStyle = rad(g, X, Y, 0, R, [[0, 'rgba(210,235,250,.16)'], [0.7, 'rgba(210,235,250,.07)'], [1, 'rgba(210,235,250,0)']]); g.fillRect(X - R, Y - R, R * 2, R * 2); }); }
-      crack(14, 'rgba(160,220,250,.22)', 1, 0, 18);
-      for (let i = 0; i < 160; i++) { const x = rnd() * T, y = rnd() * T; g.fillStyle = `rgba(230,250,255,${0.25 + rnd() * 0.6})`; g.fillRect(x, y, 1, 1); }
+      for (let i = 0; i < 18; i++) { const x = rnd() * T, y = rnd() * T, R = 30 + rnd() * 90; wrap(x, y, R, (X, Y) => { g.fillStyle = rad(g, X, Y, 0, R, [[0, 'rgba(210,235,250,.11)'], [0.7, 'rgba(210,235,250,.05)'], [1, 'rgba(210,235,250,0)']]); g.fillRect(X - R, Y - R, R * 2, R * 2); }); }
+      crack(6, 'rgba(160,220,250,.12)', 0.9, 0, 14);
+      for (let i = 0; i < 110; i++) { const x = rnd() * T, y = rnd() * T; g.fillStyle = `rgba(230,250,255,${0.15 + rnd() * 0.45})`; g.fillRect(x, y, 1, 1); }
     } else {
-      for (let i = 0; i < 12; i++) { const x = rnd() * T, y = rnd() * T, R = 50 + rnd() * 110, col = rnd() < 0.5 ? '#6a2aa0' : '#a02a7a'; wrap(x, y, R, (X, Y) => { g.fillStyle = rad(g, X, Y, 0, R, [[0, Q.rgba(col, 0.16)], [1, Q.rgba(col, 0)]]); g.fillRect(X - R, Y - R, R * 2, R * 2); }); }
-      for (let i = 0; i < 220; i++) { const x = rnd() * T, y = rnd() * T, s = rnd() < 0.9 ? 1 : 2; g.fillStyle = `rgba(${rnd() < 0.3 ? '255,200,255' : '230,230,255'},${0.3 + rnd() * 0.7})`; g.fillRect(x, y, s, s); }
-      crack(8, B.crack, 1.2, 0.18, 20);
-      crack(10, 'rgba(0,0,0,.45)', 2, 0, 22);
+      for (let i = 0; i < 10; i++) { const x = rnd() * T, y = rnd() * T, R = 50 + rnd() * 110, col = rnd() < 0.5 ? '#6a2aa0' : '#a02a7a'; wrap(x, y, R, (X, Y) => { g.fillStyle = rad(g, X, Y, 0, R, [[0, Q.rgba(col, 0.11)], [1, Q.rgba(col, 0)]]); g.fillRect(X - R, Y - R, R * 2, R * 2); }); }
+      for (let i = 0; i < 160; i++) { const x = rnd() * T, y = rnd() * T, s = rnd() < 0.92 ? 1 : 1.6; g.fillStyle = `rgba(${rnd() < 0.3 ? '255,200,255' : '230,230,255'},${0.2 + rnd() * 0.55})`; g.fillRect(x, y, s, s); }
+      crack(6, 'rgba(0,0,0,.35)', 1.6, 0, 16);
     }
     return c;
   };
@@ -572,6 +570,8 @@
       { w: 22, glow: [0, -6, 46, 1], fn: (g) => { g.fillStyle = 'rgba(0,0,0,.35)'; ell(g, 0, 4, 12, 4); g.fill(); poly(g, [-5, 4, -3, -12, 2, -20, 5, -8, 4, 4]); g.fillStyle = lin(g, -5, -20, 5, 4, [[0, '#ffffff'], [0.4, '#ffe9a0'], [1, '#ff9a3c']]); g.fill(); ol(g, 1, '#4a1a00'); poly(g, [3, 4, 8, -6, 10, 3]); g.fill(); ol(g, 1, '#4a1a00'); glow(g, 0, -6, 18, '#ffd36b', 0.7); } },
       { w: 30, glow: null, fn: (g) => { g.fillStyle = 'rgba(0,0,0,.35)'; ell(g, 0, 4, 18, 6); g.fill(); rr(g, -9, -30, 18, 34, 2); g.fillStyle = lin(g, -9, 0, 9, 0, [[0, '#5a4a44'], [1, '#2a201c']]); g.fill(); ol(g, 1.3); poly(g, [-9, -30, -4, -36, 3, -31, 9, -34, 9, -30]); g.fillStyle = '#4a3c36'; g.fill(); ol(g, 1); g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-9, -18); g.lineTo(9, -18); g.moveTo(-9, -6); g.lineTo(9, -6); g.stroke(); rr(g, 12, -2, 12, 6, 1.5); g.fillStyle = '#3a2e2a'; g.fill(); ol(g, 1); } },
       { w: 26, glow: [0, 0, 40, 3], fn: (g) => { g.strokeStyle = '#0c0504'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(-20, 3); g.lineTo(-6, -1); g.lineTo(4, 2); g.lineTo(20, -3); g.stroke(); g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = 'rgba(255,110,40,.85)'; g.lineWidth = 1.4; g.stroke(); g.restore(); glow(g, 0, 0, 16, '#ff5a2a', 0.5); } },
+      { w: 60, glow: [0, 0, 60, 3], flat: true, fn: (g) => crackDecor(g, 31, '#ff6a2a', '#ffb347') },
+      { w: 60, glow: null, flat: true, fn: (g) => crackDecor(g, 32, '#ff6a2a', '#ffb347') },
     ],
     [ // 霜林
       { w: 44, glow: null, fn: (g) => { g.fillStyle = 'rgba(0,0,0,.3)'; ell(g, 4, 6, 30, 12); g.fill(); const lay = [[34, '#1e4a4a'], [26, '#2a6260'], [18, '#3a7a76'], [10, '#5a9a94']]; lay.forEach(([R, c], i) => { const pts = []; for (let k = 0; k < 16; k++) { const a = (k / 16) * TAU + i * 0.2, d = k % 2 ? R * 0.68 : R; pts.push(Math.cos(a) * d, Math.sin(a) * d * 0.85 - i * 4); } poly(g, pts); g.fillStyle = c; g.fill(); ol(g, 1, 'rgba(5,20,25,.7)'); }); g.fillStyle = 'rgba(235,250,255,.85)'; for (let k = 0; k < 7; k++) { const a = k * 0.9; ell(g, Math.cos(a) * 14, Math.sin(a) * 10 - 6, 5, 2.4, a); g.fill(); } circ(g, 0, -14, 4); g.fill(); } },
@@ -579,6 +579,7 @@
       { w: 46, glow: [0, 0, 50, 7], fn: (g) => { ell(g, 0, 0, 42, 20); g.fillStyle = rad(g, -10, -6, 0, 44, [[0, 'rgba(200,240,255,.55)'], [0.6, 'rgba(90,170,220,.35)'], [1, 'rgba(40,90,140,.3)']]); g.fill(); g.strokeStyle = 'rgba(220,245,255,.6)'; g.lineWidth = 1.2; ell(g, 0, 0, 42, 20); g.stroke(); g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-20, -6); g.lineTo(-4, 2); g.lineTo(6, -4); g.moveTo(10, 8); g.lineTo(22, 2); g.stroke(); } },
       { w: 22, glow: [0, -8, 48, 5], fn: (g) => { g.fillStyle = 'rgba(0,0,0,.3)'; ell(g, 0, 4, 12, 4); g.fill(); for (const [x, h, l] of [[-5, 18, -3], [1, 26, 1], [6, 15, 4]]) { poly(g, [x - 3, 4, x + l - 2, -h * 0.8, x + l, -h, x + l + 2, -h * 0.8, x + 3, 4]); g.fillStyle = lin(g, x, -h, x, 4, [[0, '#ffffff'], [0.5, '#a8e8ff'], [1, '#3a8ac8']]); g.fill(); ol(g, 0.9, '#123048'); } glow(g, 0, -10, 18, '#7fe8ff', 0.6); } },
       { w: 20, glow: null, fn: (g) => { g.fillStyle = 'rgba(0,0,0,.3)'; ell(g, 0, 3, 13, 5); g.fill(); ell(g, 0, -2, 11, 7); g.fillStyle = '#3a2a22'; g.fill(); ol(g, 1.1); ell(g, 0, -4, 9, 5); g.fillStyle = '#e8f6ff'; g.fill(); g.strokeStyle = 'rgba(120,90,70,.6)'; g.lineWidth = 0.8; ell(g, 0, -4, 5, 2.6); g.stroke(); } },
+      { w: 60, glow: null, flat: true, fn: (g) => crackDecor(g, 33, '#7fe8ff', '#e6fbff', 0.5) },
       { w: 28, glow: null, fn: (g) => { g.fillStyle = 'rgba(0,0,0,.3)'; ell(g, 0, 5, 20, 6); g.fill(); const rnd = Q.mulberry(8); for (let i = 0; i < 6; i++) { const x = (rnd() - 0.5) * 26, y = (rnd() - 0.5) * 10 - 3; circ(g, x, y, 7 + rnd() * 4); g.fillStyle = i % 2 ? '#24504c' : '#2e605a'; g.fill(); ol(g, 0.9, 'rgba(5,20,25,.7)'); } g.fillStyle = 'rgba(235,250,255,.8)'; for (let i = 0; i < 5; i++) { circ(g, (rnd() - 0.5) * 22, (rnd() - 0.5) * 8 - 6, 2.5); g.fill(); } } },
     ],
     [ // 星陨深渊
@@ -587,13 +588,28 @@
       { w: 20, glow: [0, -4, 50, 0], fn: (g) => { glow(g, 0, -4, 22, '#ffe9b0', 0.6); g.fillStyle = '#ffffff'; poly(g, [0, -18, 2.5, -6, 10, -4, 2.5, -1, 0, 9, -2.5, -1, -10, -4, -2.5, -6]); g.fill(); g.strokeStyle = 'rgba(255,233,176,.7)'; g.lineWidth = 0.8; circ(g, 0, -4, 13); g.stroke(); } },
       { w: 30, glow: [0, 0, 44, 9], fn: (g) => { g.strokeStyle = '#05010a'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(-24, 2); g.lineTo(-10, -3); g.lineTo(0, 3); g.lineTo(12, -2); g.lineTo(24, 4); g.stroke(); g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = 'rgba(255,107,213,.85)'; g.lineWidth = 1.6; g.stroke(); g.restore(); glow(g, 0, 0, 18, '#ff6bd5', 0.45); } },
       { w: 36, glow: null, fn: (g) => { g.fillStyle = 'rgba(0,0,0,.4)'; ell(g, 0, 4, 26, 7); g.fill(); for (const x of [-18, 18]) { rr(g, x - 5, -34, 10, 38, 2); g.fillStyle = lin(g, x - 5, 0, x + 5, 0, [[0, '#4a3a62'], [1, '#1c1430']]); g.fill(); ol(g, 1.2); } g.beginPath(); g.moveTo(-23, -30); g.quadraticCurveTo(0, -48, 23, -30); g.lineTo(23, -24); g.quadraticCurveTo(0, -40, -23, -24); g.closePath(); g.fillStyle = '#3a2e52'; g.fill(); ol(g, 1.2); glow(g, 0, -36, 6, '#c86bff', 0.7); } },
+      { w: 60, glow: [0, 0, 56, 9], flat: true, fn: (g) => crackDecor(g, 34, '#c86bff', '#ff6bd5') },
       { w: 40, glow: [0, 0, 50, 13], fn: (g) => { ell(g, 0, 0, 36, 16); g.fillStyle = rad(g, 0, 0, 0, 36, [[0, '#000000'], [0.6, '#12052a'], [1, '#3a1a6a']]); g.fill(); g.strokeStyle = 'rgba(200,107,255,.6)'; g.lineWidth = 1.2; ell(g, 0, 0, 36, 16); g.stroke(); specks(g, Q.mulberry(77), 14, 24, '#ffffff', 0.5); } },
     ],
   ];
+  function crackDecor(g, seed, c1, c2, a) {
+    const rnd = Q.mulberry(seed);
+    const pts = []; let x = -44, y = (rnd() - 0.5) * 20, an = (rnd() - 0.5) * 0.6;
+    pts.push(x, y);
+    while (x < 44) { an += (rnd() - 0.5) * 1.1; an = Q.clamp(an, -0.9, 0.9); x += 8 + rnd() * 9; y += Math.sin(an) * 10; pts.push(x, y); }
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const path = () => { g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); };
+    path(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 4.5; g.stroke();
+    g.save(); g.globalCompositeOperation = 'lighter';
+    path(); g.strokeStyle = Q.rgba(c1, 0.22 * (a || 1)); g.lineWidth = 8; g.stroke();
+    path(); g.strokeStyle = Q.rgba(c2, 0.8 * (a || 1)); g.lineWidth = 1.3; g.stroke();
+    for (let i = 2; i < pts.length - 2; i += 4) { const bx = pts[i], by = pts[i + 1], ba = (rnd() - 0.5) * 2 + (rnd() < 0.5 ? 1.6 : -1.6); g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(ba) * 9, by + Math.sin(ba) * 9); g.strokeStyle = Q.rgba(c1, 0.55 * (a || 1)); g.lineWidth = 0.9; g.stroke(); }
+    g.restore();
+  }
   A.decorDefs = DECOR;
   function buildDecor() {
     DECOR.forEach((list, bi) => {
-      A.decor[bi] = list.map((d) => { const s = sprite(d.w + 10, d.fn); s.glow = d.glow; return s; });
+      A.decor[bi] = list.map((d) => { const s = sprite(d.w + 10, d.fn); s.glow = d.glow; s.flat = !!d.flat; return s; });
     });
   }
 

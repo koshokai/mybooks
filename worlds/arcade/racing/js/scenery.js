@@ -1,6 +1,6 @@
 /* 星际竞速 · 场景装饰：行星、红巨星、黑洞、陨石带、霓虹城市、空间站环、晶体、全息广告牌 */
 import * as THREE from 'three';
-import { makeTextPlane } from './track.js';
+import { makeTextPlane, mergeGeos } from './track.js';
 
 const C = (h) => new THREE.Color(h);
 
@@ -272,6 +272,7 @@ function stationRings(track, fracs, pal) {
       void main(){ float x = fract(vUv.x * 24.0 - uTime * 0.6); float d = smoothstep(0.0, 0.1, x) * smoothstep(0.7, 0.5, x); gl_FragColor = vec4(mix(uA, uB, step(0.5, fract(vUv.x * 12.0))) * (0.4 + d * 2.6), 1.0); }`,
   });
   const updaters = [];
+  const lampMat = new THREE.MeshBasicMaterial({ color: C(pal.accent2).multiplyScalar(4) });
   for (const fr of fracs) {
     track.frameAt(fr * track.length, f);
     const holder = new THREE.Group();
@@ -279,19 +280,20 @@ function stationRings(track, fracs, pal) {
     holder.quaternion.setFromRotationMatrix(m);
     holder.position.copy(f.P).addScaledVector(f.U, 4);
     const spin = new THREE.Group();
-    spin.add(new THREE.Mesh(ringGeo, dark));
-    const l1 = new THREE.Mesh(lightGeo, lightMat); spin.add(l1);
-    // 辐条
+    // 环体 + 6 个舱段合并成一个网格，灯合并成一个网格
+    const parts = [ringGeo.clone()], lamps = [];
     for (let i = 0; i < 6; i++) {
-      const pod = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 7), dark);
       const a = (i / 6) * Math.PI * 2;
-      pod.position.set(Math.cos(a) * (R + 3), Math.sin(a) * (R + 3), 0);
-      pod.rotation.z = a;
-      spin.add(pod);
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8), new THREE.MeshBasicMaterial({ color: C(pal.accent2).multiplyScalar(4) }));
-      lamp.position.set(Math.cos(a) * (R + 6.2), Math.sin(a) * (R + 6.2), 0);
-      spin.add(lamp);
+      const pod = new THREE.BoxGeometry(5, 5, 7);
+      pod.rotateZ(a); pod.translate(Math.cos(a) * (R + 3), Math.sin(a) * (R + 3), 0);
+      parts.push(pod);
+      const lamp = new THREE.SphereGeometry(1.1, 10, 8);
+      lamp.translate(Math.cos(a) * (R + 6.2), Math.sin(a) * (R + 6.2), 0);
+      lamps.push(lamp);
     }
+    spin.add(new THREE.Mesh(mergeGeos(parts), dark));
+    spin.add(new THREE.Mesh(lightGeo, lightMat));
+    spin.add(new THREE.Mesh(mergeGeos(lamps), lampMat));
     holder.add(spin);
     grp.add(holder);
     const dir = fracs.indexOf(fr) % 2 ? 1 : -1;

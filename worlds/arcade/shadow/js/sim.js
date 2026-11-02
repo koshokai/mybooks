@@ -618,7 +618,11 @@
      ========================================================= */
   G.speedMul = function () {
     const w = this.warden;
-    return 1 + 0.025 * this.relaysDone + (w.enraged ? 0.07 : 0);
+    return 1 + 0.02 * this.relaysDone + (w.enraged ? 0.05 : 0);
+  };
+  // 追逐速度永远略低于冲刺：甩开它总是有可能的
+  G.chaseSpeed = function () {
+    return Math.min(this.D.wChase * this.speedMul(), PL.sprint * 0.97);
   };
 
   G.setGoal = function (x, y) {
@@ -765,7 +769,7 @@
       }
       case 'investigate': {
         if (w.stare > 0 && w.urgency < 0.9) { this.stareAt(dt); break; }
-        const sp = U.lerp(D.wInvest * 0.85, D.wChase * 0.95, w.urgency) * sm;
+        const sp = Math.min(U.lerp(D.wInvest * 0.85, D.wChase * 0.95, w.urgency) * sm, this.chaseSpeed());
         const arrived = this.moveAlong(sp, dt);
         if (arrived) {
           w.lookT += dt;
@@ -844,7 +848,7 @@
         if (d > 0.8) {
           w.repath -= dt;
           if (w.repath <= 0 || !w.path) this.setGoal(L.cx, L.cy);
-          this.moveAlong(D.wChase * sm, dt);
+          this.moveAlong(this.chaseSpeed(), dt);
         } else {
           w.path = null;
           w.vx *= 0.7; w.vy *= 0.7;
@@ -1015,7 +1019,7 @@
       w.path = M.findPath(w.x, w.y, tx, ty, this.flareCost, w.r);
       w.pi = 1;
     }
-    const arrived = this.moveAlong(D.wChase * sm, dt);
+    const arrived = this.moveAlong(this.chaseSpeed(), dt);
     if (w.seeing) w.faceTarget = Math.atan2(p.y - w.y, p.x - w.x);
     if (!w.seeing && (lost > D.memory + 2.5 || (lost > D.memory && (arrived || Math.hypot(tx - w.x, ty - w.y) < 1)))) {
       this.startSearch(tx, ty);

@@ -14,7 +14,7 @@
   const QS = new URLSearchParams(location.search);
 
   const cv = $('#cv');
-  const coarse = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints > 0 && 'ontouchstart' in window);
+  const coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
   let touchMode = coarse || QS.get('touch') === '1';
   R.init(cv, touchMode);
   document.body.classList.toggle('touch', touchMode);
@@ -25,7 +25,7 @@
   let diff = store.diff && U.DIFF[store.diff] ? store.diff : 'normal';
   let run = null;
   const fx = { hurt: 0, cracks: null, crackLvl: 0, glitch: 0, beat: 0, beatT: 0, endFade: 0 };
-  let acc = 0, lastTs = 0, hold = false;
+  let acc = 0, lastTs = 0, hold = false, still = 0;
 
   /* ---------------- 输入 ---------------- */
   const keys = Object.create(null);
@@ -67,7 +67,14 @@
   });
   window.addEventListener('keyup', e => { keys[e.code] = false; });
   window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (mode === 'play' && !paused && game && !game.ending) pause(); });
-  cv.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.has = true; });
+  // 鼠标：在窗口层面监听（触屏层盖在画布上时也能收到）
+  let mouseMoves = 0;
+  window.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    mouse.x = e.clientX; mouse.y = e.clientY; mouse.has = true;
+    if (touchMode && ++mouseMoves > 6) setTouchMode(false);
+  });
+  window.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && touchMode && mode === 'play' && !e.target.closest('.modal,.hud')) setTouchMode(false); });
   cv.addEventListener('contextmenu', e => { e.preventDefault(); if (mode === 'play' && !paused) inp.torchP = true; });
   cv.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse') {
@@ -89,6 +96,7 @@
   const STICK_R = 54;
   tz.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse') return;
+    mouseMoves = 0;
     setTouchMode(true);
     const btn = e.target.closest('.tbtn');
     if (btn) return;
@@ -496,6 +504,7 @@
           break;
         }
         case 'exhausted': A.play('exhausted'); break;
+        case 'zap': A.play('zap', e); break;
       }
     }
     g.events.length = 0;
@@ -713,6 +722,10 @@
     $('#r-sub').textContent = (run.daily ? '每日站点 · ' + U.todayCN() : '站点 #' + U.seedCode(run.seed)) + ' · ' + U.DIFF[run.diff].name;
     openModal('m-result');
     showScreen('result');
+    still = 0;
+    fx.endFade = 0;
+    el.fade.style.transition = 'opacity 1.2s ease';
+    el.fade.style.opacity = win ? '0.15' : '0.35';
     el.calib.classList.remove('show');
     el.prompt.classList.remove('show');
     el.vent.classList.remove('show');
@@ -754,16 +767,17 @@
           tutorial(game);
           checkEnding(game);
         }
-        if (game) renderGame(game, paused ? 0 : dt, now);
+        // 暂停时画面静止（省电：弹窗的背景模糊不必每帧重算）
+        if (game && (!paused || still++ < 2)) renderGame(game, paused ? 0 : dt, now);
+        if (!paused) still = 0;
+      } else if (mode === 'result' && game) {
+        if (still++ < 2) renderGame(game, 0, now);
       } else if (mode === 'title' || mode === 'result') {
         if (!attract) attract = new U.Game({ seed: 20261102, diff: 'normal', attract: true });
-        const g = mode === 'result' && game ? game : attract;
-        if (g === attract) {
-          let a = Math.min(dt, 0.05);
-          while (a > 0) { const s = Math.min(STEP, a); attract.update(s, null); a -= s; }
-          attract.events.length = 0;
-        }
-        renderGame(g, dt, now);
+        let a = Math.min(dt, 0.05);
+        while (a > 0) { const s = Math.min(STEP, a); attract.update(s, null); a -= s; }
+        attract.events.length = 0;
+        renderGame(attract, dt, now);
       }
       A.lx = game && mode === 'play' ? listenerX() : attract ? attract.warden.x : 0;
       A.ly = game && mode === 'play' ? listenerY() : attract ? attract.warden.y + 6 : 0;
@@ -782,15 +796,15 @@
     fx.hurt = Math.max(0, fx.hurt - dt * 1.6);
     const danger = g.attract ? 0 : g.danger;
     // 没有声音时也让红晕跟着“心跳”跳动
-    let beat = A.ready ? A.beatPulse : 0;
-    if (!A.ready && danger > 0.1) {
+    let beat = A.active ? A.beatPulse : 0;
+    if (!A.active && danger > 0.1) {
       fx.beatT -= dt;
       if (fx.beatT <= 0) { fx.beat = 1; fx.beatT = U.lerp(1.05, 0.34, danger); }
       fx.beat = Math.max(0, fx.beat - dt * 3.2);
       beat = fx.beat;
     }
     let glitch = danger > 0.82 ? (danger - 0.82) * 2.4 : 0;
-    if (g.ending && g.ending.type === 'caught') glitch = Math.min(1, 0.3 + g.ending.t * 0.5);
+    if (g.ending && g.ending.type === 'caught') glitch = mode === 'result' ? 0 : Math.min(1, 0.3 + g.ending.t * 0.5);
     R.draw(g, dt, now, {
       danger, beat, hurt: fx.hurt, cracks: g.attract ? null : fx.cracks, glitch,
       shake: g.ending && g.ending.type === 'win' && g.ending.t > 0.4 ? Math.min(0.35, (g.ending.t - 0.4) * 0.4) : 0,
@@ -801,6 +815,8 @@
       const win = g.ending && g.ending.type === 'win';
       el.fade.classList.toggle('white', !!win);
       if (g.ending) { el.fade.style.transition = 'none'; el.fade.style.opacity = String(fx.endFade); }
+      else if (fx.wasEnding) el.fade.classList.remove('white');
+      fx.wasEnding = !!g.ending;
     }
   }
 

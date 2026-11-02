@@ -50,7 +50,7 @@ export class World {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
     renderer.setPixelRatio(quality.dpr);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.0;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
@@ -61,7 +61,7 @@ export class World {
     this.composer = new EffectComposer(renderer, rt);
     this.renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(this.renderPass);
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.62, 0.42, 0.74);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.52, 0.4, 0.8);
     if (quality.bloomScale < 1) {
       const orig = this.bloom.setSize.bind(this.bloom);
       this.bloom.setSize = (w, h) => orig(Math.max(64, Math.round(w * quality.bloomScale)), Math.max(64, Math.round(h * quality.bloomScale)));

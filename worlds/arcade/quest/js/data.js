@@ -84,19 +84,19 @@
   /* ---------- 远征三程 ---------- */
   Q.STAGES = [
     {
-      biome: 0, boss: 'heyan', elite: 'warden', count: [24, 125], hpMul: 1, dmgMul: 1,
+      biome: 0, boss: 'heyan', elite: 'warden', count: [30, 140], rate: [1.3, 5.5], hpMul: 1, dmgMul: 1,
       roster: [['imp', 0, 10], ['magma', 0.08, 4], ['cult', 0.2, 3], ['horn', 0.33, 3], ['beetle', 0.46, 3], ['ogre', 0.6, 2]],
       ring: 'imp', rush: 'horn',
       events: [[0.2, 'ring'], [0.36, 'elite'], [0.52, 'swarm'], [0.64, 'rush'], [0.76, 'elite'], [0.86, 'ring']],
     },
     {
-      biome: 1, boss: 'linyuan', elite: 'sentry', count: [80, 200], hpMul: 3.4, dmgMul: 1.45,
+      biome: 1, boss: 'linyuan', elite: 'sentry', count: [90, 210], rate: [3.6, 8], hpMul: 3.4, dmgMul: 1.45,
       roster: [['wolf', 0, 10], ['crystal', 0.04, 4], ['wisp', 0.12, 3], ['stag', 0.25, 3], ['bloat', 0.38, 3], ['yeti', 0.5, 2]],
       ring: 'wolf', rush: 'stag',
       events: [[0.14, 'ring'], [0.28, 'elite'], [0.44, 'swarm'], [0.56, 'rush'], [0.66, 'elite'], [0.78, 'ring'], [0.9, 'elite']],
     },
     {
-      biome: 2, boss: 'yuanyao', elite: 'herald', count: [130, 280], hpMul: 8.5, dmgMul: 1.95,
+      biome: 2, boss: 'yuanyao', elite: 'herald', count: [140, 300], rate: [5, 11], hpMul: 8.5, dmgMul: 1.95,
       roster: [['shade', 0, 10], ['egg', 0.04, 4], ['eye', 0.1, 3], ['husk', 0.2, 3], ['nova', 0.32, 3], ['colos', 0.44, 2]],
       ring: 'shade', rush: 'husk',
       events: [[0.12, 'ring'], [0.24, 'elite'], [0.4, 'swarm'], [0.5, 'rush'], [0.6, 'elite'], [0.72, 'ring'], [0.82, 'elite'], [0.92, 'swarm']],

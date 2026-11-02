@@ -16,6 +16,7 @@ export class Racer {
     this.accel = 44;
     this.maxYaw = 1.55;
     this.assist = opts.assist != null ? opts.assist : 1.0;
+    this.ffAssist = opts.ffAssist || 0; // 弯道前馈辅助：自动跟随一部分赛道弯曲
     this.speedMult = 1;
     this.reset(0, 0);
   }
@@ -84,7 +85,7 @@ export class Racer {
       target = d * yawCap * (0.88 + 0.55 * sd);
       grip = 3.4; scrub = 0.045;
       // 充能：角度越大、速度越快充得越快
-      const charge = (0.24 + 0.2 * Math.max(0, sd)) * clamp(speed / this.topSpeed, 0.4, 1.1);
+      const charge = (0.36 + 0.26 * Math.max(0, sd)) * clamp(speed / this.topSpeed, 0.4, 1.1);
       const before = Math.floor(this.energy);
       this.energy = Math.min(3, this.energy + charge * dt);
       if (Math.floor(this.energy) > before) this.emit('charge', { level: Math.floor(this.energy) });
@@ -96,6 +97,7 @@ export class Racer {
       grip = 3.4 + 6.1 * Math.min(1, this.gripT / 0.4); scrub = 0.085;
     }
     target -= this.psi * this.assist;
+    if (this.ffAssist && !this.drifting) target += this.ffAssist * k * Math.max(0, this.vf);
     this.yawRate += (target - this.yawRate) * (1 - Math.exp(-9 * dt));
     const dpsi = this.yawRate * dt;
     this.psi += dpsi;

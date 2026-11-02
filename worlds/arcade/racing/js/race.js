@@ -36,7 +36,7 @@ export class Race {
     };
 
     if (mode !== 'attract') {
-      const p = new Racer(track, { id: 'player', name: '你', team: PLAYER_SHIP.team, isPlayer: true, color: opts.paint.glow, assist: opts.touch ? 1.7 : 1.05 });
+      const p = new Racer(track, { id: 'player', name: '你', team: PLAYER_SHIP.team, isPlayer: true, color: opts.paint.glow, assist: opts.touch ? 1.7 : 1.05, ffAssist: opts.touch ? 0.65 : 0.45 });
       this.player = p;
     }
     if (mode === 'race' || mode === 'attract') {
@@ -93,11 +93,16 @@ export class Race {
 
   setAutopilot(on) {
     if (!this.player) return;
+    const p = this.player;
     if (on && !this.autopilot) {
+      p._assist = [p.assist, p.ffAssist]; p.assist = 0; p.ffAssist = 0;
       this.autopilot = new AIDriver(this.player, { ...RIVALS[1], aggr: 0, wobble: 0, boost: 1, line: 1, drift: 1 }, this.rand);
       this.autopilot.base = 1;
       this.autopilot.react = 0;
-    } else if (!on) this.autopilot = null;
+    } else if (!on && this.autopilot) {
+      this.autopilot = null;
+      if (p._assist) { [p.assist, p.ffAssist] = p._assist; }
+    }
   }
 
   emit(type, data) { this.events.push({ type, ...data }); }

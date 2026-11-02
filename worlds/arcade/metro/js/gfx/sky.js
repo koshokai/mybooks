@@ -19,16 +19,19 @@ varying vec2 vUv;
 void main() {
   float lon = (vUv.x - 0.5) * 6.2831853, lat = (vUv.y - 0.5) * 3.1415927;
   vec3 d = vec3(sin(lat), cos(lat) * cos(lon), cos(lat) * sin(lon));
-  vec3 w = vec3(fbm3(d * 1.6 + 3.1), fbm3(d * 1.6 + 8.7), fbm3(d * 1.6 + 13.3));
-  float h = fbm3(d * 2.2 + w * 1.25);
-  vec3 cw = vec3(fbm3(d * 3.0 + 31.0), fbm3(d * 3.0 + 37.0), fbm3(d * 3.0 + 41.0));
-  float cl = fbm3(vec3(d.x * 7.5, d.y * 2.6, d.z * 2.6) + cw * 2.2 + 21.0);
-  cl = mix(cl, fbm3(d * 9.0 + cw * 3.0), 0.35);
-  float cluster = smoothstep(0.48, 0.7, fbm3(d * 4.5 + 40.0));
-  float dots = noise3(d * 170.0) * noise3(d * 95.0 + 5.0);
-  float roads = 1.0 - smoothstep(0.0, 0.045, abs(fbm3(d * 8.0 + 60.0) - 0.5));
-  float city = cluster * (0.18 + 1.6 * smoothstep(0.25, 0.7, dots)) + roads * 0.5 * smoothstep(0.3, 0.6, fbm3(d * 4.5 + 40.0));
-  gl_FragColor = vec4(h, cl, clamp(city, 0.0, 1.0), fbm3(d * 14.0 + 3.0));
+  vec3 w = vec3(fbm3(d * 2.4 + 3.1), fbm3(d * 2.4 + 8.7), fbm3(d * 2.4 + 13.3));
+  float h = fbm3(d * 3.8 + w * 1.5);
+  // 云：拉长的云带 + 旋涡
+  vec3 cw = vec3(fbm3(d * 4.0 + 31.0), fbm3(d * 4.0 + 37.0), fbm3(d * 4.0 + 41.0));
+  float cl = fbm3(vec3(d.x * 14.0, d.y * 5.0, d.z * 5.0) + cw * 3.0 + 21.0);
+  cl = mix(cl, fbm3(d * 12.0 + cw * 4.0), 0.45);
+  cl *= 0.75 + 0.5 * fbm3(d * 2.0 + 77.0);
+  // 城市：成团的光斑 + 细密光点 + 连接它们的道路
+  float cluster = smoothstep(0.46, 0.66, fbm3(d * 6.0 + 40.0));
+  float dots = smoothstep(0.55, 0.95, noise3(d * 420.0)) * smoothstep(0.35, 0.8, noise3(d * 150.0 + 5.0));
+  float roads = 1.0 - smoothstep(0.0, 0.028, abs(fbm3(d * 11.0 + 60.0) - 0.5));
+  float city = cluster * 0.75 + roads * 0.6 * smoothstep(0.38, 0.62, fbm3(d * 6.0 + 40.0)) + dots * 0.12;
+  gl_FragColor = vec4(h, cl, clamp(city, 0.0, 1.0), fbm3(d * 24.0 + 3.0));
 }`;
 
 const NEBULA_BAKE = NOISE + /* glsl */`
@@ -99,7 +102,7 @@ export class Sky {
           vec4 nb = textureLod(uNebTex, uv, 0.0);
           col += (uNebA * nb.r + uNebB * nb.g) * uNeb * 1.6;
           float sd = max(dot(d, uSunDir), 0.0);
-          col += uSunCol * (pow(sd, 2400.0) * 40.0 + pow(sd, 260.0) * 2.0 + pow(sd, 22.0) * 0.35 + pow(sd, 4.0) * 0.08) * uSunAmt;
+          col += uSunCol * (pow(sd, 2600.0) * 40.0 + pow(sd, 380.0) * 2.4 + pow(sd, 40.0) * 0.3 + pow(sd, 8.0) * 0.05) * uSunAmt;
           gl_FragColor = vec4(col, 1.0);
         }`,
     }));
@@ -159,6 +162,10 @@ export class Sky {
         uniform sampler2D uTex; uniform float uRot, uCloudAmt, uCityAmt, uSpec, uTime;
         uniform vec3 uLight, uOcean, uDeep, uLand, uDesert, uCloud, uCity, uAtmo, uAtmoN, uTerm, uSunCol;
         varying vec3 vN; varying vec3 vW;
+        float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float n3(vec3 x) { vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+                     mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
         void main() {
           vec3 n = normalize(vN);
           float lat = asin(clamp(n.x, -1.0, 1.0));
@@ -167,30 +174,37 @@ export class Sky {
           float u = fwidth(u1) <= fwidth(u2) + 1e-5 ? u1 : u2;
           vec2 uv = vec2(u, lat / 3.1415927 + 0.5);
           vec4 t = texture2D(uTex, uv);
-          // 云层单独慢慢漂移
-          float lonC = lon + uTime * 0.004;
+          float lonC = lon + uTime * 0.0035;
           float c1 = fract(lonC / 6.2831853 + 0.5), c2 = fract(lonC / 6.2831853) - 0.5;
           float cl = texture2D(uTex, vec2(fwidth(c1) <= fwidth(c2) + 1e-5 ? c1 : c2, uv.y)).g;
-          float land = smoothstep(0.515, 0.545, t.r);
-          vec3 ocean = mix(uDeep, uOcean, smoothstep(0.25, 0.515, t.r));
-          vec3 ground = mix(uLand, uDesert, smoothstep(0.58, 0.72, t.r + (t.a - 0.5) * 0.15));
-          ground *= 0.75 + 0.5 * t.a;
+          // 近处补充细节（避免贴图被放大后发糊）
+          vec3 q = vec3(n.x, cos(lat) * cos(lon), cos(lat) * sin(lon));
+          float det = n3(q * 260.0) * 0.6 + n3(q * 640.0) * 0.4;
+          float hh = t.r + (det - 0.5) * 0.035;
+          float land = smoothstep(0.515, 0.53, hh);
+          vec3 ocean = mix(uDeep, uOcean, smoothstep(0.3, 0.515, hh));
+          vec3 ground = mix(uLand, uDesert, smoothstep(0.56, 0.7, hh + (t.a - 0.5) * 0.2));
+          ground *= 0.65 + 0.55 * t.a + (det - 0.5) * 0.3;
           vec3 col = mix(ocean, ground, land);
-          float cloud = smoothstep(0.5, 0.74, cl) * uCloudAmt;
+          float cloud = smoothstep(0.52, 0.7, cl + (det - 0.5) * 0.06) * uCloudAmt;
           vec3 V = normalize(cameraPosition - vW);
           float ndl = dot(n, uLight);
-          float day = smoothstep(-0.08, 0.35, ndl);
+          float day = smoothstep(-0.06, 0.3, ndl);
           vec3 surf = mix(col, uCloud, cloud);
-          vec3 lit = surf * (0.015 + 1.35 * max(ndl, 0.0));
-          lit += uTerm * pow(max(1.0 - abs(ndl * 2.2), 0.0), 3.0) * 0.32 * (0.4 + cloud);
+          vec3 lit = surf * (0.012 + 1.3 * max(ndl, 0.0));
+          float term = pow(max(1.0 - abs(ndl) * 5.5, 0.0), 2.0);
+          lit += uTerm * term * (0.06 + cloud * 0.55);
           vec3 H = normalize(uLight + V);
-          lit += uSunCol * pow(max(dot(n, H), 0.0), 90.0) * uSpec * (1.0 - land) * (1.0 - cloud) * day * 1.4;
-          float night = 1.0 - smoothstep(-0.12, 0.12, ndl);
-          lit += uCity * t.b * land * night * (1.0 - cloud * 0.75) * uCityAmt * 2.6;
-          float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
-          vec3 atmo = mix(uAtmoN * 0.35, uAtmo, smoothstep(-0.25, 0.45, ndl));
-          lit = mix(lit, atmo * 1.1, clamp(fres * 1.15, 0.0, 1.0));
-          lit += atmo * pow(1.0 - max(dot(n, V), 0.0), 1.2) * 0.08;
+          lit += uSunCol * pow(max(dot(n, H), 0.0), 120.0) * uSpec * (1.0 - land) * (1.0 - cloud) * day * 1.6;
+          float night = 1.0 - smoothstep(-0.1, 0.1, ndl);
+          lit += surf * uAtmoN * 0.05 * night;
+          float spark = smoothstep(0.55, 0.92, n3(q * 1300.0)) * (0.5 + 0.5 * n3(q * 3100.0 + 7.0));
+          float cityL = t.b * (0.25 + 1.6 * spark);
+          lit += uCity * cityL * land * night * (1.0 - cloud * 0.8) * uCityAmt * 2.6;
+          float nv = max(dot(n, V), 0.0);
+          vec3 atmo = mix(uAtmoN * 0.3, uAtmo, smoothstep(-0.25, 0.45, ndl));
+          lit = mix(lit, atmo, clamp(pow(1.0 - nv, 6.0) * 1.1, 0.0, 0.92));
+          lit += atmo * pow(1.0 - nv, 2.0) * 0.06 * (0.3 + day);
           gl_FragColor = vec4(lit, 1.0);
         }`,
     }));
@@ -209,7 +223,7 @@ export class Sky {
         void main() {
           float a = vUv.x * 720.0;
           float dash = smoothstep(0.85, 1.0, fract(a * 0.5 - uTime * 0.6)) * 0.8;
-          float train = smoothstep(0.96, 1.0, fract(vUv.x * 9.0 + uTime * 0.012)) * 3.0;
+          float train = smoothstep(0.992, 1.0, fract(vUv.x * 9.0 + uTime * 0.012)) * 2.2;
           float base = 0.28 + dash + train;
           gl_FragColor = vec4(uCol * base * uAmt, 1.0);
         }`,
@@ -220,7 +234,7 @@ export class Sky {
     this.scene.add(ring);
 
     // —— 大气辉光（解析计算视线到球心的最近距离） ——
-    const halo = new THREE.Mesh(new THREE.SphereGeometry(PLANET_R * 1.075, 128, 96), new THREE.ShaderMaterial({
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(PLANET_R * 1.16, 128, 96), new THREE.ShaderMaterial({
       uniforms: this.pu, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       vertexShader: /* glsl */`varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
       fragmentShader: /* glsl */`
@@ -232,12 +246,13 @@ export class Sky {
           float d = sqrt(max(dot(oc, oc) - tca * tca, 0.0)) / uR;
           vec3 limbN = normalize(cameraPosition + rd * tca - uCenter);
           float ndl = dot(limbN, uLight);
-          float glow = d > 1.0 ? exp(-(d - 1.0) / 0.016) : exp(-(1.0 - d) / 0.012) * 0.6;
-          float wide = d > 1.0 ? exp(-(d - 1.0) / 0.06) * 0.25 : 0.0;
+          float glow = d > 1.0 ? exp(-(d - 1.0) / 0.011) : exp(-(1.0 - d) / 0.008) * 0.55;
+          float wide = d > 1.0 ? exp(-(d - 1.0) / 0.04) * 0.22 : 0.0;
+          float fade = 1.0 - smoothstep(1.09, 1.15, d);
           vec3 col = mix(uAtmoN * 0.45, uAtmo, smoothstep(-0.35, 0.35, ndl));
           col += uTerm * pow(max(1.0 - abs(ndl * 2.0), 0.0), 2.0) * 0.9;
           float back = pow(max(dot(rd, uLight), 0.0), 6.0) * 1.2;
-          gl_FragColor = vec4(col * (glow + wide) * (0.55 + back + smoothstep(-0.2, 0.3, ndl) * 0.7), 1.0);
+          gl_FragColor = vec4(col * (glow + wide) * fade * (0.55 + back + smoothstep(-0.2, 0.3, ndl) * 0.7), 1.0);
         }`,
     }));
     halo.position.copy(PLANET_C);
@@ -259,11 +274,12 @@ export class Sky {
           float base = 0.12 + fold + n1(x * 14.0 + uTime * 0.3) * 0.05;
           float bottom = smoothstep(base - 0.02, base + 0.04, y);
           float top = 1.0 - smoothstep(base + 0.18, 0.98, y);
-          float rays = 0.45 + 0.9 * pow(n1(x * 70.0 + uTime * 0.6), 2.0) + 0.5 * n1(x * 23.0 - uTime * 0.4);
-          float edge = smoothstep(0.0, 0.12, x) * (1.0 - smoothstep(0.88, 1.0, x));
-          vec3 col = mix(uA, uB, smoothstep(base + 0.05, 0.8, y));
-          float a = bottom * top * rays * edge * uAmt;
-          gl_FragColor = vec4(col * a * 1.25, 1.0);
+          float rays = 0.12 + 1.1 * pow(n1(x * 90.0 + uTime * 0.6), 3.0) + 0.35 * pow(n1(x * 31.0 - uTime * 0.4), 2.0);
+          float edge = smoothstep(0.0, 0.15, x) * (1.0 - smoothstep(0.85, 1.0, x));
+          float lower = exp(-(y - base) * 5.0);
+          vec3 col = mix(uA, uB, smoothstep(base + 0.08, 0.75, y));
+          float a = bottom * top * rays * edge * uAmt * (0.35 + 0.65 * lower);
+          gl_FragColor = vec4(col * a * 0.42, 1.0);
         }`,
     });
     this.auroras = [];

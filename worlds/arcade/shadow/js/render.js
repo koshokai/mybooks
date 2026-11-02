@@ -855,6 +855,7 @@
 
   function drawPlayer(c, p, t, g) {
     if (p.hidden || p.vent) return;
+    if (g.ending && g.ending.type === 'win' && g.ending.t > 0.15) return; // 已登舱
     c.save();
     c.translate(p.x, p.y);
     c.fillStyle = 'rgba(0,0,0,0.4)';
@@ -1045,7 +1046,10 @@
     if (attract) {
       const e = R.eyePos(w, t);
       viewer = { x: w.x, y: w.y, r: 15 };
-      camT = { x: w.x + Math.cos(w.face) * 2.2, y: w.y + Math.sin(w.face) * 2.2 };
+      // 让它出现在标题文字旁边，而不是被字挡住
+      const portrait = R.ch > R.cw;
+      const offX = portrait ? 0 : (R.cw * 0.27) / R.TS, offY = portrait ? (R.ch * 0.3) / R.TS : 0;
+      camT = { x: w.x + Math.cos(w.face) * 1.2 - offX, y: w.y + Math.sin(w.face) * 1.2 - offY };
     } else if (p.hidden && p.hidden.cx != null) {
       const L = p.hidden;
       viewer = { x: L.x + 0.5 + Math.cos(L.dir) * 0.62, y: L.y + 0.5 + Math.sin(L.dir) * 0.62, r: 16, cone: L.dir, span: 2.6 };
@@ -1344,6 +1348,11 @@
     for (const S of M.lights) {
       if (!S.fixture || !inView(S.x, S.y, 1) || !seen(S.x, S.y)) continue;
       const kk = S.k * flickerK(S, t, g);
+      // 坏掉的灯：闪亮的瞬间迸出火花
+      if (S.mode === 'broken' && kk > 0.4 && Math.random() < dt * 5 && !g.attract) {
+        g.burst(S.x, S.y, 4, 1, 2.2);
+        if (!S.zapT || t - S.zapT > 0.5) { S.zapT = t; g.emit('zap', { x: S.x, y: S.y }); }
+      }
       if (kk < 0.05) continue;
       ctx.fillStyle = radial(ctx, S.x + S.wall[0] * 0.08, S.y + S.wall[1] * 0.08, 0.5, S.col, Math.min(1, kk * 1.2), 0.25);
       ctx.beginPath(); ctx.arc(S.x + S.wall[0] * 0.08, S.y + S.wall[1] * 0.08, 0.5, 0, TAU); ctx.fill();
@@ -1425,6 +1434,15 @@
         ctx.beginPath(); ctx.arc(lx, ly, 0.9, 0, TAU); ctx.fill();
       }
     }
+    // 逃生舱点火
+    if (g.ending && g.ending.type === 'win') {
+      const P = M.pod, k3 = Math.min(1, g.ending.t / 1.2);
+      const bx = P.cx - Math.cos(P.face) * 1.2, by = P.cy - Math.sin(P.face) * 1.2;
+      ctx.fillStyle = radial(ctx, bx, by, 2.5 + k3 * 3, [200, 170, 255], 0.5 + k3 * 0.5, 0.25);
+      ctx.beginPath(); ctx.arc(bx, by, 2.5 + k3 * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = radial(ctx, P.cx, P.cy, 1.6, [120, 255, 190], 0.6 * k3, 0.3);
+      ctx.beginPath(); ctx.arc(P.cx, P.cy, 1.6, 0, TAU); ctx.fill();
+    }
     // 照明弹火焰
     for (const f of g.flares) {
       if (f.burn >= f.life || !inView(f.x, f.y, 2)) continue;
@@ -1453,7 +1471,7 @@
       const susp = w.state === 'chase' || w.state === 'openLocker' || w.state === 'grab' ? 1 : w.susp;
       const col = susp >= 1 ? [255, 70, 50] : susp > 0.4 ? [255, 150, 70] : [255, 205, 130];
       const ek = Math.min(2.4, w.eyeK);
-      const big = g.ending && g.ending.type === 'caught' ? 1 + g.ending.t * 2.2 : 1;
+      const big = g.ending && g.ending.type === 'caught' ? 1 + Math.min(2.6, g.ending.t * 1.6) : 1;
       const rr = 0.85 * ek * big;
       ctx.fillStyle = radial(ctx, eye.x, eye.y, rr, col, Math.min(1, 0.75 * ek), 0.22);
       ctx.beginPath(); ctx.arc(eye.x, eye.y, rr, 0, TAU); ctx.fill();
@@ -1495,7 +1513,7 @@
       const k2 = r.t / 1.4;
       if (k2 >= 1) continue;
       const rad = r.r * (0.15 + 0.85 * Math.sqrt(k2));
-      const a = (1 - k2) * (r.kind === 'spark' ? 0.55 : r.kind === 'scan' ? 0.4 : 0.22);
+      const a = (1 - k2) * (r.kind === 'spark' ? 0.55 : r.kind === 'scan' ? 0.4 : r.kind === 'run' ? 0.09 : 0.2);
       ctx.strokeStyle = r.kind === 'spark' ? 'rgba(255,200,140,' + a + ')' : 'rgba(200,180,255,' + a + ')';
       ctx.lineWidth = 0.05;
       ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, TAU); ctx.stroke();

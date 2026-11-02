@@ -85,7 +85,8 @@
         ctx.drawImage(sp, px + gx * sc * fl - gr * sc, py + gy * sc - gr * sc, gr * 2 * sc, gr * 2 * sc);
       } else {
         ctx.globalAlpha = alpha * 0.92;
-        ctx.setTransform(k * sc * fl, 0, 0, k * sc, ox + px * k, oy + py * k);
+        if (s.flat) { const ra = Q.hash2(cx, cy, 13) * TAU, c = Math.cos(ra) * k * sc, sn = Math.sin(ra) * k * sc; ctx.setTransform(c, sn * 0.8, -sn, c * 0.8, ox + px * k, oy + py * k); }
+        else ctx.setTransform(k * sc * fl, 0, 0, k * sc, ox + px * k, oy + py * k);
         ctx.drawImage(s.img, -s.half, -s.half, s.half * 2, s.half * 2);
       }
     }
@@ -457,6 +458,7 @@
     ctx.setTransform(k, 0, 0, k, ox, oy);
     // 斩击
     for (const s of G.slashes) {
+      if (s.att) { s.x = G.p.x; s.y = G.p.y; }
       const p = s.t / s.dur;
       const sweep = Q.easeOut(Math.min(1, p * 2.2));
       const a0 = s.a - s.half, a1 = s.a - s.half + s.half * 2 * sweep;
@@ -664,9 +666,6 @@
       ctx.fillStyle = 'rgba(0,0,0,.55)'; rrect(cx - pw / 2, by, pw, 5, 2.5); ctx.fill();
       ctx.fillStyle = B.accent; rrect(cx - pw / 2, by, Math.max(5, pw * f), 5, 2.5); ctx.fill();
       // 三程节点
-      for (let i = 0; i < 3; i++) {
-        const nx = cx - pw / 2 - 16 + i * 0;
-      }
       ctx.save(); ctx.translate(cx + pw / 2 + 10, by + 2.5); ctx.rotate(Math.PI / 4);
       ctx.fillStyle = f > 0.97 ? '#ff6b4a' : 'rgba(255,107,74,.6)'; ctx.fillRect(-5, -5, 10, 10);
       ctx.restore();
@@ -811,7 +810,11 @@
     const mg = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, 0, mx, my, mr);
     mg.addColorStop(0, '#ffe2c8'); mg.addColorStop(0.5, '#ff9a6a'); mg.addColorStop(1, '#7a2a2a');
     ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
-    ctx.fillStyle = 'rgba(80,20,30,.35)'; ctx.beginPath(); ctx.arc(mx + mr * 0.3, my + mr * 0.1, mr * 0.95, 0, TAU); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.clip();
+    const sg = ctx.createRadialGradient(mx + mr * 0.55, my + mr * 0.2, mr * 0.2, mx + mr * 0.55, my + mr * 0.2, mr * 1.1);
+    sg.addColorStop(0, 'rgba(30,6,14,.75)'); sg.addColorStop(0.7, 'rgba(40,8,16,.35)'); sg.addColorStop(1, 'rgba(40,8,16,0)');
+    ctx.fillStyle = sg; ctx.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
+    ctx.restore();
     // 星空
     ctx.globalCompositeOperation = 'lighter';
     for (const s of T.stars) {
@@ -972,8 +975,8 @@
     g.globalAlpha = 0.55 + 0.1 * Math.sin(t * 2);
     g.drawImage(L, w / 2 - w * 0.6, h * 0.55 - w * 0.6, w * 1.2, w * 1.2);
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-    const s = Math.min(w, h) / 62;
-    g.setTransform(s, 0, 0, s, w / 2, h * 0.86);
+    const s = Math.min(w / 58, h / 78);
+    g.setTransform(s, 0, 0, s, w / 2, h * 0.72);
     A.drawHero(g, id, t, { move: opts && opts.move ? 1 : 0, face: 1 });
     g.setTransform(1, 0, 0, 1, 0, 0);
     if (opts && opts.locked) { g.fillStyle = 'rgba(6,3,4,.72)'; g.fillRect(0, 0, w, h); }

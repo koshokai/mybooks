@@ -159,11 +159,11 @@ body.muted .icon-btn.snd-btn .snd-off { display: block; }
 .intro p { margin-top: 10px; font-size: 15px; letter-spacing: .2em; color: var(--violet-2); }
 
 /* ---------- HUD ---------- */
-.hud, .tray, .prompt, .calib, .toast, .hint, .vent-ov, .touch { display: none; }
+.hud, .tray, .prompt, .calib, .toast, .hint, .vent-ov, #touch { display: none; }
 body.in-game .hud { display: flex; }
 body.in-game .tray { display: flex; }
 body.in-game.touch .tray { display: none; }
-body.in-game.touch .touch { display: block; }
+body.in-game.touch #touch { display: block; }
 body.in-game .prompt, body.in-game .calib, body.in-game .toast, body.in-game .hint, body.in-game .vent-ov { display: block; }
 .hud {
   position: fixed; left: 0; right: 0; top: 0; z-index: 20; pointer-events: none;
@@ -262,7 +262,7 @@ body.touch .calib .desk { display: none; }
 .vent-ov i::after { content: ""; position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--k, 0)); background: var(--violet); }
 
 .toast {
-  position: fixed; left: 50%; top: calc(118px + var(--safe-t)); z-index: 22; pointer-events: none;
+  position: fixed; left: 50%; top: calc(128px + var(--safe-t)); z-index: 22; pointer-events: none;
   transform: translate(-50%, -8px); opacity: 0; transition: opacity .25s, transform .25s;
   padding: 8px 18px; border-radius: 999px; font-size: 14px; letter-spacing: .14em; white-space: nowrap;
   background: rgba(12, 9, 22, .78); border: 1px solid var(--line); text-shadow: 0 1px 6px #000;
@@ -284,9 +284,9 @@ body.touch .calib .desk { display: none; }
 .hint.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .hint b { color: var(--violet-2); }
 body.touch .hint { bottom: calc(262px + var(--safe-b)); }
-body.touch .calib { bottom: calc(256px + var(--safe-b)); }
+body.touch .calib { top: calc(150px + var(--safe-t)); bottom: auto; }
 body.calibrating .hint { bottom: calc(222px + var(--safe-b)); }
-body.touch.calibrating .hint { bottom: calc(392px + var(--safe-b)); }
+body.touch.calibrating .hint { opacity: 0; }
 
 .ach-pop {
   position: fixed; right: calc(16px + var(--safe-r)); top: calc(130px + var(--safe-t)); z-index: 40; display: flex; gap: 12px; align-items: center;
@@ -303,7 +303,7 @@ body.touch.calibrating .hint { bottom: calc(392px + var(--safe-b)); }
 .fade.white { background: radial-gradient(ellipse at center, #fbf7ff, #d8c6ff 60%, #a88cff); }
 
 /* ---------- 触屏 ---------- */
-.touch { position: fixed; inset: 0; z-index: 15; touch-action: none; }
+#touch { position: fixed; inset: 0; z-index: 15; touch-action: none; }
 .stick { position: absolute; width: 140px; height: 140px; pointer-events: none; }
 .stick.on { left: 0; top: 0; opacity: 1; }
 .stick:not(.on) { left: calc(22px + var(--safe-l)); top: auto; bottom: calc(34px + var(--safe-b)); transform: none !important; opacity: .42; }
@@ -402,6 +402,7 @@ body.touch.calibrating .hint { bottom: calc(392px + var(--safe-b)); }
 
 /* ---------- 小屏 ---------- */
 @media (max-width: 560px) {
+  .ach-pop { top: calc(186px + var(--safe-t)); }
   .title-wrap { padding: 64px 18px 56px; }
   .sub { font-size: 14px; }
   .diff button { min-width: 70px; }

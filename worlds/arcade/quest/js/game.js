@@ -400,7 +400,7 @@
       if (!full) { const da = Math.abs(angDiff(a, Math.atan2(dy, dx))); if (da > half + Math.asin(Math.min(1, e.r / d))) continue; }
       hit(e, dmg, src, dx / d, dy / d, kb, null);
     }
-    G.slashes.push({ x, y, a, R, half: full ? Math.PI : half, t: 0, dur: 0.22, col: col || G.hero.color, full });
+    G.slashes.push({ x, y, a, R, half: full ? Math.PI : half, t: 0, dur: 0.22, col: col || G.hero.color, full, att: x === P.x && y === P.y });
     const n = full ? 16 : 9;
     for (let i = 0; i < n * G.pq; i++) {
       const aa = full ? Math.random() * TAU : a + rand(-half, half), rr = R * rand(0.6, 1);
@@ -766,7 +766,14 @@
     // 瞄准
     if (G.autoAim || !IN.hasMouse) {
       G.aimT -= dt;
-      if (G.aimT <= 0) { G.aimT = 0.08; G.aimTgt = nearest(P.x, P.y, 560); }
+      if (G.aimT <= 0) {
+        G.aimT = 0.08; G.aimTgt = nearest(P.x, P.y, 560);
+        const b = G.boss;
+        if (b && b.alive && !b.boss.vanish && b.boss.state !== 'intro') {
+          const bd = Math.hypot(b.x - P.x, b.y - P.y) - b.r;
+          if (bd < (G.hero.id === 'guard' ? 120 : 430)) G.aimTgt = b;
+        }
+      }
       const t = G.aimTgt;
       if (t && t.alive) P.aim = Math.atan2(t.y - P.y, t.x - P.x);
       else if (P.vx * P.vx + P.vy * P.vy > 200) P.aim = Math.atan2(P.vy, P.vx);
@@ -784,12 +791,26 @@
     let fx = 0, fy = 0;
     query(P.x, P.y, 300, QB4);
     let close = 0;
+    const melee = G.hero.id === 'guard';
+    const brave = P.hp / st.maxHp > 0.45;
+    const pref = melee ? (brave ? 55 : 110) : 170;
+    let ne = null, nd = 1e9;
     for (let k = 0; k < QB4.length; k++) {
       const e = QB4[k];
       const dx = P.x - e.x, dy = P.y - e.y, d = Math.max(8, Math.hypot(dx, dy) - e.r);
-      const w = (e.boss ? 4 : e.elite ? 2 : 1) / (d * d) * 4000;
+      if (d < nd) { nd = d; ne = e; }
+      const w = (e.boss ? 4 : e.elite ? 2 : 1) / (d * d) * (melee && brave ? 1500 : 4000);
       fx += (dx / d) * w; fy += (dy / d) * w;
       if (d < 50) close++;
+    }
+    if (!ne) ne = nearest(P.x, P.y, 700);
+    const bo = G.boss && G.boss.alive && G.boss.boss.state !== 'intro' ? G.boss : null;
+    if (bo && brave) {
+      const dx = bo.x - P.x, dy = bo.y - P.y, d = Math.hypot(dx, dy) || 1, bp = melee ? bo.r + 45 : 240;
+      if (d > bp + 30) { fx += (dx / d) * 1.1; fy += (dy / d) * 1.1; }
+    } else if (ne) {
+      const dx = ne.x - P.x, dy = ne.y - P.y, d = Math.hypot(dx, dy) || 1;
+      if (d > pref + 25) { fx += (dx / d) * 0.9; fy += (dy / d) * 0.9; }
     }
     for (let k = 0; k < ebAct.length; k++) {
       const b = ebAct[k];
@@ -1295,15 +1316,17 @@
       if (G.nextStageT <= 0) nextStage();
       return;
     }
-    let target = lerp(S.count[0], S.count[1], Math.pow(s, 0.85)) * G.countMul;
-    target *= 1 + 0.16 * Math.sin(G.stageT * TAU / 34);
-    if (G.surgeT > 0) { G.surgeT -= dt; target *= 1.7; }
-    if (G.boss || G.bossPending) target *= 0.3;
-    target = Math.min(target, G.eCap);
-    G.spawnAcc += dt * (target / 4 + 3) * (G.surgeT > 0 ? 2.2 : 1);
+    // 存活上限与刷新速率（每秒魔物数）分开控制：玩家再强，经验也不会泛滥
+    let cap = lerp(S.count[0], S.count[1], Math.pow(s, 0.85)) * G.countMul;
+    let rate = lerp(S.rate[0], S.rate[1], s) * G.countMul * (1 + 0.25 * Math.sin(G.stageT * TAU / 34));
+    if (G.surgeT > 0) { G.surgeT -= dt; cap *= 1.6; rate *= 2.6; }
+    if (G.boss || G.bossPending) { cap *= 0.35; rate *= 0.4; }
+    cap = Math.min(cap, G.eCap);
+    if (eAct.length < cap * 0.3) rate *= 2;
+    G.spawnAcc += dt * rate;
     let guard = 0;
-    while (G.spawnAcc >= 1 && eAct.length < target && guard++ < 30) { G.spawnAcc -= spawnRoster(S, s); }
-    if (G.spawnAcc > 8) G.spawnAcc = 8;
+    while (G.spawnAcc >= 1 && eAct.length < cap && guard++ < 20) { G.spawnAcc -= spawnRoster(S, s); }
+    if (G.spawnAcc > 4) G.spawnAcc = 4;
     if (!G.boss && !G.bossPending) {
       for (const ev of G.events) if (!ev.done && s >= ev.at) { ev.done = true; runEvent(ev.k, S); }
       G.stageT += dt;
@@ -1377,7 +1400,7 @@
     const e = eFree.pop();
     if (!e) return;
     Object.assign(e, mkEnemy(e.i));
-    const hp = bd.hp * Q.MODES[G.mode].bossMul * (1 + 0.035 * Math.max(0, G.level - [10, 19, 27][G.stage]));
+    const hp = bd.hp * Q.MODES[G.mode].bossMul * (1 + 0.025 * Math.max(0, G.level - [15, 24, 31][G.stage]));
     Object.assign(e, { uid: ++G.uidc, alive: true, id: S.boss, d: bd, arch: 'boss', x, y, r: bd.r, hp, mhp: hp, spd: bd.spd, dmg: bd.dmg * (1 + 0.15 * G.stage), mass: 80, big: true, face: 1, spawnT: 0,
       boss: { id: S.boss, def: bd, phase: 1, state: 'intro', stT: 1.9, inv: 1.9, t: 0, pat: '', last: '', anim: 'idle', animT: 0, charging: 0, chargesLeft: 0, cdx: 0, cdy: 0, trailT: 0, strafe: 1, vanish: false, alpha: 1, emit: 0, emitT: 0, spA: 0, arms: 2, bgT: 0, bgA: 0, stagger: 0, enraged: false, fightT: 0, moving: false } });
     e.ai = eAct.length; eAct.push(e); G.big.push(e);
@@ -1913,7 +1936,7 @@
     Q.persist();
     const res = {
       victory, hero: G.hero, mode: G.mode, time: sec, kills: G.kills, level: G.level, stage: G.stage, bossKills: G.bossKills, dmg: G.totalDmg, dmgTaken: G.dmgTaken,
-      dmgBy: Object.entries(G.dmgBy).filter(([k, v]) => v > 0 && k !== 'impact').sort((a, b) => b[1] - a[1]),
+      dmgBy: Object.entries(G.dmgBy).filter(([k, v]) => v > 0 && k !== 'impact' && k !== 'debug').sort((a, b) => b[1] - a[1]),
       dust, dustParts: parts, dustPicked: G.dustPicked, dustMul: mul, total, newBest: !!newBest, prevBest,
       build: G.weapons.map((w) => ({ id: w.id, lvl: w.lvl, evo: w.evo })).concat(Q.PASSIVES.filter((id) => G.lv[id]).map((id) => ({ id, lvl: G.lv[id] }))),
       skillLv: G.skillLv, ach: G.newAch.slice(), unlocked, bestCombo: G.bestCombo,
@@ -1939,7 +1962,7 @@
     pause() { if (G.state === 'play') { G.state = 'pause'; Q.audio.duck(true); return true; } return false; },
     resume() { if (G.state === 'pause') { G.state = 'play'; Q.audio.duck(false); P.inv = Math.max(P.inv, 0.3); } },
     quit() { G.state = 'off'; G.ended = true; Q.audio.duck(false); },
-    describe, srcName, skillCd: () => (st ? skillCd() : 1), endRun, hit, spawnEnemy, spawnPos, startBoss, kill, dropGem, dropItem, addXp, applyUpgrade, recalc, rollChoices, openChoices,
+    describe, srcName, skillCd: () => (st ? skillCd() : 1), endRun, hit, hurt, spawnEnemy, spawnPos, startBoss, kill, dropGem, dropItem, addXp, applyUpgrade, recalc, rollChoices, openChoices,
     get eAct() { return eAct; }, get pAct() { return pAct; }, get ebAct() { return ebAct; }, get gemAct() { return gemAct; },
     get P() { return P; }, get st() { return st; },
     SK, W, query,
