@@ -235,7 +235,7 @@ kbd { font-family: var(--latin); display: inline-block; min-width: 24px; padding
 .sc-flora .ph { inset: -4%; background: center / cover no-repeat; opacity: 0; animation: phfade 18s ease-in-out infinite; filter: saturate(1.05) brightness(.78); }
 .sc-flora .p1 { background-image: url("../worlds/flora/photos/lotus-1-s.jpg"); }
 .sc-flora .p2 { background-image: url("../worlds/flora/photos/sakura-1-s.jpg"); animation-delay: 6s; }
-.sc-flora .p3 { background-image: url("../worlds/flora/photos/ginkgo-2-s.jpg"); animation-delay: 12s; }
+.sc-flora .p3 { background-image: url("../worlds/flora/photos/bamboo-1-s.jpg"); animation-delay: 12s; }
 @keyframes phfade {
   0% { opacity: 0; transform: scale(1.1); }
   8%, 33% { opacity: .62; }
