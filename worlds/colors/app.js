@@ -396,13 +396,13 @@ function buildWheel() {
     const neutral = c.chroma < 0.1;
     const a = (c.hsl[0] - 90) * Math.PI / 180;
     const r = 0.62 + clamp(c.chroma, 0, 0.7) / 0.7 * 0.34;
-    return { c, a, r, neutral, x: Math.cos(a) * r, y: Math.sin(a) * r, rMin: 0.6, rMax: 0.97 };
+    return { c, a, r, neutral, x: Math.cos(a) * r, y: Math.sin(a) * r, rMin: 0.58, rMax: 1.0 };
   });
   // 无彩之色（白、灰、黑）按明度排成内环
   const ns = pts.filter((p) => p.neutral).sort((p, q) => q.c.hsl[2] - p.c.hsl[2]);
   ns.forEach((p, k) => { const a = -Math.PI / 2 + (k / ns.length) * Math.PI * 2; p.x = Math.cos(a) * 0.44; p.y = Math.sin(a) * 0.44; p.rMin = 0.42; p.rMax = 0.47; });
   // 简单的斥力松弛，避免重叠
-  const D = 0.122;
+  const D = 0.118;
   for (let it = 0; it < 200; it++) {
     for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
       const p = pts[i], q = pts[j], dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1e-4;
@@ -414,7 +414,7 @@ function buildWheel() {
     }
   }
   wheel.insertAdjacentHTML('beforeend', pts.map((p, k) => `<button class="dot" data-dot="${p.c.i}" aria-label="${p.c.n}"
-    style="left:${50 + p.x * 50}%;top:${50 + p.y * 50}%;background:${p.c.h};--sz:6.2%;animation-delay:${(k % 30) * 12}ms"></button>`).join(''));
+    style="left:${50 + p.x * 50}%;top:${50 + p.y * 50}%;background:${p.c.h};--sz:5.8%;animation-delay:${(k % 30) * 12}ms"></button>`).join(''));
   wheelBuilt = true;
 }
 function coreShow(c, hint) {
@@ -618,7 +618,7 @@ const intro = $('#intro');
 const inkAnim = (() => {
   const cv = $('#ink'), x = cv.getContext('2d');
   let w, h, run = true, t0 = performance.now();
-  const pal = ['胭脂', '石青', '藤黄', '竹青', '黛蓝', '海棠红', '群青', '石绿', '琥珀', '丁香紫'].map((n) => COLORS.find((c) => c.n === n));
+  const pal = ['胭脂', '石青', '藤黄', '石绿', '海棠红', '天水碧', '琥珀', '群青', '杏红', '丁香紫'].map((n) => COLORS.find((c) => c.n === n));
   let blooms = [];
   function setup() {
     w = innerWidth; h = innerHeight;
@@ -663,15 +663,17 @@ const inkAnim = (() => {
       if (p <= 0 || p >= 1) continue;
       const e = 1 - (1 - p) ** 3, r = b.R * e;
       blob(b, r, time);
-      x.fillStyle = rgba(b.rgb, 0.011);
+      const g = x.createRadialGradient(b.x, b.y, 0, b.x, b.y, Math.max(r, 1) * 1.15);
+      g.addColorStop(0, rgba(b.rgb, 0.002)); g.addColorStop(0.75, rgba(b.rgb, 0.007)); g.addColorStop(1, rgba(b.rgb, 0.016));
+      x.fillStyle = g;
       x.fill();
-      x.lineWidth = 1.4; x.strokeStyle = rgba(b.rgb, 0.07 * (1 - p)); x.stroke();
+      x.lineWidth = 1.6; x.strokeStyle = rgba(b.rgb, 0.05 * (1 - p)); x.stroke();
       for (const d of b.drops) {
         const q = clamp((p - 0.25 - d.r * 4) / 0.5, 0, 1);
         if (q <= 0 || q >= 1) continue;
         const dx = b.x + Math.cos(d.a) * b.R * d.d, dy = b.y + Math.sin(d.a) * b.R * d.d;
         x.beginPath(); x.arc(dx, dy, b.R * d.r * (1 - (1 - q) ** 3), 0, 6.29);
-        x.fillStyle = rgba(b.rgb, 0.03); x.fill();
+        x.fillStyle = rgba(b.rgb, 0.014); x.fill();
       }
     }
     x.globalCompositeOperation = 'source-over';

@@ -5,7 +5,7 @@
     { id: "gallery", glyph: "画", name: "画廊", en: "The Open Gallery", tag: "艺术 · 世界名画", color: "#e3b866", deep: "#2a1d0c",
       desc: "七个主题展厅，数百幅公有领域世界名画。在挂满画框的长廊里漫步，按颜色看画，把喜欢的挂进你的私人展厅。",
       stats: [["艺术", 98], ["宁静", 82], ["探索", 74]], href: "worlds/gallery/" },
-    { id: "cosmos", glyph: "宙", name: "宇宙", en: "Cosmos", tag: "深空 · 太阳系 · 星系", color: "#86a8ff", deep: "#070b1f",
+    { id: "cosmos", glyph: "星", name: "星海", en: "The Star Sea", tag: "深空 · 太阳系 · 星系", color: "#86a8ff", deep: "#070b1f",
       desc: "从深空一路飞进太阳系。点开每颗行星的角色档案，再退到银河之外，看看我们在哪里。深邃，浩瀚，无边。",
       stats: [["深邃", 99], ["探索", 95], ["震撼", 92]], href: "worlds/cosmos/" },
     { id: "flora", glyph: "植", name: "植物", en: "Flora", tag: "世界之树 · 四季", color: "#86e3a9", deep: "#06180f",
