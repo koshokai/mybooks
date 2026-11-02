@@ -13,7 +13,7 @@ window.WX_READY = {
   // 游戏厅里的游戏
   quest: false,
   racing: false,
-  orbit: false,
+  orbit: true,
   shadow: false,
   metro: false,
 };
