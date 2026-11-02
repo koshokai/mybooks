@@ -1241,6 +1241,7 @@
     refreshDust();
   }
 
+  const LOCK_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
   function buildMap() {
     refreshDust();
     $('#map-total').textContent = totalStars();
@@ -1270,7 +1271,7 @@
         b.className = 'node' + (un ? '' : ' locked') + (i === current ? ' current' : '');
         b.style.left = x + '%'; b.style.top = y + '%';
         const s = save.stars[i] || 0;
-        b.innerHTML = un ? `${k + 1}<span class="ns">${[0, 1, 2].map(j => `<i class="${j < s ? 'on' : ''}">★</i>`).join('')}</span>` : '✕';
+        b.innerHTML = un ? `${k + 1}<span class="ns">${[0, 1, 2].map(j => `<i class="${j < s ? 'on' : ''}">★</i>`).join('')}</span>` : LOCK_SVG;
         b.setAttribute('aria-label', `第 ${c + 1}-${k + 1} 关 ${LV.LEVELS[i].name}${un ? '' : '（未解锁）'}`);
         b.title = LV.LEVELS[i].name;
         b.addEventListener('click', () => { if (!un) { Sfx.fizzle(); return; } Sfx.ui(); playLevel(i); });
