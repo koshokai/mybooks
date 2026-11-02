@@ -1,0 +1,1 @@
+<script type="importmap">{"imports":{"three":"../../shared/vendor/three/three.module.min.js","three/addons/":"../../shared/vendor/three/addons/"}}</script>

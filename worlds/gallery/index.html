@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0c0b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>画廊 · The Open Gallery</title>
+  <link rel="icon" href="../../icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://api.artic.edu" crossorigin />
+  <link rel="preconnect" href="https://www.artic.edu" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ========== 大厅 ========== -->
+  <section id="lobby" class="lobby">
+    <a class="back" href="../../index.html">← 返回 <b>画</b></a>
+    <div class="lobby-beam" aria-hidden="true"></div>
+    <div class="lobby-inner">
+      <div class="lobby-text">
+        <p class="eyebrow">THE OPEN GALLERY · 公有领域艺术馆</p>
+        <h1 class="lobby-title">画<span>·</span>廊</h1>
+        <p class="lobby-sub">七个展厅，数百幅世界名画<br />灯已为你点亮，请慢慢走，慢慢看。</p>
+        <div class="lobby-actions">
+          <button class="btn btn-gold" data-go="map">走进展厅</button>
+          <button class="btn btn-line" data-go="color">色彩漫游</button>
+          <button class="btn btn-text" data-go="random">随机遇见一幅 →</button>
+        </div>
+      </div>
+      <figure class="daily" id="daily">
+        <div class="daily-spot" aria-hidden="true"></div>
+        <div class="frame f-gold daily-frame"><div class="canvas"><div class="ph">灯光正在亮起…</div></div></div>
+        <figcaption class="daily-cap"><small>今 日 一 画</small><span id="dailyCap">—</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ========== 主界面 ========== -->
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <a class="back back-sm" href="../../index.html" title="返回选择世界">←</a>
+      <button class="brand" data-go="lobby" title="回到画廊大厅">
+        <span class="brand-mark">画</span>
+        <span class="brand-text">The Open Gallery<small>公有领域艺术馆</small></span>
+      </button>
+      <nav class="nav">
+        <button data-go="map">展厅</button>
+        <button data-go="color">色彩漫游</button>
+        <button data-go="fav">我的收藏<i id="favCount"></i></button>
+      </nav>
+      <button class="icon-btn" data-go="random" title="随机遇见一幅">
+        <svg viewBox="0 0 24 24"><path d="M3 7h3.5c2 0 3.3 1 4.5 3l2 4c1.2 2 2.5 3 4.5 3H21M3 17h3.5c1.4 0 2.4-.5 3.3-1.5M14.2 8.5c.9-1 1.9-1.5 3.3-1.5H21M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>
+      </button>
+      <a class="icon-btn" href="../books/" title="去书房">
+        <svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h4v18H6a2 2 0 0 1-2-2zM10 3h4v18h-4M14 4l4-1 3 17-4 1z"/></svg>
+      </a>
+    </header>
+
+    <main id="view"></main>
+  </div>
+
+  <!-- ========== 看画 ========== -->
+  <div id="viewer" class="viewer" hidden>
+    <div class="v-stage" id="vStage">
+      <img id="vImg" alt="" draggable="false" />
+      <div class="v-loading" id="vLoading"></div>
+    </div>
+    <div class="v-tools">
+      <button class="v-btn" id="vClose" title="关闭 (Esc)">✕</button>
+      <span class="v-sp"></span>
+      <button class="v-btn" id="vZoomOut" title="缩小">−</button>
+      <button class="v-btn" id="vZoomIn" title="放大">＋</button>
+      <button class="v-btn" id="vInfoBtn" title="作品信息">ⓘ</button>
+    </div>
+    <button class="v-nav prev" id="vPrev" aria-label="上一幅">‹</button>
+    <button class="v-nav next" id="vNext" aria-label="下一幅">›</button>
+    <aside class="v-info" id="vInfo"></aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="rooms.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
