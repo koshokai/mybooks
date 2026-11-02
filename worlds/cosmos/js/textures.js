@@ -339,11 +339,10 @@ export function nebulaTexture(c1, c2, seed = 1, size = 256) {
 }
 
 // 卡片头像：把等距柱状纹理投影成一个带光照的小球
-export function portrait(id, size = 120, opts = {}) {
+export function portrait(src, size = 120, opts = {}) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const ctx = c.getContext('2d');
-  const src = planetCanvas(id, 512);
   const sctx = src.getContext('2d');
   const sw = src.width, sh = src.height;
   const sd = sctx.getImageData(0, 0, sw, sh).data;
@@ -375,7 +374,7 @@ export function portrait(id, size = 120, opts = {}) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  return c.toDataURL();
+  return c;
 }
 
 export const GEN_IDS = Object.keys(GEN);

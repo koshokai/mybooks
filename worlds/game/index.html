@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#04050c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>游 · 引力星轨</title>
+  <meta name="description" content="引力 · 星轨 —— 一款原创的引力弹弓解谜小游戏。拉动彗星，借行星之力，拾尽星尘，穿过星门。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="cv" aria-label="游戏画面"></canvas>
+
+  <!-- ========== 标题 ========== -->
+  <section id="scr-title" class="screen show">
+    <a class="back" href="../../index.html">← 返回 <b>游</b></a>
+    <button class="icon-btn sound-btn top-right" type="button" aria-label="音效开关"><span class="snd-on">♪</span><span class="snd-off">♪̸</span></button>
+    <div class="title-wrap">
+      <div class="glyph" aria-hidden="true">游</div>
+      <h1 class="game-name">引力<i>·</i>星轨</h1>
+      <p class="game-en">ORBIT · SLING</p>
+      <p class="game-sub">拉动彗星，借行星之力<br />拾尽星尘，穿过星门</p>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-start" type="button">开始旅程</button>
+        <button class="btn btn-line" id="btn-daily" type="button">每日星图 <small id="daily-date"></small></button>
+      </div>
+      <p class="title-meta" id="title-meta"></p>
+    </div>
+    <p class="title-foot">一款原创小游戏 · 触屏拖拽 / 鼠标拖拽发射</p>
+  </section>
+
+  <!-- ========== 选关星图 ========== -->
+  <section id="scr-map" class="screen">
+    <header class="map-head">
+      <button class="icon-btn" id="map-back" type="button" aria-label="返回标题">←</button>
+      <div class="map-title"><b>星图</b><span>CHART</span></div>
+      <div class="map-stars"><span class="star-ic">★</span> <b id="map-total">0</b><small> / 60</small></div>
+    </header>
+    <div class="map-scroll" id="map-scroll">
+      <div class="map-inner" id="map-inner"></div>
+      <button class="daily-card" id="map-daily" type="button">
+        <span class="dc-ic">✦</span>
+        <span class="dc-txt"><b>每日星图</b><small>每天一张新星图 · 连续闯关 · 看你能走多远</small></span>
+        <span class="dc-best" id="map-daily-best"></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ========== 游戏内 HUD ========== -->
+  <div id="hud" class="hud">
+    <button class="icon-btn" id="btn-pause" type="button" aria-label="暂停">❚❚</button>
+    <div class="hud-title"><small id="hud-ch"></small><b id="hud-name"></b></div>
+    <div class="hud-right">
+      <div class="hud-motes" id="hud-motes" title="星尘"></div>
+      <div class="hud-launch" id="hud-launch" title="剩余发射"></div>
+    </div>
+  </div>
+  <button id="btn-recall" class="recall" type="button">⟲ 召回</button>
+  <div id="banner" class="banner"><small></small><b></b></div>
+  <div id="tip" class="tip"></div>
+
+  <!-- ========== 弹窗 ========== -->
+  <div class="modal" id="m-pause">
+    <div class="card">
+      <a class="back back-in" href="../../index.html">← 返回 <b>游</b></a>
+      <h2>暂停</h2>
+      <p class="card-sub" id="pause-sub"></p>
+      <div class="col-btns">
+        <button class="btn btn-primary" data-act="resume" type="button">继续</button>
+        <button class="btn btn-line" data-act="retry" type="button">重新开始</button>
+        <button class="btn btn-line" data-act="map" type="button">星图选关</button>
+        <button class="btn btn-text sound-btn" type="button"><span class="snd-on">音效：开</span><span class="snd-off">音效：关</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-done">
+    <div class="card">
+      <p class="card-eyebrow" id="done-eyebrow">星轨达成</p>
+      <h2 id="done-title">漂亮的一击</h2>
+      <div class="stars3" id="done-stars"><i></i><i></i><i></i></div>
+      <p class="card-sub" id="done-sub"></p>
+      <div class="row-btns">
+        <button class="btn btn-line sq" data-act="retry" type="button" aria-label="重来">↻</button>
+        <button class="btn btn-line sq" data-act="map" type="button" aria-label="选关">☷</button>
+        <button class="btn btn-primary grow" data-act="next" type="button" id="done-next">下一关 →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-fail">
+    <div class="card">
+      <p class="card-eyebrow dim">彗星已耗尽</p>
+      <h2>再试一次？</h2>
+      <p class="card-sub" id="fail-sub">每一次失败都让下一发更准。</p>
+      <div class="row-btns">
+        <button class="btn btn-line sq" data-act="map" type="button" aria-label="选关">☷</button>
+        <button class="btn btn-primary grow" data-act="retry" type="button">↻ 重来</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-daily">
+    <div class="card">
+      <p class="card-eyebrow" id="daily-eyebrow">每日星图</p>
+      <h2 id="daily-title">旅程结束</h2>
+      <div class="big-num" id="daily-score">0</div>
+      <p class="card-sub" id="daily-sub"></p>
+      <div class="row-btns">
+        <button class="btn btn-line sq" data-act="title" type="button" aria-label="返回">⌂</button>
+        <button class="btn btn-primary grow" data-act="daily" type="button">↻ 再来一次</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="physics.js"></script>
+  <script src="levels.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#02030a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>宙 · 宇宙</title>
-  <meta name="description" content="深邃的宇宙，浩瀚无边——可交互的 3D 太阳系与深空图鉴。" />
+  <title>星海 · 星</title>
+  <meta name="description" content="星海——深邃的宇宙，浩瀚无边。可交互的 3D 太阳系与深空图鉴。" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,17 +20,18 @@
 
   <!-- 加载 -->
   <div id="loader">
-    <div class="loader-glyph">宙</div>
-    <div class="loader-text">正在生成宇宙<span id="loader-pct">0%</span></div>
+    <div class="loader-glyph">星</div>
+    <div class="loader-text">正在点亮星海<span id="loader-pct">0%</span></div>
     <div class="loader-bar"><i id="loader-fill"></i></div>
     <div class="loader-sub">Forging stars &amp; worlds</div>
   </div>
 
   <!-- 片头标题 -->
   <div id="intro" aria-hidden="true">
-    <div class="intro-glyph">宙</div>
+    <div class="intro-glyph">星</div>
+    <div class="intro-name">星海</div>
     <div class="intro-line">浩瀚无边</div>
-    <div class="intro-en">The Cosmos · Boundless &amp; Deep</div>
+    <div class="intro-en">The Star Sea · Boundless &amp; Deep</div>
     <button id="skip" type="button">跳过 ›</button>
   </div>
 
@@ -40,7 +41,7 @@
   <!-- HUD -->
   <div id="hud">
     <a class="back" href="../../index.html" aria-label="返回">
-      <span class="back-arrow">← 返回</span><span class="back-glyph">宙</span>
+      <span class="back-arrow">← 返回</span><span class="back-glyph">星</span>
     </a>
 
     <div class="region">
@@ -64,7 +65,7 @@
   <!-- 详情面板 -->
   <aside id="panel" aria-hidden="true">
     <div class="panel-grip"></div>
-    <div class="panel-watermark" id="p-mark">宙</div>
+    <div class="panel-watermark" id="p-mark">星</div>
     <div class="panel-top">
       <button type="button" class="p-nav" id="p-prev" aria-label="上一个">‹</button>
       <span class="p-index" id="p-index">01 / 10</span>
@@ -85,7 +86,7 @@
     </div>
   </aside>
 
-  <noscript><div class="nojs">需要启用 JavaScript 才能进入宇宙。</div></noscript>
+  <noscript><div class="nojs">需要启用 JavaScript 才能进入星海。</div></noscript>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -220,7 +220,7 @@ export function buildDeep() {
   fade.push((f) => { m87.setOpacity(f); m87host.material.uniforms.uOpacity.value = f; m87.group.visible = f > 0.01; });
   objects.set('m87', { id: 'm87', pos: m87.group.position, view: new THREE.Vector3(0.1, 0.3, 1).normalize(), dist: 620, bh: m87 });
 
-  let opacity = 0;
+  let opacity = 0, dimS = 1;
   const api = {
     group, objects, here,
     setOpacity(f) { opacity = f; group.visible = f > 0.001; for (const cb of fade) cb(f); },
@@ -231,7 +231,8 @@ export function buildDeep() {
       sgr.update(cam); m87.update(cam);
       // 银心聚焦时压暗银河，免得遮住黑洞
       const dim = focusId === 'sgra' ? 0.3 : 1;
-      mw.material.uniforms.uOpacity.value += (opacity * dim - mw.material.uniforms.uOpacity.value) * Math.min(1, dt * 3);
+      dimS += (dim - dimS) * Math.min(1, dt * 2);
+      mw.material.uniforms.uOpacity.value = opacity * dimS;
       const t = shared.time.value;
       for (let i = 0; i < hereRings.length; i++) {
         const k = ((t * 0.5 + i * 0.5) % 1);
