@@ -199,3 +199,47 @@ kbd { font-family: var(--latin); display: inline-block; min-width: 24px; padding
 .enter.disabled:hover { transform: none; }
 .card.nudge { animation: nudge .4s ease; }
 @keyframes nudge { 20%, 60% { translate: -6px 0; } 40%, 80% { translate: 6px 0; } }
+
+/* ---------- 矮屏幕（笔记本 / 手机横屏） ---------- */
+@media (max-height: 820px) and (min-width: 761px) {
+  .detail { padding: 24px 32px 26px; }
+  .detail h2 { font-size: clamp(34px, 4.2vw, 50px); margin: 6px 0 8px; }
+  .detail h2 em { font-size: 17px; }
+  .detail p { font-size: 13.5px; line-height: 1.75; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .stats { margin: 12px 0 16px; gap: 6px; }
+  .card.active .sc { -webkit-mask-image: linear-gradient(#000 0 26%, transparent 60%); mask-image: linear-gradient(#000 0 26%, transparent 60%); }
+  .glyph-big { font-size: clamp(140px, 24vh, 260px); }
+}
+@media (max-height: 540px) and (min-width: 761px) {
+  .hub-top { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .headline h1 { font-size: 18px; letter-spacing: .35em; }
+  .headline p { display: none; }
+  .logo b { font-size: 18px; }
+  .count b { font-size: 22px; }
+  .roster { height: calc(100vh - 92px); height: calc(100dvh - 92px); padding-top: 12px; gap: 10px; }
+  .hub-foot { padding: 8px; }
+  .detail { padding: 14px 22px 16px; }
+  .tag { font-size: 11px; }
+  .detail h2 { font-size: 30px; margin: 4px 0 10px; }
+  .detail h2 em { font-size: 14px; }
+  .detail p, .stats { display: none; }
+  .enter { height: 40px; padding: 0 22px; font-size: 14px; }
+  .collapsed { padding-bottom: 14px; gap: 8px; }
+  .collapsed b { font-size: 30px; }
+  .collapsed span { font-size: 13px; letter-spacing: .3em; }
+  .glyph-big { font-size: 140px; }
+  .card.active .sc { -webkit-mask-image: linear-gradient(#000 0 35%, transparent 75%); mask-image: linear-gradient(#000 0 35%, transparent 75%); }
+}
+
+/* 植：卡面轮播三张实拍照片（来自植物世界的开放授权照片） */
+.sc-flora .ph { inset: -4%; background: center / cover no-repeat; opacity: 0; animation: phfade 18s ease-in-out infinite; filter: saturate(1.05) brightness(.78); }
+.sc-flora .p1 { background-image: url("../worlds/flora/photos/lotus-1-s.jpg"); }
+.sc-flora .p2 { background-image: url("../worlds/flora/photos/sakura-1-s.jpg"); animation-delay: 6s; }
+.sc-flora .p3 { background-image: url("../worlds/flora/photos/ginkgo-2-s.jpg"); animation-delay: 12s; }
+@keyframes phfade {
+  0% { opacity: 0; transform: scale(1.1); }
+  8%, 33% { opacity: .62; }
+  41% { opacity: 0; transform: scale(1); }
+  100% { opacity: 0; }
+}
+.card:not(.active) .sc-flora .ph { filter: saturate(.8) brightness(.55); }

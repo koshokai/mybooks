@@ -11,6 +11,7 @@ import { shared } from './shaders.js';
 import { buildSky, buildIntroDust, buildMeteors } from './sky.js';
 import { buildSolar } from './solar.js';
 import { buildDeep, GAL_CENTER } from './deep.js';
+import { autoQuality } from '../../../shared/perf.js';
 
 const $ = (s) => document.querySelector(s);
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -65,6 +66,14 @@ composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.95, 0.62, 0.8);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
+
+// 自动画质：手机跑不动时逐级降低分辨率，最后关泛光
+const quality = autoQuality({
+  id: 'cosmos',
+  maxPR: PR,
+  setPR(pr) { renderer.setPixelRatio(pr); composer.setPixelRatio(pr); shared.pr.value = pr; },
+  setBloom(on) { bloom.enabled = on; },
+});
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
@@ -658,7 +667,9 @@ let rafId = 0, running = false;
 const _fwd = new THREE.Vector3();
 function frame() {
   rafId = requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), DT_MAX);
+  const rawDt = clock.getDelta();
+  quality.tick(rawDt);
+  const dt = Math.min(rawDt, DT_MAX);
   shared.time.value += dt;
 
   for (let i = tweens.length - 1; i >= 0; i--) {

@@ -37,7 +37,7 @@
       case "cosmos":
         return `<div class="sc sc-cosmos"><i class="stars s1"></i><i class="stars s2"></i><i class="neb"></i><i class="planet"><i class="ring"></i></i></div>`;
       case "flora":
-        return `<div class="sc sc-flora"><i class="glow"></i>${Array.from({ length: 14 }, () =>
+        return `<div class="sc sc-flora"><i class="ph p1"></i><i class="ph p2"></i><i class="ph p3"></i><i class="glow"></i>${Array.from({ length: 14 }, () =>
           `<i class="leaf" style="left:${rnd(0, 100)}%;animation-duration:${rnd(7, 14)}s;animation-delay:${-rnd(0, 14)}s;--r:${rnd(-180, 180)}deg;--s:${rnd(0.6, 1.3)}"></i>`).join("")}
           ${Array.from({ length: 18 }, () => `<i class="fly" style="left:${rnd(5, 95)}%;top:${rnd(10, 90)}%;animation-delay:${-rnd(0, 6)}s;animation-duration:${rnd(4, 8)}s"></i>`).join("")}</div>`;
       case "colors":
@@ -136,10 +136,27 @@
     document.addEventListener("visibilitychange", () => { running = !document.hidden; if (running) requestAnimationFrame(loop); });
     resize();
     let t = 0;
+    // 预先画好一张光点贴图，颜色变化时才重画（避免每帧为每个粒子新建渐变）
+    const sprite = document.createElement("canvas");
+    sprite.width = sprite.height = 64;
+    const sctx = sprite.getContext("2d");
+    let spriteKey = "";
+    function paintSprite() {
+      const key = cur.map((v) => v | 0).join(",");
+      if (key === spriteKey) return;
+      spriteKey = key;
+      sctx.clearRect(0, 0, 64, 64);
+      const g = sctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0, `rgba(${key},1)`);
+      g.addColorStop(1, `rgba(${key},0)`);
+      sctx.fillStyle = g;
+      sctx.fillRect(0, 0, 64, 64);
+    }
     function loop() {
       if (!running) return;
       t += 0.016;
       for (let k = 0; k < 3; k++) cur[k] += (target[k] - cur[k]) * 0.05;
+      paintSprite();
       ctx.clearRect(0, 0, W, H);
       ctx.globalCompositeOperation = "lighter";
       for (const p of parts) {
@@ -147,14 +164,11 @@
         if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
         if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10;
         const px = p.x + mx * 30 * p.z * dpr, py = p.y + my * 30 * p.z * dpr;
-        const a = (0.25 + 0.55 * p.z) * (0.6 + 0.4 * Math.sin(t * 2 + p.tw));
-        const r = (0.6 + p.z * 1.8) * dpr;
-        const g = ctx.createRadialGradient(px, py, 0, px, py, r * 5);
-        g.addColorStop(0, `rgba(${cur[0] | 0},${cur[1] | 0},${cur[2] | 0},${a})`);
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(px, py, r * 5, 0, 6.283); ctx.fill();
+        const r = (0.6 + p.z * 1.8) * dpr * 5;
+        ctx.globalAlpha = (0.25 + 0.55 * p.z) * (0.6 + 0.4 * Math.sin(t * 2 + p.tw));
+        ctx.drawImage(sprite, px - r, py - r, r * 2, r * 2);
       }
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
       requestAnimationFrame(loop);
     }

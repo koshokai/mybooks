@@ -97,5 +97,9 @@
   <div class="toast" id="toast" role="status"></div>
 
   <script type="module" src="app.js"></script>
+  <script>/* 离线缓存：第二次打开更快，断网也能看已打开过的世界 */
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || /[?&]sw\b/.test(location.search)))
+      addEventListener("load", () => navigator.serviceWorker.register("../../sw.js", { scope: "../../" }).catch(() => {}));
+  </script>
 </body>
 </html>

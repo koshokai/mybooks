@@ -7,6 +7,7 @@ import { SEASONS, PLANTS, STAT_KEYS } from './data.js';
 import { BUILDERS, normalizePlant, SHARED } from './plants.js';
 import * as W from './world.js';
 import { PHOTOS } from './photos.js';
+import { autoQuality } from '../../../shared/perf.js';
 
 const V3 = THREE.Vector3, TAU = Math.PI * 2;
 const $ = (s) => document.querySelector(s);
@@ -16,7 +17,7 @@ const LOW = Math.min(innerWidth, innerHeight) < 600 || (navigator.hardwareConcur
 /* ---------------- 渲染器 ---------------- */
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
 renderer.setPixelRatio(DPR);
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -543,12 +544,21 @@ function onResize() {
 addEventListener('resize', onResize);
 onResize();
 
+// 自动画质：手机跑不动时逐级降低分辨率，最后关泛光
+const quality = autoQuality({
+  id: 'flora',
+  maxPR: Math.min(window.devicePixelRatio || 1, 2),
+  setPR(pr) { DPR = pr; renderer.setPixelRatio(pr); composer.setPixelRatio(pr); onResize(); },
+  setBloom(on) { bloom.enabled = on; },
+});
+
 /* ---------------- 主循环 ---------------- */
 const easeOutBack = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
 let last = performance.now();
 let elapsed = 0;
 const fogC = new THREE.Color();
 function loop(now) {
+  quality.tick((now - last) / 1000);
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
   step(dt);
