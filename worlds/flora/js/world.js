@@ -21,17 +21,18 @@ vec3 wind(vec3 p){
 export function createSky(scene) {
   const u = {
     uTop: { value: new THREE.Color() }, uMid: { value: new THREE.Color() }, uBot: { value: new THREE.Color() },
-    uAur: { value: new THREE.Color() }, uStars: { value: 1 }, uTime: U.uTime,
+    uAur: { value: new THREE.Color() }, uFog: { value: new THREE.Color() }, uStars: { value: 1 }, uTime: U.uTime,
   };
   const m = new THREE.ShaderMaterial({
     uniforms: u, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
     fragmentShader: `
-      uniform vec3 uTop,uMid,uBot,uAur; uniform float uStars,uTime; varying vec3 vDir;
+      uniform vec3 uTop,uMid,uBot,uAur,uFog; uniform float uStars,uTime; varying vec3 vDir;
       float hash(vec3 p){ p = fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
       void main(){
         vec3 d = normalize(vDir); float h = d.y;
-        vec3 col = mix(uBot, uMid, smoothstep(-0.08, 0.28, h));
+        vec3 col = mix(uFog, uBot, smoothstep(-0.03, 0.05, h));
+        col = mix(col, uMid, smoothstep(0.04, 0.32, h));
         col = mix(col, uTop, smoothstep(0.25, 0.9, h));
         vec3 sp = d*180.0; vec3 id = floor(sp); float r = hash(id);
         float st = step(0.982, r) * smoothstep(0.42, 0.0, length(fract(sp)-0.5));
@@ -196,7 +197,7 @@ export function createTree(scene, { low }) {
     uSeasonT: { value: 0 }, uScaleA: { value: 1 }, uScaleB: { value: 1 },
     uShapeA: { value: 0 }, uShapeB: { value: 0 },
     uA1: { value: new THREE.Color() }, uA2: { value: new THREE.Color() },
-    uB1: { value: new THREE.Color() }, uB2: { value: new THREE.Color() }, uBright: { value: 1.5 },
+    uB1: { value: new THREE.Color() }, uB2: { value: new THREE.Color() }, uBright: { value: 1.0 },
   });
   const leafMat = new THREE.ShaderMaterial({
     uniforms: lu, side: THREE.DoubleSide, fog: true,
@@ -329,7 +330,7 @@ export function createGrass(scene, { low }) {
       uniform vec3 uBase, uTip; varying float vY; varying float vR;
       #include <fog_pars_fragment>
       void main(){
-        vec3 c = mix(uBase, uTip * (0.5 + vR), pow(vY, 1.6));
+        vec3 c = mix(uBase, uTip * (0.3 + 0.6*vR), pow(vY, 1.6));
         gl_FragColor = vec4(c, 1.0);
         #include <fog_fragment>
       }`,

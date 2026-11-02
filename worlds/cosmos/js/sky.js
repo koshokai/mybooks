@@ -39,60 +39,65 @@ function points(count, fill, material) {
 }
 
 // 通用螺旋星系生成器（银河系、仙女座星系、背景小星系共用）
-export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, bar = 0.22, thick = 0.02,
+export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, bar = 0.22, thick = 0.02, minor = false,
   bulgeColor = [1.0, 0.78, 0.5], armColor = [0.62, 0.72, 1.0], hii = 0.05, size = 1, bright = 1, opacity = 1 } = {}) {
   const mat = dustMaterial({ opacity, max: 40, soft: 1.2 });
   const b = Math.max(0.15, pitch);
+  const T0 = bar > 0 ? Math.max(0.1, bar * 0.55) : 0.08;
   const pts = points(count, (o) => {
     const k = Math.random();
     let x, y, z, c, s;
-    if (k < 0.16) { // 核球
-      const r = Math.abs(gauss()) * 0.11 * R;
+    if (k < 0.12) { // 核球
+      const r = Math.abs(gauss()) * 0.065 * R;
       const th = rand(0, Math.PI * 2), ph = Math.acos(rand(-1, 1));
-      x = r * Math.sin(ph) * Math.cos(th); z = r * Math.sin(ph) * Math.sin(th); y = r * Math.cos(ph) * 0.55;
-      const f = 0.55 + Math.random() * 0.6;
-      c = [bulgeColor[0] * f, bulgeColor[1] * f, bulgeColor[2] * f]; s = rand(1.2, 2.6);
-    } else if (k < 0.23 && bar > 0) { // 棒
-      const t = gauss() * bar * 0.5 * R;
-      x = t; z = gauss() * 0.035 * R; y = gauss() * 0.02 * R;
+      x = r * Math.sin(ph) * Math.cos(th); z = r * Math.sin(ph) * Math.sin(th); y = r * Math.cos(ph) * 0.6;
       const f = 0.5 + Math.random() * 0.5;
+      c = [bulgeColor[0] * f, bulgeColor[1] * f, bulgeColor[2] * f]; s = rand(1.2, 2.4);
+    } else if (k < 0.18 && bar > 0) { // 棒
+      const t = gauss() * bar * 0.45 * R;
+      x = t; z = gauss() * 0.03 * R; y = gauss() * 0.015 * R;
+      const f = 0.45 + Math.random() * 0.45;
       c = [bulgeColor[0] * f, bulgeColor[1] * f * 0.95, bulgeColor[2] * f * 0.9]; s = rand(1.2, 2.2);
-    } else if (k < 0.84) { // 旋臂
-      const arm = Math.floor(Math.random() * arms);
-      const t = 0.09 + Math.pow(Math.random(), 0.85) * 0.91;
+    } else if (k < 0.9) { // 旋臂
+      let arm = Math.floor(Math.random() * arms);
+      if (minor && arm % 2 === 1 && Math.random() < 0.5) arm -= 1; // 次要旋臂更稀疏
+      const t = T0 + Math.pow(Math.random(), 0.9) * (1 - T0);
       const r = t * R;
-      const th = arm * (Math.PI * 2 / arms) + Math.log(t / 0.09) / b + (bar > 0 ? 0 : 0);
-      const spread = (0.03 + 0.07 * t) * R;
-      const ox = gauss() * spread, oz = gauss() * spread;
-      x = Math.cos(th) * r + ox; z = Math.sin(th) * r + oz; y = gauss() * thick * R * (1.2 - t * 0.5);
-      const near = Math.exp(-(ox * ox + oz * oz) / (2 * spread * spread * 0.3));
-      if (Math.random() < hii * near) { c = [1.0, 0.35, 0.55]; s = rand(2.5, 5); }
-      else if (Math.random() < 0.08 * near) { c = [0.75, 0.85, 1.0]; s = rand(2.2, 3.8); }
+      const th = arm * (Math.PI * 2 / arms) + Math.log(t / T0) / b;
+      const tight = Math.random() < 0.75;
+      const w = (tight ? 0.014 + 0.026 * t : 0.04 + 0.05 * t) * R;
+      const across = gauss() * w, along = gauss() * w * 2.0;
+      const ct = Math.cos(th), st = Math.sin(th);
+      x = ct * (r + across) - st * along; z = st * (r + across) + ct * along;
+      y = gauss() * thick * R * (1.2 - t * 0.5);
+      const ridge = tight ? Math.exp(-(across * across) / (2 * w * w * 0.25)) : 0.1;
+      if (Math.random() < hii * ridge) { c = [1.0, 0.32, 0.55]; s = rand(2.4, 4.6); }
+      else if (Math.random() < 0.1 * ridge) { c = [0.78, 0.88, 1.0]; s = rand(2.0, 3.4); }
       else {
-        const f = 0.35 + Math.random() * 0.5;
-        const w = Math.min(1, t * 1.4);
-        c = [(bulgeColor[0] * (1 - w) + armColor[0] * w) * f, (bulgeColor[1] * (1 - w) + armColor[1] * w) * f, (bulgeColor[2] * (1 - w) + armColor[2] * w) * f];
-        s = rand(1, 2.2);
+        const f = (tight ? 0.45 : 0.22) + Math.random() * 0.45;
+        const m = Math.min(1, (t - T0) * 2.2);
+        c = [(bulgeColor[0] * (1 - m) + armColor[0] * m) * f, (bulgeColor[1] * (1 - m) + armColor[1] * m) * f, (bulgeColor[2] * (1 - m) + armColor[2] * m) * f];
+        s = rand(1, 2.0);
       }
     } else { // 盘面弥散星
-      const r = -Math.log(1 - Math.random() * 0.97) * 0.3 * R;
+      const r = -Math.log(1 - Math.random() * 0.97) * 0.28 * R;
       const th = rand(0, Math.PI * 2);
       x = Math.cos(th) * r; z = Math.sin(th) * r; y = gauss() * thick * R * 1.5;
-      const f = 0.2 + Math.random() * 0.3;
-      c = [armColor[0] * f, armColor[1] * f, armColor[2] * f * 0.95]; s = rand(0.8, 1.8);
+      const f = 0.1 + Math.random() * 0.18;
+      c = [armColor[0] * f, armColor[1] * f, armColor[2] * f * 0.95]; s = rand(0.8, 1.5);
     }
     o.p = [x, y, z];
     o.c = [c[0] * bright, c[1] * bright, c[2] * bright];
-    o.s = s * size * R * 0.006;
+    o.s = s * size * R * 0.0042;
   }, mat);
   const group = new THREE.Group();
   group.add(pts);
   // 核心辉光
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({
     map: glowTexture('rgba(255,214,160,1)', 'rgba(255,180,120,0)', 128, 0.18),
-    blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 * opacity,
+    blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.45 * opacity,
   }));
-  glow.scale.setScalar(R * 0.75);
+  glow.scale.setScalar(R * 0.5);
   group.add(glow);
   const disk = new THREE.Mesh(new THREE.PlaneGeometry(R * 2.4, R * 2.4), new THREE.MeshBasicMaterial({
     map: glowTexture('rgba(150,160,255,0.5)', 'rgba(80,90,200,0)', 128, 0.2),
@@ -103,7 +108,7 @@ export function makeGalaxy({ count = 50000, R = 1000, arms = 2, pitch = 0.32, ba
   group.userData = { pts, glow, disk, baseGlow: 0.55, baseDisk: 0.25 };
   group.setOpacity = (f) => {
     mat.uniforms.uOpacity.value = f * opacity;
-    glow.material.opacity = 0.55 * opacity * f;
+    glow.material.opacity = 0.45 * opacity * f;
     disk.material.opacity = 0.25 * opacity * f;
     group.visible = f > 0.001;
   };

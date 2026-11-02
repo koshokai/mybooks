@@ -254,7 +254,7 @@ function buildCards() {
   list.forEach((id, i) => {
     const d = dataOf(id);
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'card'; b.dataset.id = id;
+    b.type = 'button'; b.className = 'card' + (d.zh.length > 4 ? ' long' : ''); b.dataset.id = id;
     b.style.setProperty('--c', d.color);
     const img = document.createElement('img');
     img.alt = ''; img.draggable = false;
@@ -297,6 +297,7 @@ function projRadius(pos, r) {
   return (r / (d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)))) * innerHeight / 2;
 }
 const posCache = new THREE.Vector3();
+const NEAR_SUN = new Set(['orion', 'pleiades', 'crab']);
 function updateLabels() {
   const showSolar = state.mode === 'solar' && !state.focus && !state.intro && !fly;
   const showDeep = state.mode === 'deep' && !state.focus && !fly && state.deepFade > 0.95;
@@ -312,8 +313,11 @@ function updateLabels() {
     } else if (id === 'here') {
       if (showDeep) { pos.set(0, 0, 0); vis = true; r = 20; }
     } else if (deep.objects.has(id)) {
-      if (showDeep && id !== 'milkyway') { pos.copy(deep.objects.get(id).pos); vis = true; r = 10; }
-      if (showDeep && id === 'milkyway') { pos.copy(GAL_CENTER).add(tmpV2.set(0, 0, 2600)); vis = true; r = 0; }
+      if (showDeep) {
+        pos.copy(deep.objects.get(id).pos); r = 10;
+        // 太阳附近的天体在全景里会和「你在这里」挤在一起，靠近时才显示
+        vis = !NEAR_SUN.has(id) || camera.position.distanceTo(pos) < 1500;
+      }
     }
     if (vis) {
       screenOf(pos, scr);
@@ -421,7 +425,7 @@ function closePanelUI() {
 function setOrbitHighlight(id) {
   for (const [bid, line] of solar.orbitLines) {
     const on = bid === id || (id === 'moon' && bid === 'earth');
-    line.material.opacity = on ? 0.55 : (id ? 0.06 : line.userData.base);
+    line.material.opacity = on ? 0.32 : (id ? 0.06 : line.userData.base);
     line.material.color.set(on ? bodyData.get(bid).color : 0x8fa8ff);
   }
 }
@@ -640,11 +644,12 @@ ui.intro.addEventListener('click', skipIntro);
 
 // ---------------- 主循环 ----------------
 const clock = new THREE.Clock();
+const DT_MAX = /[?&]fast\b/.test(location.search) ? 0.3 : 0.05; // ?fast 供低帧率环境（如软件渲染测试）使用
 let rafId = 0, running = false;
 const _fwd = new THREE.Vector3();
 function frame() {
   rafId = requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const dt = Math.min(clock.getDelta(), DT_MAX);
   shared.time.value += dt;
 
   for (let i = tweens.length - 1; i >= 0; i--) {
@@ -687,6 +692,14 @@ function frame() {
   state.mouseS.lerp(state.mouse, 1 - Math.exp(-dt * 2.5));
   sky.userData.inner.rotation.set(state.mouseS.y * 0.025, state.mouseS.x * 0.04, 0);
 
+  // 太阳占据画面越大，泛光越收敛，避免过曝
+  const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const sunFrac = solar.group.visible ? 7 / (camera.position.length() * tanV) : 0;
+  const sunK = clamp((sunFrac - 0.06) / 0.4);
+  bloom.strength = lerp(0.82, 0.3, sunK);
+  solar.corona.material.uniforms.uOpacity.value = lerp(1, 0.45, sunK);
+  solar.halo.material.opacity = lerp(0.22, 0.06, sunK);
+
   meteors(dt, camera, !state.intro);
   applyViewOffset(dt);
   updateLabels();
@@ -722,7 +735,7 @@ async function init() {
   for (const id of SOLAR_ORDER) portraitCache.set(id, planetPortrait(id, 140).toDataURL());
   for (const id of DEEP_ORDER) deepPortraitCache.set(id, deepPortrait(id, 140).toDataURL());
   for (const id of SOLAR_ORDER) makeLabel(id, bodyData.get(id).zh, bodyData.get(id).color);
-  for (const id of DEEP_ORDER) makeLabel(id, deepData.get(id).zh, deepData.get(id).color);
+  for (const id of DEEP_ORDER) if (id !== 'milkyway') makeLabel(id, deepData.get(id).zh, deepData.get(id).color);
   makeLabel('here', '你在这里<small>You are here · 太阳系</small>', '#8fe3ff', 'here');
   buildCards();
   progress();
@@ -737,5 +750,8 @@ async function init() {
   startIntro();
   start();
 }
+
+// 调试句柄（只读用途）
+window.__starsea = { state, camera, controls, get fly() { return fly; }, select, setMode };
 
 init().catch((e) => { console.error(e); fail('星海加载失败，请刷新重试。'); });

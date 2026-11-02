@@ -103,12 +103,12 @@ function computeLayout() {
   const a = innerWidth / innerHeight;
   L.mobile = innerWidth < 760;
   L.portrait = a < 0.8;
-  L.ringR = L.portrait ? 8.4 : 11;
+  L.ringR = L.portrait ? 8.6 : 11.5;
   L.R0 = L.portrait ? 31 : a < 1.25 ? 30 : 26.5;
   L.H0 = L.portrait ? 8.5 : 8.5;
   L.ty = L.portrait ? 6.4 : 6.2;
   L.fov = L.portrait ? 56 : 45;
-  L.dist = L.portrait ? 7.6 : 5.8;
+  L.dist = L.portrait ? 9.6 : 7.4;
 }
 computeLayout();
 camera.fov = L.fov; camera.updateProjectionMatrix();
@@ -295,7 +295,7 @@ function updateCamera(dt, t) {
     const d = L.dist * dzoom;
     dTheta = sp.angle; dR = L.ringR + d;
     dT = sp.holder.position.clone(); dT.y += 1.25 * SEL;
-    dH = dT.y + d * 0.2;
+    dH = dT.y + d * 0.26;
   } else {
     if (t - lastInteract > 3.5 && introT > 4) userTheta += dt * 0.035;
     dTheta = userTheta; dR = L.R0 * zoom; dH = userH; dT = tmpV.set(0, L.ty, 0);
@@ -451,8 +451,12 @@ let last = performance.now();
 let elapsed = 0;
 const fogC = new THREE.Color();
 function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
   last = now;
+  step(dt);
+  composer.render();
+}
+function step(dt) {
   elapsed += dt;
   introT += dt;
   const t = elapsed;
@@ -469,7 +473,7 @@ function loop(now) {
   for (const k of COLOR_KEYS) cur[k].lerp(tgt[k], ck);
   for (const k of NUM_KEYS) cur[k] += (tgt[k] - cur[k]) * ck;
   sky.u.uTop.value.copy(cur.skyTop); sky.u.uMid.value.copy(cur.skyMid); sky.u.uBot.value.copy(cur.skyBot);
-  sky.u.uAur.value.copy(cur.aur); sky.u.uStars.value = cur.stars; sky.mu.uCol.value.copy(cur.moon);
+  sky.u.uAur.value.copy(cur.aur); sky.u.uFog.value.copy(cur.fog); sky.u.uStars.value = cur.stars; sky.mu.uCol.value.copy(cur.moon);
   scene.fog.color.copy(cur.fog);
   ground.u.uCol.value.copy(cur.ground); ground.u.uIn.value.copy(cur.groundIn); ground.u.uGlow.value.copy(cur.glow); ground.u.uFog.value.copy(cur.fog);
   SHARED.rim.value.copy(cur.rim);
@@ -486,7 +490,7 @@ function loop(now) {
   hemi.color.copy(cur.hemiSky); hemi.groundColor.copy(cur.hemiGround);
   key.color.copy(cur.key); fill.color.copy(cur.rim);
   coreLight.color.copy(cur.glow); coreLight.intensity = 80 * grow;
-  bloom.strength = cur.bloom;
+  bloom.strength = cur.bloom * 0.8;
   SEASON_FX.forEach((fx, i) => {
     const o = fx.u.uOpacity;
     o.value += ((i === season ? 1 : 0) * Math.min(1, introT / 3) - o.value) * (1 - Math.exp(-dt * 1.2));
@@ -498,7 +502,7 @@ function loop(now) {
   specimens.forEach((sp, i) => {
     const isSel = state.mode === 'detail' && state.sel === i;
     sp.pop = THREE.MathUtils.clamp((grow - (0.4 + i * 0.035)) / 0.14, 0, 1);
-    const targetS = Math.max(0.001, easeOutBack(sp.pop)) * (isSel ? SEL : 1) * (L.portrait ? 0.9 : 1);
+    const targetS = Math.max(0.001, easeOutBack(sp.pop)) * (isSel ? SEL : L.portrait ? 0.7 : 0.74);
     sp.s += (targetS - sp.s) * (sp.pop < 1 ? 1 : 1 - Math.exp(-dt * 4));
     sp.holder.scale.setScalar(sp.s);
     const bobT = isSel ? 0 : Math.sin(t * 0.8 + i * 1.7) * 0.2;
@@ -510,7 +514,7 @@ function loop(now) {
     sp.boost += (bt - sp.boost) * (1 - Math.exp(-dt * 6));
     for (const u of sp.mats) u.value = sp.boost;
     sp.ped.bubU.uOp.value += ((isSel ? 0 : state.hover === i ? 1.3 : 0.55) - sp.ped.bubU.uOp.value) * (1 - Math.exp(-dt * 5));
-    sp.ped.beamU.uOp.value = isSel ? 0.55 : state.hover === i ? 0.6 : 0.28;
+    sp.ped.beamU.uOp.value += ((isSel ? 0.06 : state.hover === i ? 0.5 : 0.2) - sp.ped.beamU.uOp.value) * (1 - Math.exp(-dt * 5));
     sp.ped.rune.rotation.z = t * 0.15 * (i % 2 ? 1 : -1);
     sp.api.update && sp.api.update(dt);
   });
@@ -518,7 +522,6 @@ function loop(now) {
   updateCamera(dt, t);
   burst.update(dt);
   updateTags();
-  composer.render();
 }
 
 const projV = new V3();
@@ -553,4 +556,6 @@ setTimeout(() => document.body.classList.add('ready'), params.has('skip') ? 0 : 
 if (params.has('plant')) { const i = PLANTS.findIndex((p) => p.id === params.get('plant')); if (i >= 0) setTimeout(() => select(i), 300); }
 
 // 供调试/截图
-window.__flora = { select, closeDetail, setSeason, specimens, state };
+window.__flora = { select, closeDetail, setSeason, specimens, state, camera, cam, scene, composer, renderer,
+  advance(sec) { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) step(1 / 30); composer.render(); },
+  tapAt(x, y) { tap(x, y); } };

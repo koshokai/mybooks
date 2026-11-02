@@ -58,15 +58,15 @@ export function sunMaterial() {
           q *= 2.13; a *= .5;
         }
         float cells = snoise(p*34. + vec3(uTime*0.12))*.5+.5;
-        float spots = smoothstep(0.62, 0.8, snoise(p*1.8 + vec3(7.0, uTime*0.006, 0.)));
+        float spots = smoothstep(0.72, 0.86, snoise(p*3.2 + vec3(7.0, uTime*0.006, 0.)));
         vec3 V = normalize(cameraPosition - vW);
         float mu = max(dot(normalize(vN), V), 0.);
-        float t = clamp(0.55 + n*0.9 + (cells-.5)*0.3, 0., 1.);
-        vec3 col = mix(vec3(1.0,0.28,0.03), vec3(1.0,0.66,0.22), t);
-        col = mix(col, vec3(1.0,0.93,0.75), smoothstep(0.72, 1.0, t));
-        col *= 1. - spots*0.7;
-        col *= mix(0.4, 1.0, pow(mu, 0.5)) * 1.35;
-        col += vec3(1.0,0.4,0.08) * pow(1.-mu, 2.5) * 0.9;
+        float t = clamp(0.5 + n*0.75 + (cells-.5)*0.45, 0., 1.);
+        vec3 col = mix(vec3(0.9,0.2,0.02), vec3(1.0,0.52,0.1), t);
+        col = mix(col, vec3(1.0,0.82,0.45), smoothstep(0.7, 1.0, t));
+        col *= 1. - spots*0.75;
+        col *= mix(0.35, 1.0, pow(mu, 0.6)) * 1.05;
+        col += vec3(1.0,0.35,0.05) * pow(1.-mu, 2.5) * 0.7;
         gl_FragColor = vec4(col, 1.);
       }`,
   });

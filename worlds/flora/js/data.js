@@ -4,7 +4,7 @@
 export const SEASONS = [
   {
     key: 'spring', glyph: '春', en: 'Spring', name: '春 · 樱瓣如雨', line: '东风拂过，满树繁花次第开放',
-    skyTop: '#160f33', skyMid: '#5a2f6b', skyBot: '#f29bb5', fog: '#3e2a4c', aur: '#ff9ccc',
+    skyTop: '#120c2c', skyMid: '#43245a', skyBot: '#b8618a', fog: '#3a2448', aur: '#ff9ccc',
     ground: '#2b1f37', groundIn: '#3a2643', glow: '#ff8fc4', rim: '#ff9ec7', spore: '#ffd3ea',
     shaft: '#ffc2dc', moon: '#ffe3ef', grassTip: '#ff9ccd', grassBase: '#23182c', grassH: 1.0,
     hemiSky: '#c7a3e0', hemiGround: '#3b2741', key: '#ffd7ea',
@@ -12,7 +12,7 @@ export const SEASONS = [
   },
   {
     key: 'summer', glyph: '夏', en: 'Summer', name: '夏 · 萤火流光', line: '浓荫如盖，夜色里飞满流萤',
-    skyTop: '#040a1c', skyMid: '#0b2c46', skyBot: '#2a8c86', fog: '#0b2730', aur: '#5dffc8',
+    skyTop: '#040a1c', skyMid: '#0b2c46', skyBot: '#21706c', fog: '#0b2730', aur: '#5dffc8',
     ground: '#0d2622', groundIn: '#123329', glow: '#62ffc0', rim: '#6dffd2', spore: '#d6ff73',
     shaft: '#8dffd6', moon: '#e3fff6', grassTip: '#7dffb0', grassBase: '#0a1d18', grassH: 1.25,
     hemiSky: '#7fd8d0', hemiGround: '#0f2a22', key: '#d8fff3',
@@ -20,7 +20,7 @@ export const SEASONS = [
   },
   {
     key: 'autumn', glyph: '秋', en: 'Autumn', name: '秋 · 金叶纷飞', line: '一夜霜风，满树尽染金黄',
-    skyTop: '#130a1f', skyMid: '#4b1d2d', skyBot: '#f0853a', fog: '#3a221c', aur: '#ffb05c',
+    skyTop: '#110920', skyMid: '#3f1a2c', skyBot: '#c8652e', fog: '#36201c', aur: '#ffb05c',
     ground: '#2c1c14', groundIn: '#3d2617', glow: '#ffb347', rim: '#ffb35a', spore: '#ffd27a',
     shaft: '#ffbb66', moon: '#ffc07a', grassTip: '#ffbd55', grassBase: '#24160e', grassH: 0.9,
     hemiSky: '#f0b38a', hemiGround: '#3a2416', key: '#ffd6a8',
@@ -28,7 +28,7 @@ export const SEASONS = [
   },
   {
     key: 'winter', glyph: '冬', en: 'Winter', name: '冬 · 银装素裹', line: '大雪无声，枝头凝出冰晶',
-    skyTop: '#050918', skyMid: '#172a50', skyBot: '#8fb6e6', fog: '#283a58', aur: '#8fd9ff',
+    skyTop: '#050918', skyMid: '#162850', skyBot: '#6f98c8', fog: '#26375a', aur: '#8fd9ff',
     ground: '#9fb3d1', groundIn: '#c9d8ee', glow: '#9fdcff', rim: '#a8dcff', spore: '#eaf6ff',
     shaft: '#bfe0ff', moon: '#eef5ff', grassTip: '#dceeff', grassBase: '#5a6d8c', grassH: 0.35,
     hemiSky: '#b9d3f5', hemiGround: '#5d6f8f', key: '#e6f1ff',

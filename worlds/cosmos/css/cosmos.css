@@ -158,6 +158,7 @@ a { color: inherit; text-decoration: none; }
 .card:hover img, .card.active img, .card:hover canvas, .card.active canvas { transform: translateX(-50%) scale(1.08) rotate(-4deg); }
 .card .no { position: absolute; top: 7px; left: 9px; font-family: var(--latin); font-size: 12px; color: var(--ink-3); letter-spacing: 0.05em; }
 .card .zh { font-size: 16px; font-weight: 600; letter-spacing: 0.12em; padding-left: 0.12em; white-space: nowrap; }
+.card.long .zh { font-size: 13px; letter-spacing: 0.02em; padding-left: 0; }
 .card .en { font-family: var(--latin); font-style: italic; font-size: 12px; color: var(--ink-3); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .card:hover { transform: translateY(-4px); border-color: var(--line-2); }
 .card.active {
@@ -253,8 +254,10 @@ a { color: inherit; text-decoration: none; }
 .p-note { font-size: 12px; color: var(--ink-3); line-height: 1.7; margin: 14px 0 0; }
 .p-note:empty { display: none; }
 
-/* 面板打开时卡片坞让位 */
+/* 面板打开时卡片坞与模式切换让位 */
 body.panel-open .dock { right: var(--panel-w); }
+.modes { transition: right 0.6s cubic-bezier(.2, .8, .2, 1); }
+body.panel-open .modes { right: calc(var(--panel-w) + 16px); }
 body.panel-open .hint { opacity: 0; }
 body.deep .region-zh { color: #e8e0ff; }
 
@@ -277,6 +280,7 @@ body.deep .region-zh { color: #e8e0ff; }
   .card { width: 84px; height: 116px; }
   .card img, .card canvas { width: 60px; height: 60px; top: 9px; }
   .card .zh { font-size: 15px; }
+  .card.long .zh { font-size: 12px; }
 
   #panel {
     top: auto; left: 0; right: 0; width: 100%; height: 56vh; height: 56dvh; border-left: 0; border-top: 1px solid var(--line);
@@ -293,6 +297,7 @@ body.deep .region-zh { color: #e8e0ff; }
   .p-en { font-size: 18px; }
   .p-tag { font-size: 14px; margin: 10px 0 6px; }
   body.panel-open .dock { right: 0; transform: translateY(110%); opacity: 0; pointer-events: none; }
+  body.panel-open .modes { right: 16px; }
   body.panel-open .region { opacity: 0; }
 }
 

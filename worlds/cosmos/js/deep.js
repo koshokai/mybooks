@@ -93,7 +93,7 @@ export function buildDeep() {
   const fade = []; // setOpacity 回调
 
   // —— 银河系 ——
-  const mw = makeGalaxy({ count: 62000, R: GAL_R, arms: 4, pitch: 0.24, bar: 0.26, thick: 0.018, bright: 0.8, size: 1.0 });
+  const mw = makeGalaxy({ count: 62000, R: GAL_R, arms: 4, minor: true, pitch: 0.27, bar: 0.24, thick: 0.016, bright: 0.85, size: 1.0 });
   mw.position.copy(GAL_CENTER);
   mw.rotation.y = 0.5;
   group.add(mw);
@@ -234,6 +234,7 @@ export function buildDeep() {
       dimS += (dim - dimS) * Math.min(1, dt * 2);
       mw.galaxyMat.uniforms.uOpacity.value = opacity * dimS;
       const t = shared.time.value;
+      here.visible = opacity > 0.01 && (!focusId || focusId === 'milkyway');
       for (let i = 0; i < hereRings.length; i++) {
         const k = ((t * 0.5 + i * 0.5) % 1);
         const camD = cam.position.distanceTo(here.position);

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#04050c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>游 · 引力星轨</title>
+  <title>轨 · 引力星轨</title>
   <meta name="description" content="引力 · 星轨 —— 一款原创的引力弹弓解谜小游戏。拉动彗星，借行星之力，拾尽星尘，穿过星门。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,10 +18,10 @@
 
   <!-- ========== 标题 ========== -->
   <section id="scr-title" class="screen show">
-    <a class="back" href="../../index.html">← 返回 <b>游</b></a>
+    <a class="back" href="../arcade/index.html">← 游戏厅</a>
     <button class="icon-btn sound-btn top-right" type="button" aria-label="音效开关"><span class="snd-on">♪</span><span class="snd-off">♪̸</span></button>
     <div class="title-wrap">
-      <div class="glyph" aria-hidden="true">游</div>
+      <div class="glyph" aria-hidden="true">轨</div>
       <h1 class="game-name">引力<i>·</i>星轨</h1>
       <p class="game-en">ORBIT · SLING</p>
       <p class="game-sub">拉动彗星，借行星之力<br />拾尽星尘，穿过星门</p>
@@ -30,6 +30,7 @@
         <button class="btn btn-line" id="btn-daily" type="button">每日星图 <small id="daily-date"></small></button>
       </div>
       <p class="title-meta" id="title-meta"></p>
+      <p class="dust-meta" id="title-dust" title="万象游戏厅共享星尘"></p>
     </div>
     <p class="title-foot">一款原创小游戏 · 触屏拖拽 / 鼠标拖拽发射</p>
   </section>
@@ -39,7 +40,10 @@
     <header class="map-head">
       <button class="icon-btn" id="map-back" type="button" aria-label="返回标题">←</button>
       <div class="map-title"><b>星图</b><span>CHART</span></div>
-      <div class="map-stars"><span class="star-ic">★</span> <b id="map-total">0</b><small> / 60</small></div>
+      <div class="map-stats">
+        <div class="map-stars"><span class="star-ic">★</span> <b id="map-total">0</b><small> / 60</small></div>
+        <div class="map-dust" id="map-dust" title="万象游戏厅共享星尘"></div>
+      </div>
     </header>
     <div class="map-scroll" id="map-scroll">
       <div class="map-inner" id="map-inner"></div>
@@ -63,11 +67,12 @@
   <button id="btn-recall" class="recall" type="button">⟲ 召回</button>
   <div id="banner" class="banner"><small></small><b></b></div>
   <div id="tip" class="tip"></div>
+  <div id="ach" class="ach" role="status" aria-live="polite"><span class="ach-ic">✦</span><span class="ach-txt"><small>成就解锁</small><b></b></span></div>
 
   <!-- ========== 弹窗 ========== -->
   <div class="modal" id="m-pause">
     <div class="card">
-      <a class="back back-in" href="../../index.html">← 返回 <b>游</b></a>
+      <a class="back back-in" href="../arcade/index.html">← 游戏厅</a>
       <h2>暂停</h2>
       <p class="card-sub" id="pause-sub"></p>
       <div class="col-btns">
@@ -85,9 +90,10 @@
       <h2 id="done-title">漂亮的一击</h2>
       <div class="stars3" id="done-stars"><i></i><i></i><i></i></div>
       <p class="card-sub" id="done-sub"></p>
+      <p class="dust-gain" id="done-dust"></p>
       <div class="row-btns">
-        <button class="btn btn-line sq" data-act="retry" type="button" aria-label="重来">↻</button>
-        <button class="btn btn-line sq" data-act="map" type="button" aria-label="选关">☷</button>
+        <button class="btn btn-line sq" data-act="retry" type="button" aria-label="重来"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v5h5"/></svg></button>
+        <button class="btn btn-line sq" data-act="map" type="button" aria-label="选关"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="17" r="2.2"/><circle cx="12" cy="6.5" r="2.2"/><circle cx="19" cy="15" r="2.2"/><path d="M6.3 15.1 10.7 8.4M13.5 8.3l4.1 4.9"/></svg></button>
         <button class="btn btn-primary grow" data-act="next" type="button" id="done-next">下一关 →</button>
       </div>
     </div>
@@ -99,8 +105,8 @@
       <h2>再试一次？</h2>
       <p class="card-sub" id="fail-sub">每一次失败都让下一发更准。</p>
       <div class="row-btns">
-        <button class="btn btn-line sq" data-act="map" type="button" aria-label="选关">☷</button>
-        <button class="btn btn-primary grow" data-act="retry" type="button">↻ 重来</button>
+        <button class="btn btn-line sq" data-act="map" type="button" aria-label="选关"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="17" r="2.2"/><circle cx="12" cy="6.5" r="2.2"/><circle cx="19" cy="15" r="2.2"/><path d="M6.3 15.1 10.7 8.4M13.5 8.3l4.1 4.9"/></svg></button>
+        <button class="btn btn-primary grow" data-act="retry" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v5h5"/></svg> 重来</button>
       </div>
     </div>
   </div>
@@ -112,12 +118,13 @@
       <div class="big-num" id="daily-score">0</div>
       <p class="card-sub" id="daily-sub"></p>
       <div class="row-btns">
-        <button class="btn btn-line sq" data-act="title" type="button" aria-label="返回">⌂</button>
-        <button class="btn btn-primary grow" data-act="daily" type="button">↻ 再来一次</button>
+        <button class="btn btn-line sq" data-act="title" type="button" aria-label="返回标题"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></button>
+        <button class="btn btn-primary grow" data-act="daily" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v5h5"/></svg> 再来一次</button>
       </div>
     </div>
   </div>
 
+  <script src="../../shared/arcade.js"></script>
   <script src="physics.js"></script>
   <script src="levels.js"></script>
   <script src="audio.js"></script>
