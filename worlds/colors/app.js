@@ -483,7 +483,8 @@ async function makePoster(c) {
   x.fillStyle = c.h; x.fillRect(0, 0, W, H);
   // 晕染
   const blobs = [[W * 0.05, H * 0.08, 760], [W * 1.0, H * 0.62, 640], [W * 0.15, H * 1.02, 560]];
-  hs.slice(0, 3).forEach((hx, k) => {
+  const blobCols = hs.filter((hx) => hx.c.chroma >= 0.1 && hx.c.hsl[2] > 0.32).concat([{ c }]).slice(0, 3);
+  blobCols.forEach((hx, k) => {
     const [bx, by, br] = blobs[k];
     for (let j = 0; j < 4; j++) {
       const ox = bx + (Math.random() - 0.5) * 160, oy = by + (Math.random() - 0.5) * 160, rr = br * (0.6 + Math.random() * 0.5);
@@ -536,6 +537,13 @@ async function makePoster(c) {
   }
   // 色值
   const by = H - 330;
+  if (c.q) { // 色说（横排）
+    x.font = `400 28px ${SERIF}`; x.fillStyle = rgba(inkRgb, 0.78); x.textAlign = 'left';
+    const lines = []; let line = '';
+    for (const ch of c.d) { if (x.measureText(line + ch).width > W - 240) { lines.push(line); line = ch; } else line += ch; }
+    if (line) lines.push(line);
+    lines.forEach((ln, k) => x.fillText(ln, 112, by - 46 - (lines.length - k) * 50));
+  }
   x.strokeStyle = rgba(inkRgb, 0.3); x.beginPath(); x.moveTo(110, by); x.lineTo(W - 110, by); x.stroke();
   x.textAlign = 'left'; x.fillStyle = ink; x.font = `500 92px ${LATIN}`;
   x.fillText(c.h, 106, by + 34);
