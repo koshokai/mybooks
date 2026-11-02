@@ -112,7 +112,7 @@
     st.cd = Math.max(0.4, 1 - 0.08 * L('haste'));
     st.area = H.area * (1 + 0.1 * L('area'));
     st.speed = H.spd * (1 + 0.08 * L('swift')) * (1 + 0.04 * R('spd'));
-    st.magnet = 72 * (1 + 0.3 * L('magnet')) * (1 + 0.15 * R('mag'));
+    st.magnet = 90 * (1 + 0.3 * L('magnet')) * (1 + 0.15 * R('mag'));
     st.maxHp = (H.hp + 20 * L('vital')) * (1 + 0.08 * R('hp'));
     st.regen = H.regen + 0.3 * L('vital') + 0.25 * R('regen');
     st.crit = H.crit + 0.05 * L('crit');
