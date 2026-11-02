@@ -6,7 +6,7 @@
    * ======================================================= */
   const API = "https://api.artic.edu/api/v1";
   const IIIF = (id, w) => `https://www.artic.edu/iiif/2/${id}/full/${w},/0/default.jpg`;
-  const FIELDS = "id,title,artist_title,artist_display,date_display,image_id,thumbnail,medium_display,dimensions,place_of_origin,artwork_type_title,is_boosted";
+  const FIELDS = "id,title,artist_title,artist_display,date_display,image_id,thumbnail,medium_display,dimensions,place_of_origin,artwork_type_title,is_boosted,is_public_domain";
   const CACHE_V = "og.v1.";
   const CACHE_TTL = 7 * 864e5;
   const ROOMS = window.ROOMS;
@@ -74,7 +74,7 @@
       for (const r of results) {
         if (r.status !== "fulfilled") continue;
         const { a, data } = r.value;
-        let list = data.filter((d) => d.image_id && d.thumbnail && !seen.has(d.id));
+        let list = data.filter((d) => d.image_id && d.thumbnail && d.is_public_domain === true && !seen.has(d.id));
         if (room.types) list = list.filter((d) => room.types.includes(d.artwork_type_title));
         if (a.match) list = list.filter((d) => (d.artist_title || d.artist_display || "").toLowerCase().includes(a.match.toLowerCase()));
         if (room.place) list = list.filter((d) => (d.place_of_origin || "").includes(room.place));
