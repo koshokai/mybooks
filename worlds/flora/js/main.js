@@ -6,6 +6,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SEASONS, PLANTS, STAT_KEYS } from './data.js';
 import { BUILDERS, normalizePlant, SHARED } from './plants.js';
 import * as W from './world.js';
+import { PHOTOS } from './photos.js';
 
 const V3 = THREE.Vector3, TAU = Math.PI * 2;
 const $ = (s) => document.querySelector(s);
@@ -229,6 +230,8 @@ PLANTS.forEach((p, i) => {
   c.className = 'card';
   c.style.setProperty('--acc', p.color);
   c.innerHTML = `<i class="card-no">${String(i + 1).padStart(2, '0')}</i><b class="card-glyph">${p.glyph}</b><span class="card-name">${p.name}</span><em class="card-latin">${p.latin}</em>`;
+  const ph = (PHOTOS[p.id] || [])[0];
+  if (ph) { c.classList.add('has-photo'); c.style.setProperty('--img', `url("${ph.thumb}")`); }
   c.addEventListener('click', () => (state.mode === 'detail' && state.sel === i ? closeDetail() : select(i)));
   roster.appendChild(c);
 });
@@ -253,6 +256,77 @@ function toast(title, line) {
 }
 
 const panel = $('#panel');
+
+/* ---------------- 实拍照片（iNaturalist 开放授权） ---------------- */
+const escHTML = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const creditHTML = (ph) => `<span class="cam">📷</span> ${escHTML(ph.author)} · <a href="${ph.licenseUrl}" target="_blank" rel="noopener">${ph.license}</a> · <a href="${ph.source}" target="_blank" rel="noopener">iNaturalist</a>`;
+let photoSel = 0;
+function fillPhotos(p) {
+  const list = PHOTOS[p.id] || [];
+  const sec = $('#pPhotos');
+  sec.hidden = !list.length;
+  if (!list.length) return;
+  photoSel = 0;
+  const main = $('#pMain');
+  const show = (k) => {
+    photoSel = k;
+    const ph = list[k];
+    main.innerHTML = `<img src="${ph.src}" alt="${escHTML(p.name)}实拍" style="aspect-ratio:${ph.w}/${ph.h}" />`;
+    const img = main.querySelector('img');
+    img.addEventListener('load', () => img.classList.add('in'));
+    if (img.complete) img.classList.add('in');
+    $('#pCredit').innerHTML = creditHTML(ph);
+    $('#pThumbs').querySelectorAll('button').forEach((b, j) => b.classList.toggle('on', j === k));
+  };
+  $('#pThumbs').innerHTML = list.map((ph, k) => `<button aria-label="第 ${k + 1} 张"><img src="${ph.thumb}" alt="" loading="lazy" /></button>`).join('');
+  $('#pThumbs').querySelectorAll('button').forEach((b, k) => b.addEventListener('click', () => show(k)));
+  main.onclick = () => openLightbox(p, photoSel);
+  show(0);
+}
+
+const lb = { p: null, k: 0 };
+const lightbox = $('#lightbox');
+const lbOpen = () => !lightbox.hidden;
+function openLightbox(p, k) {
+  lb.p = p; lb.k = k;
+  lightbox.hidden = false;
+  requestAnimationFrame(() => lightbox.classList.add('show'));
+  lbRender();
+}
+function lbRender() {
+  const list = PHOTOS[lb.p.id] || [];
+  const ph = list[lb.k];
+  const img = $('#lbImg');
+  img.classList.remove('in');
+  img.onload = () => img.classList.add('in');
+  img.src = ph.src;
+  img.alt = `${lb.p.name}实拍`;
+  $('#lbCap').innerHTML = `<b>${lb.p.name}</b> <i>${lb.p.latin}</i> <span class="n">${lb.k + 1} / ${list.length}</span><br />${creditHTML(ph)}`;
+  $('#lbPrev').hidden = $('#lbNext').hidden = list.length < 2;
+}
+function lbStep(d) {
+  const n = (PHOTOS[lb.p.id] || []).length;
+  if (n < 2) return;
+  lb.k = (lb.k + d + n) % n;
+  lbRender();
+}
+function closeLightbox() {
+  lightbox.classList.remove('show');
+  setTimeout(() => { lightbox.hidden = true; }, 250);
+}
+$('#lbClose').addEventListener('click', closeLightbox);
+$('#lbPrev').addEventListener('click', (e) => { e.stopPropagation(); lbStep(-1); });
+$('#lbNext').addEventListener('click', (e) => { e.stopPropagation(); lbStep(1); });
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+{ // 手机上左右滑动切换
+  let sx = null;
+  lightbox.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+  lightbox.addEventListener('touchend', (e) => {
+    if (sx == null) return;
+    const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 50) lbStep(dx < 0 ? 1 : -1);
+  });
+}
 function fillPanel(i) {
   const p = PLANTS[i];
   panel.style.setProperty('--acc', p.color);
@@ -268,6 +342,7 @@ function fillPanel(i) {
   $('#pHint').textContent = p.hint || '';
   $('#pHint').hidden = !p.hint;
   $('#pCount').textContent = `${i + 1} / ${PLANTS.length}`;
+  fillPhotos(p);
   panel.querySelector('.pbody').scrollTop = 0;
   panel.classList.remove('fill'); void panel.offsetWidth; panel.classList.add('fill');
 }
@@ -439,6 +514,12 @@ function processHover() {
 }
 
 addEventListener('keydown', (e) => {
+  if (lbOpen()) {
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') lbStep(1);
+    if (e.key === 'ArrowLeft') lbStep(-1);
+    return;
+  }
   if (e.key === 'Escape') closeDetail();
   if (['1', '2', '3', '4'].includes(e.key)) { const i = +e.key - 1; if (i !== season) setSeason(i); }
   if (state.mode === 'detail' && e.key === 'ArrowRight') select((state.sel + 1) % PLANTS.length);

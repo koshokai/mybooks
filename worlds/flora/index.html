@@ -45,6 +45,12 @@
       </div>
       <div class="ptags" id="pTags"></div>
       <button class="phint" id="pHint" hidden></button>
+      <section class="photos" id="pPhotos" hidden>
+        <h3>实拍图鉴 <small>点开看大图</small></h3>
+        <button class="pmain" id="pMain" aria-label="查看大图"></button>
+        <p class="pcredit" id="pCredit"></p>
+        <div class="pthumbs" id="pThumbs"></div>
+      </section>
       <section>
         <h3>属性 <small>相对示意</small></h3>
         <div id="pStats" class="stats"></div>
@@ -70,6 +76,15 @@
   </aside>
 
   <nav id="roster" class="roster" aria-label="植物图鉴列表"></nav>
+  <div id="lightbox" class="lightbox" hidden>
+    <button class="lb-close" id="lbClose" aria-label="关闭">✕</button>
+    <button class="lb-nav prev" id="lbPrev" aria-label="上一张">‹</button>
+    <figure class="lb-fig">
+      <img id="lbImg" alt="" />
+      <figcaption id="lbCap"></figcaption>
+    </figure>
+    <button class="lb-nav next" id="lbNext" aria-label="下一张">›</button>
+  </div>
 
   <div id="intro" aria-hidden="true">
     <div class="intro-glyph">植</div>
