@@ -135,7 +135,7 @@ float aqH13(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return f
  * kind: "static" 普通（焦散）| "sub" 底床（颗粒感）| "decor" 石木（焦散+藻色）| "plant" 水草摇曳 | "fish" 鱼身摆动 + 鳍飘动 + 发光
  */
 export function patch(mat, kind, extra) {
-  const defs = { static: "", sub: "#define AQ_GRAIN\n", decor: "#define AQ_ALGAE\n", plant: "#define AQ_PLANT\n", fish: "#define AQ_FISH\n" }[kind];
+  const defs = { static: "", sub: "#define AQ_GRAIN\n", decor: "#define AQ_ALGAE\n#define AQ_GRAIN2\n", plant: "#define AQ_PLANT\n", fish: "#define AQ_FISH\n", eye: "#define AQ_FISH\n#define AQ_EYE\n" }[kind];
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, U);
     if (extra) Object.assign(sh.uniforms, extra);
@@ -193,6 +193,9 @@ varying vec3 vCW; varying float vCNy; varying float vB;
   float aqg = aqH13(floor(vCW * 48.0));
   diffuseColor.rgb *= 0.7 + 0.6 * aqg;
 #endif
+#ifdef AQ_GRAIN2
+  diffuseColor.rgb *= 0.86 + 0.28 * aqH13(floor(vCW * 70.0));
+#endif
 #ifdef AQ_ALGAE
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.10, 0.20, 0.05), uAlgae * smoothstep(0.25, 0.9, vCNy) * 0.75);
 #endif`)
@@ -204,8 +207,11 @@ varying vec3 vCW; varying float vCNy; varying float vB;
     float aqn = clamp(vCNy * 1.1, 0.0, 1.0);
 #endif
     float aqd = clamp((uSurf - vCW.y) / uSurf, 0.0, 1.0);
-    float aqc = aqCaust(vCW.xz * 0.16 + vec2(vCW.y * 0.02, 0.0), uTime * 0.42);
-    totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
+    float aqc = aqCaust(vCW.xz * 0.24 + vec2(vCW.y * 0.03, 0.0), uTime * 0.42);
+    totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * 0.7 * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
+#ifdef AQ_EYE
+    totalEmissiveRadiance += diffuseColor.rgb * vB * 2.5;
+#endif
   }`)
       .replace("#include <fog_fragment>", /* glsl */ `#include <fog_fragment>
   // 水的吸收：越深越偏青蓝

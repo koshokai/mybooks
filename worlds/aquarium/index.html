@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#04121a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>鱼 · 水族箱 Aquarium</title>
+  <meta name="description" content="鱼 · 水族箱——云养鱼与水草造景：一缸会随真实时间变化的、属于你的水下花园。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%2304202a%22/%3E%3Ctext x=%2232%22 y=%2246%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%237fe8ff%22 font-family=%22serif%22%3E%E9%B1%BC%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="aquarium.css" />
+  <script type="importmap">{"imports":{"three":"../../shared/vendor/three/three.module.min.js","three/addons/":"../../shared/vendor/three/addons/"}}</script>
+  <script src="../../shared/arcade.js"></script>
+</head>
+<body>
+  <canvas id="scene" aria-label="水族箱三维场景：水草、石头、沉木与鱼群"></canvas>
+  <div id="tags" aria-hidden="true"></div>
+  <div id="cursor" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="back glass" href="../../index.html" title="返回选择世界"><span class="arr">←</span> 返回 <b>鱼</b></a>
+    <div class="brand"><b>鱼<i>·</i>水族箱</b><em>Aquarium · A Living Tank</em></div>
+    <div class="tr">
+      <button class="dust glass" id="dust" title="星尘（万象游戏厅共用）"><i>✦</i><span id="dustN">0</span></button>
+      <button class="ibtn glass" id="bLight" title="灯光"></button>
+      <button class="ibtn glass" id="bMore" title="更多" aria-haspopup="true">⋯</button>
+    </div>
+  </header>
+  <div class="menu glass" id="menu" hidden>
+    <button data-act="sound"><span>声音</span><em id="mSound">关</em></button>
+    <button data-act="tags"><span>名牌</span><em id="mTags">关</em></button>
+    <button data-act="dex"><span>我的鱼</span><em>›</em></button>
+    <button data-act="photo"><span>拍一张照片</span><em>›</em></button>
+    <button data-act="ach"><span>成就</span><em>›</em></button>
+  </div>
+
+  <div class="meters" id="meters">
+    <div class="meter" data-k="full"><span>饱腹</span><i><b></b></i></div>
+    <div class="meter" data-k="happy"><span>心情</span><i><b></b></i></div>
+    <div class="meter" data-k="water"><span>水质</span><i><b></b></i></div>
+    <div class="meter" data-k="clean"><span>洁净</span><i><b></b></i></div>
+    <div class="clock" id="clock"></div>
+  </div>
+
+  <p id="hint"></p>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <nav class="dock" id="dock" aria-label="照料工具">
+    <button data-mode="feed"><svg viewBox="0 0 24 24"><path d="M7 4h10l-1.2 4H8.2z"/><circle cx="9" cy="13" r="1.3"/><circle cx="13.5" cy="15.5" r="1.1"/><circle cx="11" cy="19" r="1.2"/><circle cx="15.5" cy="11.5" r=".9"/></svg><span>喂食</span></button>
+    <button data-mode="clean"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="9" rx="3"/><path d="M8 18c1.5 1.2 6.5 1.2 8 0M10 21c.8.4 3.2.4 4 0"/></svg><span>擦玻璃</span></button>
+    <button data-act="water"><svg viewBox="0 0 24 24"><path d="M12 3c3.5 4.5 6 7.6 6 10.6A6 6 0 0 1 6 13.6C6 10.6 8.5 7.5 12 3z"/><path d="M9.5 14.5a2.6 2.6 0 0 0 2.5 2.5"/></svg><span>换水</span></button>
+    <button data-mode="trim"><svg viewBox="0 0 24 24"><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="6.5" cy="6.5" r="2.5"/><path d="M8.6 8 20 18M8.6 16 20 6"/></svg><span>修剪</span></button>
+    <button data-act="edit"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 20l4-8 3 4 2-3 5 7"/><path d="M15 9c0-3 2-5 4-5-.3 3-1.6 4.6-4 5z"/></svg><span>造景</span></button>
+    <button data-act="shop"><svg viewBox="0 0 24 24"><path d="M3 12c3-4 7-5 10-5 3 0 5 2 6.5 5-1.5 3-3.5 5-6.5 5-3 0-7-1-10-5z"/><path d="M19.5 12 22 9v6z"/><circle cx="8" cy="11" r=".9"/></svg><span>鱼店</span></button>
+  </nav>
+
+  <!-- 鱼的资料卡 -->
+  <aside class="card glass" id="card" hidden aria-label="鱼的资料卡">
+    <button class="x" id="cClose" aria-label="关闭">✕</button>
+    <figure class="cphoto" id="cPhoto" hidden><img alt="" /><figcaption></figcaption></figure>
+    <div class="chead">
+      <input id="cName" maxlength="10" aria-label="名字（可改名）" />
+      <div class="cspec"><b id="cSp"></b><i id="cLatin"></i></div>
+      <div class="ctags" id="cTags"></div>
+    </div>
+    <div class="cbars">
+      <div><span>心情</span><i><b id="cHappy"></b></i></div>
+      <div><span>饱腹</span><i><b id="cFull"></b></i></div>
+    </div>
+    <div class="cbody">
+      <h4>原产地</h4><p id="cOrigin"></p>
+      <h4>习性</h4><p id="cHabit"></p>
+      <h4>趣闻</h4><ul id="cFacts"></ul>
+    </div>
+    <div class="cfoot"><button id="cFollow">跟随它</button></div>
+  </aside>
+
+  <!-- 鱼店 / 我的鱼 / 成就 -->
+  <section class="sheet glass" id="sheet" hidden>
+    <div class="shead"><b id="sTitle">鱼店</b><em id="sSub"></em><button class="x" id="sClose" aria-label="关闭">✕</button></div>
+    <div class="sbody" id="sBody"></div>
+  </section>
+
+  <!-- 造景 -->
+  <section class="editor glass" id="editor" hidden>
+    <div class="etabs" id="eTabs"></div>
+    <div class="ebody" id="eBody"></div>
+  </section>
+  <div class="etop" id="eTop" hidden><span id="eHint">造景模式</span><button id="eDone">完成造景</button></div>
+  <div class="esel glass" id="eSel" hidden>
+    <b id="eSelName"></b>
+    <label>旋转<input type="range" id="eRot" min="0" max="360" step="1" /></label>
+    <label>大小<input type="range" id="eScale" min="40" max="200" step="1" /></label>
+    <div class="ebtns"><button id="eDel">收起</button><button id="eOk">好</button></div>
+  </div>
+
+  <!-- 离开期间 -->
+  <div class="modal" id="away" hidden>
+    <div class="mcard glass">
+      <div class="mglyph">鱼</div>
+      <h2>离开期间发生了什么</h2>
+      <p class="mdur" id="aDur"></p>
+      <div class="mstats" id="aStats"></div>
+      <ul class="mstory" id="aStory"></ul>
+      <button class="mbtn" id="aOk">去看看它们</button>
+    </div>
+  </div>
+
+  <div id="intro">
+    <div class="ripple r1"></div><div class="ripple r2"></div><div class="ripple r3"></div>
+    <div class="intro-glyph">鱼</div>
+    <div class="intro-sub">水 族 箱</div>
+    <div class="intro-en">Aquarium · A Living Tank</div>
+    <div class="intro-load" id="load">正在注水…</div>
+  </div>
+
+  <noscript><p class="noscript">此页面需要启用 JavaScript 与 WebGL。</p></noscript>
+  <script type="module">requestAnimationFrame(() => setTimeout(() => import("./js/main.js"), 30));</script>
+  <script>if ("serviceWorker" in navigator && (location.protocol === "https:" || /[?&]sw\b/.test(location.search))) addEventListener("load", () => navigator.serviceWorker.register("../../sw.js", { scope: "../../" }).catch(() => {}));</script>
+</body>
+</html>

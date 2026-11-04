@@ -6,9 +6,9 @@ import { AG, algaeMult } from "./state.js";
 /* ---------------- 昼夜关键帧 ---------------- */
 const K = {
   night: { sun: 0.16, sunC: "#8ea6ff", sky: "#22355e", gnd: "#0a0c14", hemi: 0.42, top: "#040a18", bot: "#0b1d3c", fog: "#061428", ck: 0.16, cc: "#8fb0ff", rays: 0.0, exp: 1.0, rim: 0.35, lamp: "#2a3e8a", lampK: 0.5, n: 1, pc: "#6f86c8" },
-  dawn: { sun: 0.95, sunC: "#ffb48c", sky: "#ffc7a6", gnd: "#2a2018", hemi: 0.62, top: "#2c3a6c", bot: "#ffb48a", fog: "#28384c", ck: 0.5, cc: "#ffd2a4", rays: 0.32, exp: 1.0, rim: 0.5, lamp: "#ffc79a", lampK: 1.6, n: 0.35, pc: "#ffd8b8" },
-  day: { sun: 2.35, sunC: "#fff5e6", sky: "#cfeaff", gnd: "#4a3f2a", hemi: 0.95, top: "#3f93cf", bot: "#e8f8ff", fog: "#2b6a86", ck: 1.0, cc: "#fff3da", rays: 0.55, exp: 1.04, rim: 0.7, lamp: "#fffaf0", lampK: 3.2, n: 0, pc: "#ffffff" },
-  dusk: { sun: 1.0, sunC: "#ff9c6c", sky: "#ffb28f", gnd: "#2a1c18", hemi: 0.58, top: "#2a336c", bot: "#ff9a72", fog: "#2a2e48", ck: 0.48, cc: "#ffb68a", rays: 0.3, exp: 1.0, rim: 0.5, lamp: "#ffb27a", lampK: 1.5, n: 0.35, pc: "#ffc8a8" },
+  dawn: { sun: 1.5, sunC: "#ffb48c", sky: "#ffc7a6", gnd: "#2a2018", hemi: 0.62, top: "#2c3a6c", bot: "#ffb48a", fog: "#28384c", ck: 0.5, cc: "#ffd2a4", rays: 0.32, exp: 1.0, rim: 0.5, lamp: "#ffc79a", lampK: 1.6, n: 0.35, pc: "#ffd8b8" },
+  day: { sun: 3.6, sunC: "#fff7ea", sky: "#d8f0ff", gnd: "#5a4a30", hemi: 1.35, top: "#3f93cf", bot: "#e8f8ff", fog: "#2b6a86", ck: 1.0, cc: "#fff3da", rays: 0.55, exp: 1.22, rim: 0.7, lamp: "#fffaf0", lampK: 3.2, n: 0, pc: "#ffffff" },
+  dusk: { sun: 1.5, sunC: "#ff9c6c", sky: "#ffb28f", gnd: "#2a1c18", hemi: 0.58, top: "#2a336c", bot: "#ff9a72", fog: "#2a2e48", ck: 0.48, cc: "#ffb68a", rays: 0.3, exp: 1.0, rim: 0.5, lamp: "#ffb27a", lampK: 1.5, n: 0.35, pc: "#ffc8a8" },
 };
 const KEYS = [[0, "night"], [5.5, "night"], [6.6, "dawn"], [8.4, "day"], [17.3, "day"], [18.8, "dusk"], [20.3, "night"], [24, "night"]];
 const cA = new THREE.Color(), cB = new THREE.Color();
