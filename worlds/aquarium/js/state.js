@@ -54,7 +54,7 @@ export function newState() {
   const now = Date.now();
   const s = {
     v: 1, created: now, lastTick: now, water: 96, algae: new Array(AG.X * AG.Y).fill(0),
-    fish: [], layout: presetLayout("iwagumi"), storage: {}, gifted: false,
+    fish: [], layout: presetLayout("dutch"), storage: {}, gifted: false,
     daily: { date: "", fed: 0, clean: 0, water: 0, trim: 0, earned: 0 }, streak: { last: "", n: 0, days: 0 },
     stats: { feeds: 0, flakes: 0, cleans: 0, changes: 0, trims: 0, bought: 0, fry: 0 },
     settings: { mute: false, tags: false, light: "auto" },

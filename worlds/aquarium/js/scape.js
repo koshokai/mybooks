@@ -42,6 +42,11 @@ export function rockGeo(style, seed) {
     if (style === "seiryu") { const vv = Math.abs(fbm3(x * 2.2 + 9, y * 5.5, z * 2.2, 3)); c = mix(c, vein, smooth(0.05, 0.0, vv) * 0.85); }
     if (style === "matsu") { const bandv = Math.sin(y * 26 + n * 4); c = mix(c, bandv > 0.5 ? rust : B[2], Math.abs(bandv) * 0.35); }
     if (style === "pebble") c = mix(c, col("#5c574e"), smooth(0.35, 0.6, noise3(x * 14, y * 14, z * 14, 2)) * 0.5);
+    else {
+      // 顶面零星的青苔
+      const moss = smooth(0.15, 0.45, fbm3(x * 4 + off, y * 4, z * 4, 3)) * smooth(0.25, 0.8, y);
+      c = mix(c, mix(col("#24401a"), col("#3e6a24"), clamp(n + 0.5, 0, 1)), moss * 0.7);
+    }
     g.v(p[0], p[1], p[2], c);
   }
   for (const [a, b, c] of f) g.t(a, b, c);
@@ -149,22 +154,24 @@ export function plantGeo(kind, seed) {
     top = 0.12;
   } else if (kind === "rotala" || kind === "macrandra") {
     const red = kind === "macrandra";
-    const n = red ? 6 : 8;
+    const n = red ? 5 : 6;
     for (let s = 0; s < n; s++) {
       const bx = (R() - 0.5) * 0.45, bz = (R() - 0.5) * 0.35, H = (red ? 1.0 : 1.2) + R() * 0.8, lean = (R() - 0.5) * 0.3;
       blade(g, bx, bz, R() * 6.28, H, 0.008, lean, col(red ? "#5a2a1a" : "#3a5a22"), col(red ? "#a03a2a" : "#7a9a4a"), 0.7, 8);
-      const nodes = Math.floor(H / (red ? 0.075 : 0.05));
+      const nodes = Math.floor(H / (red ? 0.055 : 0.042));
       for (let k = 1; k <= nodes; k++) {
         const s01 = k / nodes, y = s01 * H;
-        const cx = bx + Math.cos(0) * lean * s01 * s01, cz = bz;
-        const tip = smooth(0.45, 1, s01);
-        const c0 = red ? mix(col("#7a3a1e"), col("#e0303a"), tip) : mix(col("#3f8a2e"), col("#e07890"), tip * 0.9);
-        const c1 = red ? mix(col("#c8483a"), col("#ff6a5a"), tip) : mix(col("#7ac04a"), col("#ffa0b0"), tip * 0.9);
-        const L = (red ? 0.13 : 0.075) * (1 - s01 * 0.35), Wd = red ? 0.045 : 0.018;
-        for (const sd of [0, Math.PI]) {
-          const a = k * 1.7 + sd + R() * 0.3;
-          const dir = V(Math.cos(a), 0.45 + s01 * 0.5, Math.sin(a)).normalize();
-          leaf(g, V(cx, y, cz), dir, V(0, 1, 0), L, Wd, c0, c1, 0.7 * y, 0.85, red ? 0.05 : 0.15, 0.5);
+        const cx = bx + lean * s01 * s01, cz = bz;
+        const tip = smooth(0.5, 1, s01) * (0.7 + 0.3 * R());
+        const c0 = red ? mix(col("#6a2a16"), col("#d0283a"), tip) : mix(col("#2f7a26"), col("#d87088"), tip * 0.85);
+        const c1 = red ? mix(col("#b84030"), col("#ff5a50"), tip) : mix(col("#6ab040"), col("#ff98a8"), tip * 0.85);
+        const L = (red ? 0.1 : 0.05) * (1 - s01 * 0.4) * (0.8 + 0.4 * R()), Wd = red ? 0.03 : 0.016;
+        const nl = red ? 2 : 3;
+        for (let q = 0; q < nl; q++) {
+          const a = k * 2.4 + (q / nl) * Math.PI * 2 + R() * 0.5;
+          const up = 0.6 + s01 * 0.9 + R() * 0.3;
+          const dir = V(Math.cos(a), up, Math.sin(a)).normalize();
+          leaf(g, V(cx, y, cz), dir, V(0, 1, 0), L, Wd, c0, c1, 0.7 * y, 0.85, red ? 0.05 : 0.12, 0.4, red ? 3 : 2);
         }
       }
     }

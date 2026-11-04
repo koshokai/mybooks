@@ -205,10 +205,13 @@ varying vec3 vCW; varying float vCNy; varying float vB;
     float aqn = abs(vCNy) * 0.65 + 0.35;
 #else
     float aqn = clamp(vCNy * 1.1, 0.0, 1.0); aqn *= aqn;
+#ifdef AQ_ALGAE
+    aqn *= 0.55;
+#endif
 #endif
     float aqd = clamp((uSurf - vCW.y) / uSurf, 0.0, 1.0);
     float aqc = aqCaust(vCW.xz * 0.75 + vec2(vCW.y * 0.08, 0.0), uTime * 0.5);
-    totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * 0.55 * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
+    totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * 0.42 * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
 #ifdef AQ_EYE
     totalEmissiveRadiance += diffuseColor.rgb * vB * 2.5;
 #endif

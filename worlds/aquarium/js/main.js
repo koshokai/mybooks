@@ -42,7 +42,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x03070b);
 scene.fog = new THREE.Fog(0x2b6a86, 10, 34);
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200);
-const target = new THREE.Vector3(0, 2.75, 0);
+const target = new THREE.Vector3(0, 2.75, 0.4);
 
 // 环境光照（给湿润鱼体、眼睛和玻璃提供柔和的反射）
 {
@@ -108,7 +108,7 @@ function fit() {
   const w = innerWidth, h = innerHeight, asp = w / h;
   camera.aspect = asp; camera.fov = asp < 0.8 ? 44 : 36; camera.updateProjectionMatrix();
   const t = Math.tan((camera.fov * Math.PI) / 360);
-  const vH = asp < 0.8 ? 7.0 : 7.6, vW = asp < 0.8 ? 5.8 : 11.6;
+  const vH = asp < 0.8 ? 5.4 : 6.2, vW = asp < 0.8 ? 4.4 : 8.6;
   baseDist = Math.max(vH / 2 / t, vW / 2 / (t * asp));
   if (!studioFish) { controls.minDistance = Math.max(4.5, baseDist * 0.32); controls.maxDistance = baseDist * 1.22; }
 }
@@ -157,7 +157,7 @@ controls.target.copy(target);
 started = true;
 fit();
 camera.position.set(0, target.y + 0.5, baseDist);
-camera.position.set(-baseDist * 0.1, target.y + 0.25, baseDist * 1.04);
+camera.position.set(-baseDist * 0.08, target.y - 0.1, baseDist * 1.04);
 controls.update();
 
 function tap(x, y) {
@@ -602,7 +602,7 @@ function refreshFromState() {
 
 /* ---------------- 调试钩子 ---------------- */
 window.__aq = {
-  get state() { return state; }, school, scape, env, camera, controls, food, editor,
+  get state() { return state; }, school, scape, env, camera, controls, food, editor, renderer,
   advance(sec, fps = 30) { const n = Math.round(sec * fps); for (let i = 0; i < n; i++) step(1 / fps); render(); return n; },
   timeTravel(hours) { state.lastTick -= hours * 36e5; const sum = catchUp(state); school.sync(state.fish); refreshFromState(); showAway(sum); save(); return sum; },
   setHour(h) { hourOverride = h; },

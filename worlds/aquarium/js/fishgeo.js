@@ -59,7 +59,7 @@ const toLin = (c) => c.map((x) => Math.pow(x, 2.2));
 const L3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const band = (x, c, w, soft = 0.4) => 1 - smooth(w * (1 - soft), w, Math.abs(x - c));
 
-const clearFin = (tint = "#e8eef0", a = 0.28, edge = 0.1) => (u, r) => ({ c: C(tint), a: a + edge * r });
+const clearFin = (tint = "#e8eef0", a = 0.28, edge = 0.1) => (u, r) => ({ c: L3(C(tint), [0.6, 0.66, 0.66], 0.35), a: (a + edge * r) * 0.42 });
 const GUPPY_PAL = [["#ff4a14", "#ff8a2a", "#140c0c", "#1b3570"], ["#2a6bff", "#8fe4ff", "#0b1c50", "#24406a"], ["#ff2e6e", "#ffb0d0", "#5a0a2a", "#5a2a50"], ["#3fd27a", "#f2ff6a", "#0d3a20", "#2a5a40"]];
 const BETTA_PAL = [["#4a5ad8", "#b0101e", "#8a9cff"], ["#a80c24", "#e01f3c", "#3a4aff"], ["#e8e2f6", "#9a5cff", "#ffffff"], ["#0f8f8c", "#2ad8c8", "#1a3a8a"]];
 
@@ -68,7 +68,7 @@ export const SPEC = {
     bf: 0.8, prof: [[0, 0.012, 0.012, 0.01], [0.05, 0.055, 0.045, 0.04], [0.15, 0.095, 0.075, 0.056], [0.33, 0.112, 0.086, 0.06], [0.55, 0.096, 0.074, 0.05], [0.78, 0.06, 0.045, 0.03], [1, 0.038, 0.03, 0.015]],
     eye: { t: 0.1, r: 0.046, y: 0.016, iris: "#a8c4d4" }, scales: 30, irid: 1, rough: 0.32, scaleShade: 0.35,
     paint(t, s, c, n) {
-      const stripeC = 0.3 - 0.06 * t, inStripe = band(s, stripeC, 0.19, 0.45) * smooth(0.08, 0.16, t) * (1 - smooth(0.72, 0.8, t));
+      const stripeC = 0.32 - 0.06 * t, inStripe = band(s, stripeC, 0.25, 0.4) * smooth(0.08, 0.16, t) * (1 - smooth(0.72, 0.8, t));
       let base = L3(C("#aeb8b8"), C("#4c4a36"), smooth(0.3, 0.65, s));
       base = L3(base, C("#24221a"), smooth(0.65, 1, s) * 0.8);
       base = L3(base, C("#e2e8ea"), band(s, -0.25, 0.25) * band(t, 0.32, 0.14) * 0.5);
@@ -240,8 +240,8 @@ export const SPEC = {
       return { c: base, g: 0 };
     },
     fins: [
-      { at: "top", t0: 0.2, t1: 0.7, f: (u) => [-0.12 - 0.5 * Math.pow(1 - u, 1.2), 0.62 * Math.pow(1 - u, 0.8) + 0.02], col: (u, r) => ({ c: C("#c8ccc8"), a: 0.6 + 0.25 * r }), bars: true, fl: 0.8, rays: 12, pleat: 0.008 },
-      { at: "bot", t0: 0.3, t1: 0.72, f: (u) => [-0.12 - 0.42 * Math.pow(1 - u, 1.2), -0.55 * Math.pow(1 - u, 0.8) - 0.02], col: (u, r) => ({ c: C("#c8ccc8"), a: 0.6 + 0.25 * r }), bars: true, fl: 0.8, rays: 12, pleat: 0.008 },
+      { at: "top", t0: 0.2, t1: 0.7, f: (u) => [-0.12 - 0.5 * Math.pow(1 - u, 1.2), 0.62 * Math.pow(1 - u, 0.8) + 0.02], col: (u, r) => ({ c: C("#c8ccc8"), a: 0.4 + 0.25 * r }), bars: true, fl: 0.8, rays: 12, pleat: 0 },
+      { at: "bot", t0: 0.3, t1: 0.72, f: (u) => [-0.12 - 0.42 * Math.pow(1 - u, 1.2), -0.55 * Math.pow(1 - u, 0.8) - 0.02], col: (u, r) => ({ c: C("#c8ccc8"), a: 0.4 + 0.25 * r }), bars: true, fl: 0.8, rays: 12, pleat: 0 },
       { at: "bot", t0: 0.2, t1: 0.23, f: () => [-0.32, -0.62], col: () => ({ c: C("#e6e2d8"), a: 0.75 }), fl: 1, rays: 1, droop: 0.02 },
       { at: "tail", len: 0.3, f: (u) => { const k = u * 2 - 1; return [-0.3 * (0.7 + 0.6 * Math.abs(k) ** 3), k * 0.22]; }, col: (u, r) => ({ c: C("#eef0ee"), a: 0.3 }), fl: 0.7, rays: 16 },
       { at: "side", t: 0.22, f: () => [-0.08, -0.02, 0.05], col: clearFin(), fl: 1.2, rays: 8, y: -0.2 },
@@ -348,9 +348,19 @@ export const SPEC = {
 
 /* ---------------- 构建 ---------------- */
 function profAt(prof, t) {
+  // Catmull-Rom 样条插值：轮廓连续光滑，没有分段的“瓶子”感
   let i = 0; while (i < prof.length - 2 && t > prof[i + 1][0]) i++;
-  const a = prof[i], b = prof[i + 1], k = smooth(0, 1, (t - a[0]) / (b[0] - a[0]));
-  return [a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k];
+  const p0 = prof[Math.max(0, i - 1)], p1 = prof[i], p2 = prof[i + 1], p3 = prof[Math.min(prof.length - 1, i + 2)];
+  const u = clamp((t - p1[0]) / (p2[0] - p1[0]), 0, 1), u2 = u * u, u3 = u2 * u;
+  const out = [];
+  for (let k = 1; k <= 3; k++) {
+    const m1 = ((p2[k] - p0[k]) / Math.max(1e-3, p2[0] - p0[0])) * (p2[0] - p1[0]), m2 = ((p3[k] - p1[k]) / Math.max(1e-3, p3[0] - p1[0])) * (p2[0] - p1[0]);
+    const v = (2 * u3 - 3 * u2 + 1) * p1[k] + (u3 - 2 * u2 + u) * m1 + (-2 * u3 + 3 * u2) * p2[k] + (u3 - u2) * m2;
+    out.push(Math.max(0.004, Math.min(v, Math.max(p1[k], p2[k]) * 1.08)));
+  }
+  // 吻部收尖：头最前端更圆润地收拢成嘴
+  if (t < 0.06) { const k = Math.sqrt(t / 0.06); out[0] *= 0.55 + 0.45 * k; out[1] *= 0.55 + 0.45 * k; out[2] *= 0.6 + 0.4 * k; }
+  return out;
 }
 
 function paintTex(sp) {
@@ -372,11 +382,11 @@ function paintTex(sp) {
       if (sp.eye && Math.abs(c) > 0.2) {
         const et = sp.eye.t + 0.045, [etp, ebt] = profAt(sp.prof, t);
         const yy = s > 0 ? etp * s : ebt * s;
-        const dd = Math.hypot((t - et) * sp.bf, yy - sp.eye.y) / sp.eye.r;
+        const dd = Math.hypot((t - et) * sp.bf, yy - sp.eye.y) / (sp.eye.r * 0.86);
         if (dd < 1.15) {
           const ir = C(sp.eye.iris);
-          let ec = dd < 0.5 ? [0.02, 0.02, 0.03] : dd < 0.95 ? L3(ir, L3(ir, [0, 0, 0], 0.5), smooth(0.6, 0.95, dd)) : L3(o.c, [0.1, 0.1, 0.1], 0.6);
-          if (dd < 0.22 && (t - et) * sp.bf < 0 && yy > sp.eye.y) ec = [0.9, 0.95, 1];
+          let ec = dd < 0.58 ? [0.02, 0.02, 0.03] : dd < 0.95 ? L3(ir.map((q) => q * 0.7), L3(ir, [0, 0, 0], 0.65), smooth(0.65, 0.95, dd)) : L3(o.c, [0.1, 0.1, 0.1], 0.5);
+          if (dd < 0.16 && (t - et) * sp.bf < 0 && yy > sp.eye.y) ec = [0.85, 0.9, 0.95];
           o.c = L3(ec, o.c, smooth(1.0, 1.15, dd));
         }
       }
@@ -385,9 +395,9 @@ function paintTex(sp) {
       const sc = (1 + n * 0.06) * (1 - sk * 0.28 * (1 - SCALE_H[hv2 * 256 + hu])) * (o.k ?? 1);
       // 鳃盖缝、嘴线、背深腹浅
       const gillT = (sp.gill ?? 0.25) + 0.035 * s * s;
-      const gill = band(t, gillT, 0.009, 0.6) * (1 - smooth(0.6, 0.85, Math.abs(s)));
+      const gill = smooth(gillT - 0.05, gillT, t) * (1 - smooth(gillT, gillT + 0.012, t)) * (1 - smooth(0.5, 0.85, Math.abs(s)));
       const mouth = (1 - smooth(0.0, 0.035, t)) * band(s, -0.15, 0.08, 0.5);
-      const cs = (1 - 0.16 * smooth(0.35, 1, s)) * (1 + 0.08 * smooth(-0.3, -1, s)) * (1 - 0.28 * gill) * (1 - 0.45 * mouth);
+      const cs = (1 - 0.16 * smooth(0.35, 1, s)) * (1 + 0.08 * smooth(-0.3, -1, s)) * (1 - 0.12 * gill) * (1 - 0.5 * mouth) * (1 + 0.06 * (1 - smooth(0.0, gillT, t)) * smooth(-0.2, 0.5, s));
       const k = (y * W + x) * 4;
       img.data[k] = clamp(o.c[0] * sc * cs, 0, 1) * 255; img.data[k + 1] = clamp(o.c[1] * sc * cs, 0, 1) * 255; img.data[k + 2] = clamp(o.c[2] * sc * cs, 0, 1) * 255; img.data[k + 3] = 255;
       if ((x & 1) === 0 && (y & 1) === 0) {
@@ -458,13 +468,13 @@ function buildGeo(sp) {
   const E = { ...sp.eye, t: sp.eye.t + 0.045 }, [etp, ebt, ewd] = profAt(sp.prof, E.t);
   const iris = col(E.iris), pupil = col("#050506"), white = col("#d8dcdc"), glow = E.glow ? col(E.glow) : null;
   for (const sd of [1, -1]) {
-    const R = E.r, cx = xAt(E.t), cy = E.y, cz = sd * (ewd * 0.95 + R * 0.22);
+    const R = E.r * 0.86, cx = xAt(E.t), cy = E.y, cz = sd * (ewd * 0.9 + R * 0.1);
     const s0 = eyes.n, NU = 14, NV = 10;
     for (let i = 0; i <= NV; i++) for (let j = 0; j <= NU; j++) {
       const th = (i / NV) * Math.PI, ph = (j / NU) * Math.PI * 2;
       const nx = Math.sin(th) * Math.cos(ph), ny = Math.cos(th), nz = Math.sin(th) * Math.sin(ph);
       const out = nz * sd;
-      let c = out > 0.8 ? pupil : out > 0.2 ? mix(iris, pupil, smooth(0.7, 0.8, out)) : mix(white, iris, 0.3).map((q) => q * 0.35);
+      let c = out > 0.78 ? pupil : out > 0.2 ? mix(iris.map((q) => q * 0.7), pupil, smooth(0.68, 0.78, out)) : iris.map((q) => q * 0.25);
       if (out > 0.2 && out < 0.32) c = c.map((q) => q * 0.45);
       let g = 0;
       if (glow && out > 0.3 && out < 0.8 && ny > 0.1) { c = glow; g = 1; }
@@ -576,9 +586,9 @@ export function makeFishMesh(spId, f, U) {
     });
   }
   patch(bodyM, "fish", U);
-  const finM = new THREE.MeshPhysicalMaterial({ vertexColors: true, map: A.shrimp ? null : finTex(), transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 0.42, clearcoat: 0.3, sheen: 0.3, sheenColor: new THREE.Color(0xffffff), envMapIntensity: 0.6 });
+  const finM = new THREE.MeshPhysicalMaterial({ vertexColors: true, map: A.shrimp ? null : finTex(), transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 0.45, clearcoat: 0.12, envMapIntensity: 0.35 });
   patch(finM, "fish", U);
-  const eyeM = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 0.7 });
+  const eyeM = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.1 });
   patch(eyeM, "eye", U);
   const body = new THREE.Mesh(A.body, bodyM), fins = new THREE.Mesh(A.fins, finM), eyes = new THREE.Mesh(A.eyes, eyeM);
   fins.renderOrder = 1;

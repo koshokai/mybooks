@@ -57,7 +57,11 @@ export function presetLayout(id) {
     P("rotala", 0.65, -1.8, 1.1); P("rotala", 1.25, -2.05, 1.0); P("macrandra", 2.4, -1.75, 1.0); P("sword", 3.0, -1.0, 1.25);
     P("sword", -3.3, -0.4, 1.1); P("macrandra", 1.85, 0.0, 0.85); P("rotala", -1.4, -0.4, 0.8); P("rotala", -0.8, -0.7, 0.75);
     P("anubias", 0.55, 0.65, 1); P("fern", -2.3, 0.45, 1); P("rotala", 3.6, 0.1, 0.8); P("macrandra", -4.2, 0.2, 0.75);
-    for (let x = -2.2; x <= 2.3; x += 0.9) P("hc", x, 1.75, 0.95);
+    P("rotala", -3.3, -1.5, 1.0); P("macrandra", 1.9, -2.1, 1.1); P("rotala", 2.6, -2.2, 1.05); P("vallis", -3.0, -2.2, 0.95); P("vallis", 3.1, -2.25, 0.95);
+    P("rotala", -0.2, -1.2, 0.9); P("sword", -4.2, -1.0, 1.0); P("rotala", 4.1, -0.9, 0.9); P("macrandra", -2.0, -0.9, 0.85); P("fern", 2.4, 0.5, 0.9); P("anubias", -0.9, 0.6, 0.85);
+    P("moss", 1.3, 0.9, 0.9); P("moss", -1.9, 1.0, 0.8);
+    for (let x = -4.0; x <= 4.1; x += 0.8) P(Math.abs(x) < 2.4 ? "hc" : "hairgrass", x, 1.75 + 0.15 * Math.sin(x * 3), 0.95);
+    for (let x = -3.6; x <= 3.7; x += 1.2) P("hairgrass", x + 0.3, 0.9 + 0.2 * Math.cos(x * 2), 0.85);
     P("hairgrass", -3.6, 1.6, 1); P("hairgrass", 3.5, 1.5, 1); P("hairgrass", -2.9, 1.0, 0.9); P("hairgrass", 2.9, 1.0, 0.9);
     items.push(it("rock", "matsu", 0.95, 0.75, 0.52, 0.8, 31), it("rock", "pebble", -1.65, 1.15, 0.42, 0.2, 32), it("rock", "pebble", 3.25, 1.35, 0.36, 2.2, 33), it("rock", "pebble", 0.1, 1.2, 0.28, 1.2, 34));
   }

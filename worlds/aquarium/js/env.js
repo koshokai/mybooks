@@ -6,9 +6,9 @@ import { AG, algaeMult } from "./state.js";
 /* ---------------- 昼夜关键帧 ---------------- */
 const K = {
   night: { sun: 0.16, sunC: "#8ea6ff", sky: "#22355e", gnd: "#0a0c14", hemi: 0.42, top: "#040a18", bot: "#0b1d3c", fog: "#061428", ck: 0.05, cc: "#8fb0ff", rays: 0.0, exp: 1.0, rim: 0.35, lamp: "#2a3e8a", lampK: 0.5, n: 1, pc: "#6f86c8" },
-  dawn: { sun: 1.5, sunC: "#ffb48c", sky: "#ffc7a6", gnd: "#2a2018", hemi: 0.62, top: "#2c3a6c", bot: "#ffb48a", fog: "#28384c", ck: 0.5, cc: "#ffd2a4", rays: 0.32, exp: 1.0, rim: 0.5, lamp: "#ffc79a", lampK: 1.6, n: 0.35, pc: "#ffd8b8" },
-  day: { sun: 3.1, sunC: "#fff7ea", sky: "#cfeaff", gnd: "#3a2c1c", hemi: 0.62, top: "#3f93cf", bot: "#e8f8ff", fog: "#2b6a86", ck: 1.0, cc: "#fff3da", rays: 0.55, exp: 1.05, rim: 0.7, lamp: "#fffaf0", lampK: 1.7, n: 0, pc: "#ffffff" },
-  dusk: { sun: 1.5, sunC: "#ff9c6c", sky: "#ffb28f", gnd: "#2a1c18", hemi: 0.58, top: "#2a336c", bot: "#ff9a72", fog: "#2a2e48", ck: 0.48, cc: "#ffb68a", rays: 0.3, exp: 1.0, rim: 0.5, lamp: "#ffb27a", lampK: 1.5, n: 0.35, pc: "#ffc8a8" },
+  dawn: { sun: 1.5, sunC: "#ffb48c", sky: "#ffc7a6", gnd: "#2a2018", hemi: 0.62, top: "#0c1424", bot: "#a0705a", fog: "#1c2630", ck: 0.5, cc: "#ffd2a4", rays: 0.32, exp: 1.0, rim: 0.5, lamp: "#ffc79a", lampK: 1.6, n: 0.35, pc: "#ffd8b8" },
+  day: { sun: 3.3, sunC: "#fff7ea", sky: "#cfeaff", gnd: "#2a2014", hemi: 0.5, top: "#06161c", bot: "#3f7a78", fog: "#12343c", ck: 1.0, cc: "#fff3da", rays: 0.55, exp: 1.05, rim: 0.7, lamp: "#fffaf0", lampK: 1.7, n: 0, pc: "#ffffff" },
+  dusk: { sun: 1.5, sunC: "#ff9c6c", sky: "#ffb28f", gnd: "#2a1c18", hemi: 0.58, top: "#0c1020", bot: "#9a5a4a", fog: "#1c1e2c", ck: 0.48, cc: "#ffb68a", rays: 0.3, exp: 1.0, rim: 0.5, lamp: "#ffb27a", lampK: 1.5, n: 0.35, pc: "#ffc8a8" },
 };
 const KEYS = [[0, "night"], [5.5, "night"], [6.6, "dawn"], [8.4, "day"], [17.3, "day"], [18.8, "dusk"], [20.3, "night"], [24, "night"]];
 const cA = new THREE.Color(), cB = new THREE.Color();
@@ -90,6 +90,19 @@ export class Env {
           float glow = exp(-pow((y - 0.18) * 2.6, 2.0)) * 0.18;
           c = c * cx + uBot * glow;
           c *= 0.96 + 0.04 * sin(vUv.x * 9.0 + uTime * 0.2) * sin(y * 7.0 - uTime * 0.13);
+          // 远处水草的朦胧剪影
+          float x = vUv.x;
+          float stems = 0.0;
+          for (int i = 0; i < 3; i++) {
+            float fi = float(i);
+            float sx = x * (9.0 + fi * 7.0) + fi * 3.7;
+            float h = 0.35 + 0.35 * fract(sin(floor(sx) * 12.9898 + fi) * 43758.5);
+            float wv = sin(y * (14.0 + fi * 6.0) + floor(sx) * 2.0 + uTime * 0.3) * 0.18;
+            float blade = smoothstep(0.42, 0.12, abs(fract(sx + wv * y) - 0.5)) * smoothstep(h, h - 0.25, y);
+            stems = max(stems, blade * (0.75 - fi * 0.18));
+          }
+          vec3 sil = mix(uBot, uTop, 0.75) * 0.35;
+          c = mix(c, sil, stems * 0.85);
           gl_FragColor = vec4(c, 1.0); }`,
     });
     const p = new THREE.Mesh(new THREE.PlaneGeometry(T.W - 0.02, T.H - 0.02), m);
@@ -198,7 +211,7 @@ export class Env {
             n = -n; float ndv = max(dot(n, V), 0.0);
             float win = smoothstep(0.62, 0.72, ndv);
             float shimmer = 0.5 + 0.5 * sin(q.x * 5.0 + n.x * 30.0 + uTime) * sin(q.y * 4.0 + n.z * 30.0);
-            vec3 mirror = mix(uDeep * 1.1, uSky * 0.55, 0.25 + 0.35 * shimmer);
+            vec3 mirror = mix(uDeep * 0.9, uSky * 0.3, 0.12 + 0.2 * shimmer);
             c = mix(mirror, uSky * 1.25, win);
             vec3 Rt = refract(-V, n, 1.33);
             float sp = pow(max(dot(normalize(Rt + vec3(0.0001)), L), 0.0), 60.0) * win;
@@ -264,9 +277,9 @@ export class Env {
           p.x = clamp(p.x, -4.95, 4.95); p.z = clamp(p.z, -2.45, 2.45); p.y = clamp(p.y, 0.3, 5.5);
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
           float tw = pow(max(0.0, sin(uTime * (0.4 + aS.w) + aS.y * 50.0)), 30.0);
-          float show = step(aS.w, 0.55 + uDirt * 0.45);
+          float show = step(aS.w, 0.35 + uDirt * 0.6);
           vA = (0.22 + 0.5 * aS.z + tw * 1.6) * show;
-          gl_PointSize = (0.012 + 0.02 * aS.x + tw * 0.02) * uScale / -mv.z;
+          gl_PointSize = (0.008 + 0.012 * aS.x + tw * 0.012) * uScale / -mv.z;
           gl_Position = projectionMatrix * mv; }`,
       fragmentShader: /* glsl */ `uniform vec3 uCol; uniform float uDirt; varying float vA;
         void main(){ float d = length(gl_PointCoord - 0.5) * 2.0; float a = smoothstep(1.0, 0.0, d); a *= a;
@@ -303,7 +316,7 @@ export class Env {
             p.z += cos(uTime * (4.0 + aS.w * 3.0) + aS.z * 20.0) * 0.03 * (0.3 + y * 0.2);
             vA = smoothstep(0.0, 0.15, y) * (1.0 - step(uTop - 0.02, p.y)) * ${pearl ? "smoothstep(span + 0.4, span * 0.6, y)" : "1.0"};
             vec4 mv = modelViewMatrix * vec4(p, 1.0);
-            gl_PointSize = (${pearl ? "0.035 + aS.w * 0.03" : "0.05 + aS.w * 0.07 + y * 0.008"}) * uScale / -mv.z;
+            gl_PointSize = (${pearl ? "0.025 + aS.w * 0.02" : "0.03 + aS.w * 0.045 + y * 0.005"}) * uScale / -mv.z;
             gl_Position = projectionMatrix * mv; }`,
         fragmentShader: /* glsl */ `uniform float uK; uniform vec3 uCol; varying float vA;
           void main(){ vec2 q = gl_PointCoord - 0.5; float d = length(q) * 2.0; if (d > 1.0) discard;
@@ -315,7 +328,7 @@ export class Env {
       const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = 4;
       return { pts, u };
     };
-    const b = mk(130, false);
+    const b = mk(70, false);
     this.bub = b; this.scene.add(b.pts);
     const pr = mk(160, true);
     this.pearl = pr; this.scene.add(pr.pts);
