@@ -10,6 +10,8 @@ export const U = {
   uSurf: { value: T.WATER },
   uFlow: { value: 1 },
   uAlgae: { value: 0 },
+  uAbs: { value: new THREE.Color(0.05, 0.22, 0.28) },
+  uAbsK: { value: 0.035 },
 };
 
 /* ---------------- 随机与噪声 ---------------- */
@@ -56,9 +58,9 @@ export const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
 
 /* ---------------- 几何体构建 ---------------- */
 export class Geo {
-  constructor() { this.P = []; this.C = []; this.A = []; this.B = []; this.I = []; this.n = 0; }
-  v(x, y, z, c, a = 1, A = 0, B = 0) {
-    this.P.push(x, y, z); this.C.push(c[0], c[1], c[2], a); this.A.push(A); this.B.push(B);
+  constructor() { this.P = []; this.C = []; this.A = []; this.B = []; this.UV = []; this.I = []; this.n = 0; }
+  v(x, y, z, c, a = 1, A = 0, B = 0, uu = 0, vv = 0) {
+    this.P.push(x, y, z); this.C.push(c[0], c[1], c[2], a); this.A.push(A); this.B.push(B); this.UV.push(uu, vv);
     return this.n++;
   }
   t(a, b, c) { this.I.push(a, b, c); }
@@ -68,7 +70,7 @@ export class Geo {
     const s = this.n;
     for (let i = 0; i <= nu; i++) for (let j = 0; j <= nr; j++) {
       const o = fn(i / nu, j / nr);
-      this.v(o.p[0], o.p[1], o.p[2], o.c, o.a ?? 1, o.A ?? 0, o.B ?? 0);
+      this.v(o.p[0], o.p[1], o.p[2], o.c, o.a ?? 1, o.A ?? 0, o.B ?? 0, o.u ?? 0, o.w ?? 0);
     }
     for (let i = 0; i < nu; i++) for (let j = 0; j < nr; j++) {
       const a = s + i * (nr + 1) + j, b = a + nr + 1;
@@ -82,6 +84,7 @@ export class Geo {
     g.setAttribute("color", new THREE.Float32BufferAttribute(this.C, 4));
     g.setAttribute("aA", new THREE.Float32BufferAttribute(this.A, 1));
     g.setAttribute("aB", new THREE.Float32BufferAttribute(this.B, 1));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(this.UV, 2));
     g.setIndex(this.I);
     g.computeVertexNormals();
     g.computeBoundingSphere();
@@ -141,24 +144,30 @@ attribute float aA; attribute float aB;
 uniform float uTime; uniform float uFlow;
 varying vec3 vCW; varying float vCNy; varying float vB;
 #ifdef AQ_FISH
-uniform float uPhase; uniform float uAmp; uniform float uWave; uniform float uTurn; uniform float uFlut; uniform float uFlutK;
+uniform float uPhase; uniform float uAmp; uniform float uWave; uniform float uTurn; uniform float uFlut; uniform float uFlutK; uniform float uBreath; uniform float uDroop;
 #endif
 ` + sh.vertexShader
       .replace("#include <beginnormal_vertex>", /* glsl */ `#include <beginnormal_vertex>
 #ifdef AQ_FISH
-  float fs = clamp((0.5 - position.x), 0.0, 1.35);
+  float fs = clamp((0.5 - position.x), 0.0, 1.4);
   float fw = sin(uPhase - fs * uWave);
-  float fa = uAmp * (0.05 + fs * fs);
-  float fd = -uWave * cos(uPhase - fs * uWave) * fa + fw * uAmp * 2.0 * fs + 2.0 * uTurn * fs;
+  float fa = uAmp * (0.035 + fs * fs * 0.95);
+  float fd = -uWave * cos(uPhase - fs * uWave) * fa + fw * uAmp * 1.9 * fs + 2.0 * uTurn * fs;
   float fph = atan(fd);
   float fc = cos(fph), fsn = sin(fph);
   objectNormal = vec3(objectNormal.x * fc + objectNormal.z * fsn, objectNormal.y, -objectNormal.x * fsn + objectNormal.z * fc);
 #endif`)
       .replace("#include <begin_vertex>", /* glsl */ `#include <begin_vertex>
 #ifdef AQ_FISH
+  // 鳃盖轻轻开合
+  float gill = smoothstep(0.12, 0.17, fs) * smoothstep(0.30, 0.22, fs) * (1.0 - step(0.001, aA));
+  transformed.z *= 1.0 + gill * 0.05 * sin(uTime * uBreath);
   transformed.z += fw * fa + uTurn * fs * fs;
-  transformed.z += aA * sin(uTime * uFlut + fs * 6.0 + position.y * 9.0) * 0.06 * uFlutK;
-  transformed.y += aA * cos(uTime * uFlut * 0.8 + fs * 5.0) * 0.022 * uFlutK;
+  // 鳍：沿鳍条向外传播的波动 + 转弯时的拖曳（模拟弹簧链的二次运动）
+  float fr = aB;
+  transformed.z += aA * sin(uTime * uFlut - fr * 3.5 + fs * 4.0 + position.y * 7.0) * 0.07 * uFlutK;
+  transformed.z += -uTurn * fr * fr * aA * 0.9;
+  transformed.y += aA * cos(uTime * uFlut * 0.7 - fr * 3.0 + fs * 3.0) * 0.025 * uFlutK - aA * fr * fr * uDroop;
 #endif
 #ifdef AQ_PLANT
   vec3 aqo = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -176,10 +185,7 @@ uniform float uPhase; uniform float uAmp; uniform float uWave; uniform float uTu
   aqw = modelMatrix * aqw; vCW = aqw.xyz;
   vCNy = normalize(mat3(modelMatrix) * objectNormal).y;`);
     sh.fragmentShader = defs + /* glsl */ `
-uniform float uTime; uniform float uCaustK; uniform vec3 uCaustCol; uniform float uSurf; uniform float uAlgae;
-#ifdef AQ_FISH
-uniform float uGlow;
-#endif
+uniform float uTime; uniform float uCaustK; uniform vec3 uCaustCol; uniform float uSurf; uniform float uAlgae; uniform vec3 uAbs; uniform float uAbsK;
 varying vec3 vCW; varying float vCNy; varying float vB;
 ` + CAUST + sh.fragmentShader
       .replace("#include <color_fragment>", /* glsl */ `#include <color_fragment>
@@ -200,10 +206,11 @@ varying vec3 vCW; varying float vCNy; varying float vB;
     float aqd = clamp((uSurf - vCW.y) / uSurf, 0.0, 1.0);
     float aqc = aqCaust(vCW.xz * 0.16 + vec2(vCW.y * 0.02, 0.0), uTime * 0.42);
     totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
-#ifdef AQ_FISH
-    totalEmissiveRadiance += diffuseColor.rgb * vB * uGlow;
-#endif
-  }`);
+  }`)
+      .replace("#include <fog_fragment>", /* glsl */ `#include <fog_fragment>
+  // 水的吸收：越深越偏青蓝
+  float aqab = clamp((uSurf - vCW.y) * uAbsK, 0.0, 0.35) * step(vCW.y, uSurf + 0.3);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, uAbs, aqab);`);
   };
   mat.customProgramCacheKey = () => "aq-" + kind;
   return mat;
