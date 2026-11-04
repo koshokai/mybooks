@@ -165,9 +165,9 @@ uniform float uPhase; uniform float uAmp; uniform float uWave; uniform float uTu
   transformed.z += fw * fa + uTurn * fs * fs;
   // 鳍：沿鳍条向外传播的波动 + 转弯时的拖曳（模拟弹簧链的二次运动）
   float fr = aB;
-  transformed.z += aA * sin(uTime * uFlut - fr * 3.5 + fs * 4.0 + position.y * 7.0) * 0.07 * uFlutK;
+  transformed.z += aA * sin(uTime * uFlut - fr * 3.5 + fs * 4.0 + position.y * 7.0) * 0.03 * uFlutK;
   transformed.z += -uTurn * fr * fr * aA * 0.9;
-  transformed.y += aA * cos(uTime * uFlut * 0.7 - fr * 3.0 + fs * 3.0) * 0.025 * uFlutK - aA * fr * fr * uDroop;
+  transformed.y += aA * cos(uTime * uFlut * 0.7 - fr * 3.0 + fs * 3.0) * 0.012 * uFlutK - aA * fr * fr * uDroop;
 #endif
 #ifdef AQ_PLANT
   vec3 aqo = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -204,11 +204,11 @@ varying vec3 vCW; varying float vCNy; varying float vB;
 #ifdef AQ_PLANT
     float aqn = abs(vCNy) * 0.65 + 0.35;
 #else
-    float aqn = clamp(vCNy * 1.1, 0.0, 1.0);
+    float aqn = clamp(vCNy * 1.1, 0.0, 1.0); aqn *= aqn;
 #endif
     float aqd = clamp((uSurf - vCW.y) / uSurf, 0.0, 1.0);
-    float aqc = aqCaust(vCW.xz * 0.24 + vec2(vCW.y * 0.03, 0.0), uTime * 0.42);
-    totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * 0.7 * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
+    float aqc = aqCaust(vCW.xz * 0.75 + vec2(vCW.y * 0.08, 0.0), uTime * 0.5);
+    totalEmissiveRadiance += uCaustCol * diffuseColor.rgb * aqc * aqn * uCaustK * 0.55 * (1.0 - 0.5 * aqd) * step(vCW.y, uSurf);
 #ifdef AQ_EYE
     totalEmissiveRadiance += diffuseColor.rgb * vB * 2.5;
 #endif

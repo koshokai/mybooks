@@ -8,31 +8,37 @@ import { PL } from "./data.js";
 export function rockGeo(style, seed) {
   const R = rng(seed * 13 + 7), { v, f } = icosphere(4);
   const g = new Geo();
-  const sx = style === "pebble" ? 1.0 + R() * 0.3 : 0.75 + R() * 0.35, sy = style === "seiryu" ? 1.0 + R() * 0.7 : style === "matsu" ? 0.75 + R() * 0.5 : 0.45 + R() * 0.15, sz = style === "pebble" ? 0.75 + R() * 0.2 : 0.6 + R() * 0.3;
-  const lean = (R() - 0.5) * 0.5, off = R() * 100;
+  const sx = style === "pebble" ? 0.8 + R() * 0.25 : 0.55 + R() * 0.3, sy = style === "seiryu" ? 0.95 + R() * 0.6 : style === "matsu" ? 0.7 + R() * 0.45 : 0.4 + R() * 0.12, sz = style === "pebble" ? 0.6 + R() * 0.2 : 0.45 + R() * 0.25;
+  const lean = (R() - 0.5) * 0.35, off = R() * 100;
+  // 随机切面：让石头有棱有角
+  const planes = [];
+  const np = style === "seiryu" ? 14 : style === "matsu" ? 10 : 0;
+  for (let i = 0; i < np; i++) {
+    const a = R() * Math.PI * 2, el = (R() - 0.35) * (style === "seiryu" ? 0.9 : 1.4);
+    planes.push([Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el), 0.48 + R() * 0.32]);
+  }
   const pts = v.map(([x, y, z]) => {
-    let d;
+    let d = 1;
+    for (const [nx, ny, nz, o] of planes) { const k = x * nx + y * ny + z * nz; if (k > 0.05 && d * k > o) d = o / k; }
     if (style === "seiryu") {
-      const rid = 1 - Math.abs(fbm3(x * 1.4 + off, y * 1.4, z * 1.4, 4));
-      d = 0.82 + 0.32 * rid * rid + 0.07 * fbm3(x * 6 + off, y * 6, z * 6, 3);
-      // 平切面让棱角更分明
-      const pl = Math.abs(noise3(x * 2 + off, y * 2, z * 2, 5)); d -= 0.06 * smooth(0.0, 0.25, pl);
+      const groove = 1 - Math.abs(fbm3(x * 5 + off, y * 1.1, z * 5, 3));
+      d *= 0.9 + 0.1 * groove * groove + 0.04 * fbm3(x * 9, y * 9 + off, z * 9, 2);
     } else if (style === "matsu") {
-      d = 0.9 + 0.2 * fbm3(x * 1.2 + off, y * 1.2, z * 1.2, 3) + 0.035 * Math.sin(y * 26 + fbm3(x * 3, y * 3, z * 3, 2) * 5) + 0.04 * fbm3(x * 8, y * 8, z * 8 + off, 2);
-    } else d = 1 + 0.06 * fbm3(x * 1.5 + off, y * 1.5, z * 1.5, 3) + 0.01 * fbm3(x * 9, y * 9, z * 9, 2);
+      d *= 0.95 + 0.035 * Math.sin(y * 34 + fbm3(x * 3, y * 3, z * 3 + off, 2) * 4) + 0.05 * fbm3(x * 6, y * 6, z * 6 + off, 3);
+    } else d *= 1 + 0.05 * fbm3(x * 1.5 + off, y * 1.5, z * 1.5, 3) + 0.008 * fbm3(x * 9, y * 9, z * 9, 2);
     let px = x * d * sx, py = y * d * sy, pz = z * d * sz;
     px += py * lean;
     if (py < -0.25 * sy) py = -0.25 * sy + (py + 0.25 * sy) * 0.15;
     return [px, py + 0.22 * sy, pz, d, x, y, z];
   });
-  const base = style === "seiryu" ? ["#545c62", "#6f787d", "#8a9296"] : style === "matsu" ? ["#5a4636", "#7e6a58", "#9a8a78"] : ["#7c776c", "#a39c8d", "#bdb6a6"];
+  const base = style === "seiryu" ? ["#3e464c", "#5c656b", "#7c868a"] : style === "matsu" ? ["#5a4636", "#7e6a58", "#9a8a78"] : ["#7c776c", "#a39c8d", "#bdb6a6"];
   const B = base.map(col), vein = col("#d9ddd8"), rust = col("#7a4426");
   for (const p of pts) {
     const [, , , d, x, y, z] = p;
     const n = fbm3(x * 3 + off, y * 3, z * 3, 3);
     let c = mix(B[0], B[1], clamp(0.5 + n * 1.4, 0, 1));
-    c = mix(c, B[2], smooth(0.95, 1.12, d) * 0.6);
-    c = mix(c, B[0].map((q) => q * 0.55), smooth(0.92, 0.8, d) * 0.7);
+    c = mix(c, B[2], smooth(0.2, 0.9, y) * 0.35);
+    c = mix(c, B[0].map((q) => q * 0.5), smooth(0.97, 0.86, d) * 0.6);
     if (style === "seiryu") { const vv = Math.abs(fbm3(x * 2.2 + 9, y * 5.5, z * 2.2, 3)); c = mix(c, vein, smooth(0.05, 0.0, vv) * 0.85); }
     if (style === "matsu") { const bandv = Math.sin(y * 26 + n * 4); c = mix(c, bandv > 0.5 ? rust : B[2], Math.abs(bandv) * 0.35); }
     if (style === "pebble") c = mix(c, col("#5c574e"), smooth(0.35, 0.6, noise3(x * 14, y * 14, z * 14, 2)) * 0.5);
@@ -110,9 +116,9 @@ function blade(g, bx, bz, ang, H, W, lean, c0, c1, sway, segs = 5, twist = 0) {
   for (let i = 0; i < segs; i++) g.q(s0 + i * 2, s0 + i * 2 + 1, s0 + i * 2 + 3, s0 + i * 2 + 2);
 }
 /** 叶片：中脉略凸、边缘有起伏 */
-function leaf(g, base, dir, up, len, wid, c0, c1, swayAt, shape = 0.8, curl = 0.1, rib = 0.3) {
+function leaf(g, base, dir, up, len, wid, c0, c1, swayAt, shape = 0.8, curl = 0.1, rib = 0.3, nu = 6) {
   const side = new THREE.Vector3().crossVectors(dir, up).normalize();
-  const nu = 6, s0 = g.n;
+  const s0 = g.n;
   for (let i = 0; i <= nu; i++) {
     const l = i / nu, prof = Math.pow(Math.sin(Math.PI * Math.min(1, l * 0.98 + 0.02)), shape);
     for (const w of [-1, 0, 1]) {
@@ -128,17 +134,17 @@ export function plantGeo(kind, seed) {
   const R = rng(seed * 17 + 5), g = new Geo(), V = (x, y, z) => new THREE.Vector3(x, y, z);
   let top = 0.3, spread = 0.5;
   if (kind === "hairgrass") {
-    for (let i = 0; i < 190; i++) {
-      const r = Math.sqrt(R()) * 0.55, a = R() * 6.28, H = 0.16 + R() * 0.26;
+    for (let i = 0; i < 300; i++) {
+      const r = Math.sqrt(R()) * 0.7, a = R() * 6.28, H = 0.16 + R() * 0.26;
       blade(g, Math.cos(a) * r, Math.sin(a) * r, R() * 6.28, H, 0.006, 0.04 + R() * 0.08, col(R() < 0.5 ? "#2f6f22" : "#3d7f28"), col(R() < 0.6 ? "#9ad85a" : "#7cc444"), 1.2, 4, R() * 2);
     }
     top = 0.3;
   } else if (kind === "hc") {
     const c0 = col("#3f9a26"), c1 = col("#8fe04a");
-    for (let i = 0; i < 300; i++) {
-      const r = Math.sqrt(R()) * 0.5, a = R() * 6.28, y = 0.02 + 0.09 * (1 - r * r / 0.25) + R() * 0.02;
+    for (let i = 0; i < 520; i++) {
+      const r = Math.sqrt(R()) * 0.65, a = R() * 6.28, y = 0.02 + 0.08 * (1 - r * r / 0.42) + R() * 0.02;
       const dir = V(Math.cos(R() * 6.28), 0.35 + R() * 0.4, Math.sin(R() * 6.28)).normalize();
-      leaf(g, V(Math.cos(a) * r, y, Math.sin(a) * r), dir, V(0, 1, 0), 0.04 + R() * 0.015, 0.016, mix(c0, c1, R()), c1, 0.05, 0.9, 0.2, 0);
+      leaf(g, V(Math.cos(a) * r, y, Math.sin(a) * r), dir, V(0, 1, 0), 0.04 + R() * 0.015, 0.017, mix(c0, c1, R()), c1, 0.05, 0.9, 0.2, 0, 2);
     }
     top = 0.12;
   } else if (kind === "rotala" || kind === "macrandra") {
@@ -215,10 +221,10 @@ export class Scape {
     this.grid = new Float32Array((GX + 1) * (GZ + 1));
     this.root = new THREE.Group(); scene.add(this.root);
     this.mats = {
-      sub: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96 }), "sub"),
-      rock: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02 }), "decor"),
-      wood: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), "decor"),
-      plant: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, side: THREE.DoubleSide, emissive: 0x0c2a08, emissiveIntensity: 0.35 }), "plant"),
+      sub: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, envMapIntensity: 0.25 }), "sub"),
+      rock: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.02, envMapIntensity: 0.3 }), "decor"),
+      wood: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, envMapIntensity: 0.3 }), "decor"),
+      plant: patch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, side: THREE.DoubleSide, emissive: 0x0c2a08, emissiveIntensity: 0.35, envMapIntensity: 0.4 }), "plant"),
     };
     this.geoCache = new Map();
   }

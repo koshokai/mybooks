@@ -61,7 +61,7 @@
   <!-- 鱼的资料卡 -->
   <aside class="card glass" id="card" hidden aria-label="鱼的资料卡">
     <button class="x" id="cClose" aria-label="关闭">✕</button>
-    <figure class="cphoto" id="cPhoto" hidden><img alt="" /><figcaption></figcaption></figure>
+    <figure class="cphoto" id="cPhoto" hidden><button class="cmain" id="cMain" aria-label="查看大图"><img alt="" /></button><div class="cthumbs" id="cThumbs"></div><figcaption id="cCredit"></figcaption></figure>
     <div class="chead">
       <input id="cName" maxlength="10" aria-label="名字（可改名）" />
       <div class="cspec"><b id="cSp"></b><i id="cLatin"></i></div>
@@ -109,6 +109,8 @@
       <button class="mbtn" id="aOk">去看看它们</button>
     </div>
   </div>
+
+  <div class="lightbox" id="lb" hidden><button class="x" id="lbClose" aria-label="关闭">✕</button><figure><img id="lbImg" alt="" /><figcaption id="lbCap"></figcaption></figure></div>
 
   <div id="intro">
     <div class="ripple r1"></div><div class="ripple r2"></div><div class="ripple r3"></div>

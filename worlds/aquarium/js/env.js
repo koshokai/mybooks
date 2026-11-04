@@ -5,9 +5,9 @@ import { AG, algaeMult } from "./state.js";
 
 /* ---------------- 昼夜关键帧 ---------------- */
 const K = {
-  night: { sun: 0.16, sunC: "#8ea6ff", sky: "#22355e", gnd: "#0a0c14", hemi: 0.42, top: "#040a18", bot: "#0b1d3c", fog: "#061428", ck: 0.16, cc: "#8fb0ff", rays: 0.0, exp: 1.0, rim: 0.35, lamp: "#2a3e8a", lampK: 0.5, n: 1, pc: "#6f86c8" },
+  night: { sun: 0.16, sunC: "#8ea6ff", sky: "#22355e", gnd: "#0a0c14", hemi: 0.42, top: "#040a18", bot: "#0b1d3c", fog: "#061428", ck: 0.05, cc: "#8fb0ff", rays: 0.0, exp: 1.0, rim: 0.35, lamp: "#2a3e8a", lampK: 0.5, n: 1, pc: "#6f86c8" },
   dawn: { sun: 1.5, sunC: "#ffb48c", sky: "#ffc7a6", gnd: "#2a2018", hemi: 0.62, top: "#2c3a6c", bot: "#ffb48a", fog: "#28384c", ck: 0.5, cc: "#ffd2a4", rays: 0.32, exp: 1.0, rim: 0.5, lamp: "#ffc79a", lampK: 1.6, n: 0.35, pc: "#ffd8b8" },
-  day: { sun: 3.6, sunC: "#fff7ea", sky: "#d8f0ff", gnd: "#5a4a30", hemi: 1.35, top: "#3f93cf", bot: "#e8f8ff", fog: "#2b6a86", ck: 1.0, cc: "#fff3da", rays: 0.55, exp: 1.22, rim: 0.7, lamp: "#fffaf0", lampK: 3.2, n: 0, pc: "#ffffff" },
+  day: { sun: 3.1, sunC: "#fff7ea", sky: "#cfeaff", gnd: "#3a2c1c", hemi: 0.62, top: "#3f93cf", bot: "#e8f8ff", fog: "#2b6a86", ck: 1.0, cc: "#fff3da", rays: 0.55, exp: 1.05, rim: 0.7, lamp: "#fffaf0", lampK: 1.7, n: 0, pc: "#ffffff" },
   dusk: { sun: 1.5, sunC: "#ff9c6c", sky: "#ffb28f", gnd: "#2a1c18", hemi: 0.58, top: "#2a336c", bot: "#ff9a72", fog: "#2a2e48", ck: 0.48, cc: "#ffb68a", rays: 0.3, exp: 1.0, rim: 0.5, lamp: "#ffb27a", lampK: 1.5, n: 0.35, pc: "#ffc8a8" },
 };
 const KEYS = [[0, "night"], [5.5, "night"], [6.6, "dawn"], [8.4, "day"], [17.3, "day"], [18.8, "dusk"], [20.3, "night"], [24, "night"]];
@@ -203,7 +203,7 @@ export class Env {
             vec3 Rt = refract(-V, n, 1.33);
             float sp = pow(max(dot(normalize(Rt + vec3(0.0001)), L), 0.0), 60.0) * win;
             float glint = pow(max(0.0, sin(n.x * 80.0 + uTime * 0.7) * sin(n.z * 80.0 - uTime * 0.5)), 24.0);
-            c += uSun * (sp * 1.4 + glint * 1.6 * (1.0 - win));
+            c += uSun * (sp * 1.2 + glint * 0.5 * (1.0 - win));
             a = mix(0.82, 0.38, win) * uK;
           } else {
             float ndv = max(dot(n, V), 0.0); float fr = 0.03 + 0.97 * pow(1.0 - ndv, 5.0);
@@ -360,7 +360,7 @@ export class Env {
     this.bub.u.uCol.value.copy(L.sky).lerp(new THREE.Color(1, 1, 1), 0.6).multiplyScalar(0.55 + 0.6 * (1 - L.n));
     this.pearl.u.uK.value = clamp((1 - L.n * 1.6) * (water > 45 ? 1 : 0.4), 0, 1) * 0.9;
     this.pearl.u.uCol.value.copy(this.bub.u.uCol.value);
-    this.surfU.uSky.value.copy(L.lamp).multiplyScalar(0.25 + 0.75 * L.lampK / 3.2).lerp(L.top, 0.25);
+    this.surfU.uSky.value.copy(L.lamp).multiplyScalar(0.25 + 0.75 * L.lampK / 1.7).lerp(L.top, 0.25);
     this.surfU.uDeep.value.copy(L.fog).lerp(L.top, 0.35).multiplyScalar(1.1);
     this.surfU.uSun.value.copy(L.sunC).multiplyScalar(0.4 + 0.6 * (1 - L.n));
     this.glassU.uLight.value = 0.35 + 0.65 * (1 - L.n);

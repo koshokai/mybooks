@@ -86,10 +86,18 @@ body.m-clean #scene, body.m-trim #scene { cursor: none; }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 .x { position: absolute; right: 10px; top: 10px; width: 32px; height: 32px; border-radius: 50%; color: var(--mute); font-size: 15px; z-index: 2; }
 .x:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
-.cphoto { margin: -6px -8px 12px; border-radius: 14px; overflow: hidden; position: relative; }
-.cphoto img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
-.cphoto figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 10px 5px; font-size: 10px; color: rgba(255, 255, 255, 0.75); background: linear-gradient(transparent, rgba(0, 0, 0, 0.6)); }
-.cphoto figcaption a { color: inherit; }
+.cphoto { margin: -4px -6px 12px; }
+.cmain { display: block; width: 100%; padding: 0; border-radius: 14px; overflow: hidden; cursor: zoom-in; }
+.cmain img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #0a1a22; }
+.cthumbs { display: flex; gap: 6px; margin-top: 6px; }
+.cthumbs button { width: 52px; height: 36px; padding: 0; border-radius: 8px; overflow: hidden; opacity: 0.55; border: 1px solid transparent; }
+.cthumbs button.on { opacity: 1; border-color: var(--acc); }
+.cthumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cphoto figcaption, .lightbox figcaption { margin-top: 5px; font-size: 11px; color: var(--mute); letter-spacing: 0.02em; }
+.cphoto figcaption a, .lightbox figcaption a { color: #bfefff; }
+.lightbox { position: fixed; inset: 0; z-index: 60; background: rgba(2, 8, 12, 0.92); display: grid; place-items: center; padding: 16px; animation: fade 0.3s; }
+.lightbox figure { margin: 0; max-width: 100%; text-align: center; }
+.lightbox img { max-width: min(1200px, 100%); max-height: calc(100vh - 90px); border-radius: 12px; display: block; margin: 0 auto; }
 .chead input { width: calc(100% - 36px); background: transparent; border: 0; border-bottom: 1px dashed rgba(190, 240, 255, 0.25); color: var(--ink); font: 900 26px var(--serif); letter-spacing: 0.12em; padding: 0 0 4px; outline: none; }
 .chead input:focus { border-bottom-color: var(--acc); }
 .cspec { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
@@ -207,7 +215,7 @@ input[type="range"] { width: 100%; accent-color: var(--acc); }
   .editor { width: calc(100% - 10px); bottom: calc(5px + var(--sb)); padding: 6px 6px 8px; }
   .ecard { width: 86px; }
   .ecard img, .ecard .ph { width: 74px; height: 50px; }
-  .etop { top: calc(56px + var(--st)); font-size: 12px; }
+  .etop { top: calc(56px + var(--st)); left: 10px; right: 10px; transform: none; max-width: none; justify-content: space-between; border-radius: 18px; font-size: 11.5px; line-height: 1.45; padding: 6px 6px 6px 14px; }
   .esel { right: 8px; left: 8px; width: auto; top: auto; bottom: calc(176px + var(--sb)); flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px; }
   .esel b { width: 100%; font-size: 14px; }
   .esel label { flex: 1; min-width: 120px; }

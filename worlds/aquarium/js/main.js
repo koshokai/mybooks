@@ -17,6 +17,8 @@ import { School, Food, Fish } from "./fish.js";
 import { audio } from "./audio.js";
 import { fishThumb } from "./thumbs.js";
 import { Editor } from "./editor.js";
+import { FISH_PHOTOS } from "./fish-photos.js";
+const PHOTO_KEY = { neon: "neon", betta: "betta", angel: "angel", discus: "discus", guppy: "guppy", goldfish: "goldfish", zebra: "zebra", oto: "oto", shrimp: "cherry" };
 
 const $ = (s) => document.querySelector(s);
 const A = window.WXArcade || { getStardust: () => 0, addStardust: () => 0, spendStardust: () => false, unlock: () => false, achievements: () => [], on() {} };
@@ -40,8 +42,18 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x03070b);
 scene.fog = new THREE.Fog(0x2b6a86, 10, 34);
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200);
-const target = new THREE.Vector3(0, 2.9, 0);
+const target = new THREE.Vector3(0, 2.75, 0);
 
+// 环境光照（给湿润鱼体、眼睛和玻璃提供柔和的反射）
+{
+  const es = new THREE.Scene();
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide,
+    vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "varying vec3 vP; void main(){ float y = normalize(vP).y; vec3 c = mix(vec3(0.05, 0.12, 0.16), vec3(0.45, 0.7, 0.85), smoothstep(-0.4, 0.4, y)); c = mix(c, vec3(1.6, 1.55, 1.45), smoothstep(0.75, 0.95, y)); gl_FragColor = vec4(c, 1.0); }" }));
+  es.add(sky);
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(es, 0.03).texture; pm.dispose();
+}
 say("正在铺底床…");
 const env = new Env(scene);
 const scape = new Scape(scene, env);
@@ -61,7 +73,7 @@ const school = new School(scene, W);
 school.sync(state.fish);
 
 /* 后期：景深（选中鱼时）→ 泛光 → 输出 → 颗粒与暗角 */
-const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 });
+const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: (window.devicePixelRatio || 1) > 1.4 ? 2 : 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
 const bokeh = new BokehPass(scene, camera, { focus: 15, aperture: 0.0016, maxblur: 0.006 });
@@ -96,7 +108,7 @@ function fit() {
   const w = innerWidth, h = innerHeight, asp = w / h;
   camera.aspect = asp; camera.fov = asp < 0.8 ? 44 : 36; camera.updateProjectionMatrix();
   const t = Math.tan((camera.fov * Math.PI) / 360);
-  const vH = asp < 0.8 ? 7.4 : 7.6, vW = asp < 0.8 ? 6.6 : 11.6;
+  const vH = asp < 0.8 ? 7.0 : 7.6, vW = asp < 0.8 ? 5.8 : 11.6;
   baseDist = Math.max(vH / 2 / t, vW / 2 / (t * asp));
   if (!studioFish) { controls.minDistance = Math.max(4.5, baseDist * 0.32); controls.maxDistance = baseDist * 1.22; }
 }
@@ -145,7 +157,7 @@ controls.target.copy(target);
 started = true;
 fit();
 camera.position.set(0, target.y + 0.5, baseDist);
-camera.position.set(-baseDist * 0.12, target.y + 0.6, baseDist * 1.08);
+camera.position.set(-baseDist * 0.1, target.y + 0.25, baseDist * 1.04);
 controls.update();
 
 function tap(x, y) {
@@ -185,7 +197,7 @@ function wipeAt(x, y) {
   const p = planeHit(new THREE.Vector3(0, 0, 1), T.Z1); if (!p) return;
   const u = (p.x - T.X0) / T.W, v = p.y / T.H;
   if (u < -0.05 || u > 1.05 || v < -0.05 || v > 1.05) return;
-  const R = 2.6; let any = 0;
+  const R = innerWidth < innerHeight ? 3.6 : 2.6; let any = 0;
   for (let j = 0; j < AG.Y; j++) for (let i = 0; i < AG.X; i++) {
     const d = Math.hypot((i / (AG.X - 1) - u) * AG.X, (j / (AG.Y - 1) - v) * AG.Y);
     if (d < R) { const k = j * AG.X + i, o = state.algae[k]; state.algae[k] = Math.max(0, o - 0.5 * (1 - d / R)); any += o - state.algae[k]; }
@@ -364,15 +376,27 @@ function openCard(f) {
   $("#cTags").innerHTML = tags.map((t) => `<span>${t}</span>`).join("");
   $("#cOrigin").textContent = s.origin; $("#cHabit").textContent = s.habit;
   $("#cFacts").innerHTML = s.facts.map((t) => `<li>${t}</li>`).join("");
-  const ph = $("#cPhoto");
-  if (s.photo && s.photo.src) {
-    ph.hidden = false; ph.querySelector("img").src = s.photo.src;
-    const p = s.photo;
-    ph.querySelector("figcaption").innerHTML = `© ${p.author || ""}${p.license ? ` · <a href="${p.licenseUrl || "#"}" target="_blank" rel="noopener">${p.license}</a>` : ""}${p.source ? ` · <a href="${p.source}" target="_blank" rel="noopener">来源</a>` : ""}`;
-  } else ph.hidden = true;
+  const ph = $("#cPhoto"), photos = (FISH_PHOTOS && FISH_PHOTOS[PHOTO_KEY[d.sp]]) || [];
+  ph.hidden = !photos.length;
+  if (photos.length) {
+    $("#cThumbs").innerHTML = photos.length > 1 ? photos.map((q, i) => `<button data-ph="${i}" aria-label="第 ${i + 1} 张"><img alt="" loading="lazy" src="${q.thumb}" /></button>`).join("") : "";
+    showPhoto(photos, 0);
+  }
   updateCardBars();
   follow = false; $("#cFollow").classList.remove("on"); $("#cFollow").textContent = "跟随它";
 }
+let curPhotos = [], curPh = 0;
+const photoCredit = (q) => `📷 ${q.author} · <a href="${q.licenseUrl}" target="_blank" rel="noopener">${q.license}</a> · <a href="${q.source}" target="_blank" rel="noopener">iNaturalist</a>`;
+function showPhoto(list, i) {
+  curPhotos = list; curPh = i; const q = list[i];
+  $("#cMain img").src = q.thumb; $("#cMain img").alt = "实拍照片";
+  $("#cCredit").innerHTML = photoCredit(q);
+  for (const b of document.querySelectorAll("#cThumbs button")) b.classList.toggle("on", +b.dataset.ph === i);
+}
+$("#cThumbs").addEventListener("click", (e) => { const b = e.target.closest("[data-ph]"); if (b) showPhoto(curPhotos, +b.dataset.ph); });
+$("#cMain").addEventListener("click", () => { const q = curPhotos[curPh]; if (!q) return; $("#lbImg").src = q.src; $("#lbCap").innerHTML = photoCredit(q); $("#lb").hidden = false; });
+$("#lb").addEventListener("click", (e) => { if (e.target.closest("a")) return; $("#lb").hidden = true; });
+addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("#lb").hidden) $("#lb").hidden = true; else if (sel) closeCard(); } });
 function updateCardBars() { if (!sel) return; $("#cHappy").style.width = clamp(sel.d.happy, 3, 100) + "%"; $("#cFull").style.width = clamp(100 - sel.d.hunger, 3, 100) + "%"; }
 function closeCard() { sel = null; card.hidden = true; follow = false; }
 $("#cClose").addEventListener("click", closeCard);
@@ -587,7 +611,7 @@ window.__aq = {
   buy, openCard: (i) => openCard(school.list[i]), select: (id) => openCard(school.byId.get(id)), openShop, openDex, openAch, setMode, photo, closeCard, closeSheet,
   render, toast, q,
   /** 近景对照：把一条鱼摆在镜头前（调试 / 截图用） */
-  studio(sp, opts = {}, yaw = 0.35) {
+  studio(sp, opts = {}, yaw = 0.0) {
     for (const f of school.list) f.obj.visible = false;
     if (studioFish) scene.remove(studioFish.obj);
     const d = makeFish(state, sp, opts);
@@ -595,7 +619,7 @@ window.__aq = {
     const at = new THREE.Vector3(0, 3.4, 1.0);
     f.update = (dt) => { f.anim(dt, sp === "shrimp" ? 0.5 : 1.3, sp === "shrimp" ? 0.01 : 0.06, 1); f.pos.copy(at); f.yaw = yaw; f.pitch = 0; f.yawRate = 0; f.roll = 0; f.pose(dt); };
     f.update(0.016);
-    const dist = f.size * (sp === "shrimp" ? 2.2 : 1.9) + 0.4;
+    const dist = f.size * (sp === "shrimp" ? 2.0 : 1.55) * (["discus", "angel", "betta", "goldfish"].includes(sp) ? 1.25 : 1) + 0.15;
     controls.minDistance = 0.2; controls.target.copy(at); camera.position.set(at.x, at.y + 0.05, at.z + dist); controls.update();
     sel = f; follow = false;
     return f;
