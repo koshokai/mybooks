@@ -120,6 +120,7 @@ function resize() {
 
 /* ---------------- 交互 ---------------- */
 let mode = "view"; // view | feed | clean | trim | edit
+let savedView = null, wipeStart = 0;
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 let down = null, wiping = false, editorDrag = false, wipeN = 0, lastAlgaeDraw = 0;
 function rayAt(x, y) { ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); return ray; }
@@ -208,7 +209,8 @@ function wipeAt(x, y) {
 function finishWipe() {
   env.drawAlgae(state.algae);
   U.uAlgae.value = algaeMean(state) * 0.5;
-  if (algaeMean(state) < 0.04 && wipeN > 12) {
+  const am = algaeMean(state);
+  if ((am < 0.04 || (wipeStart > 0.05 && am < wipeStart * 0.25)) && wipeN > 12) {
     env.glassU.uWipe.value = U.uTime.value;
     if (!state.daily.clean) { state.stats.cleans++; audio.chime(); }
     if (A.unlock("aquarium:clean", "窗明几净")) toast("解锁成就 · <b>窗明几净</b>");
@@ -281,7 +283,14 @@ function setMode(m) {
   for (const b of document.querySelectorAll(".dock [data-mode]")) b.classList.toggle("on", b.dataset.mode === m);
   controls.enabled = m !== "clean";
   if (MODE_HINT[m]) hint(MODE_HINT[m], 0); else $("#hint").style.opacity = 0;
-  if (m === "clean") { wipeN = 0; if (algaeMean(state) < 0.02) toast("玻璃很干净，随手擦一擦也不错"); }
+  if (m === "clean") {
+    wipeN = 0; wipeStart = algaeMean(state);
+    if (wipeStart < 0.02) toast("玻璃很干净，随手擦一擦也不错");
+    // 擦玻璃时把整面前玻璃放进画面
+    savedView = { p: camera.position.clone(), t: controls.target.clone() };
+    const t = Math.tan((camera.fov * Math.PI) / 360), d = Math.max(T.H * 1.08 / 2 / t, T.W * 1.04 / 2 / (t * camera.aspect));
+    controls.target.set(0, T.H / 2, 0); camera.position.set(0, T.H / 2, T.Z1 + d); controls.maxDistance = Math.max(controls.maxDistance, T.Z1 + d + 1); controls.update();
+  } else if (savedView) { camera.position.copy(savedView.p); controls.target.copy(savedView.t); savedView = null; fit(); controls.update(); }
 }
 $("#dock").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
@@ -558,7 +567,7 @@ function step(dt) {
   if (sel && follow) {
     camOff.copy(sel.pos).sub(controls.target).multiplyScalar(1 - Math.exp(-dt * 2.5));
     controls.target.add(camOff); camera.position.add(camOff);
-  } else if (!sel && mode !== "edit") {
+  } else if (!sel && mode !== "edit" && mode !== "clean") {
     camOff.copy(target).sub(controls.target).multiplyScalar(1 - Math.exp(-dt * 1.2));
     controls.target.add(camOff); camera.position.add(camOff);
   }

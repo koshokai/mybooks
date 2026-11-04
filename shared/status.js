@@ -10,6 +10,7 @@ window.WX_READY = {
   colors: true,
   game: true,   // 游戏厅大厅
   books: true,
+  aquarium: true,
   // 游戏厅里的游戏
   quest: true,
   racing: true,

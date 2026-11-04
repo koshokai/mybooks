@@ -10,6 +10,7 @@
 | 植 | **植物** `worlds/flora/` | 四季变换的世界之树、漂浮的 3D 植物角色、实拍图鉴 | 3D 由程序生成；35 张实拍照片来自 iNaturalist 开放数据（CC0 / CC BY / CC BY-SA），作者与授权见 `worlds/flora/photos/CREDITS.md` |
 | 色 | **传统色** `worlds/colors/` | 中国传统色沉浸浏览、色谱、配色、分享卡 | 公开色名，色值仅作参考 |
 | 游 | **游戏厅** `worlds/arcade/` | 五款原创游戏：远征（奇幻动作 RPG）、星际竞速（飞船赛车）、星轨（引力解谜，`worlds/game/`）、暗域（潜行追逐）、星环列车（跑酷），共用星尘账户 | 全部原创，画面与音效均由程序生成 |
+| 鱼 | **水族箱** `worlds/aquarium/` | 3D 水草缸、云养（离线时间流逝）、造景编辑、星尘鱼店、鱼类图鉴 | 3D 由程序生成；鱼类实拍照片来自 iNaturalist 开放数据（见 `worlds/aquarium/photos/CREDITS.md`） |
 | 书 | **书房** `worlds/books/` | 拟真书架与名家书单 | 只有书目介绍，不含正文 |
 
 ## 目录

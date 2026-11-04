@@ -243,3 +243,14 @@ kbd { font-family: var(--latin); display: inline-block; min-width: 24px; padding
   100% { opacity: 0; }
 }
 .card:not(.active) .sc-flora .ph { filter: saturate(.8) brightness(.55); }
+
+/* 鱼：水族箱卡面 */
+.sc-aquarium { background: radial-gradient(ellipse at 50% 0%, #2d8d84, #0a3532 55%, #041514); }
+.sc-aquarium .weed { bottom: -6%; width: 10px; height: 70%; border-radius: 50% 50% 0 0; background: linear-gradient(#5fbf6a, #1e5a2e); transform-origin: bottom; animation: sway2 5s ease-in-out infinite; }
+.sc-aquarium .w1 { left: 12%; } .sc-aquarium .w2 { left: 20%; height: 55%; animation-delay: -2s; } .sc-aquarium .w3 { right: 14%; height: 62%; animation-delay: -1s; }
+@keyframes sway2 { 50% { transform: rotate(6deg); } }
+.sc-aquarium .fishy { left: -12%; width: 26px; height: 9px; border-radius: 50%; background: linear-gradient(90deg, hsl(var(--h) 80% 55%), hsl(calc(var(--h) + 30) 85% 70%)); box-shadow: 0 0 10px hsl(var(--h) 80% 60% / .5); animation: swimx linear infinite; }
+.sc-aquarium .fishy::after { content: ""; position: absolute; left: -8px; top: 0; border: 4.5px solid transparent; border-right: 8px solid hsl(var(--h) 70% 60%); }
+@keyframes swimx { to { transform: translateX(140vw); } }
+.sc-aquarium .bub { bottom: 0; width: 6px; height: 6px; border-radius: 50%; border: 1px solid rgba(220,255,250,.6); animation: rise2 linear infinite; }
+@keyframes rise2 { to { transform: translateY(-90vh); opacity: 0; } }

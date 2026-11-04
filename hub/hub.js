@@ -17,6 +17,9 @@
     { id: "game", glyph: "游", name: "游戏厅", en: "Wanxiang Arcade", tag: "五款原创游戏 · 共享星尘", color: "#ff7ad9", deep: "#1a0718",
       desc: "一座霓虹游戏厅，五台原创游戏机：奇幻远征、飞船竞速、引力解谜、空间站潜行、星环列车跑酷。所有游戏共用一个星尘账户。",
       stats: [["趣味", 99], ["刺激", 95], ["上瘾", 97]], href: "worlds/arcade/" },
+    { id: "aquarium", glyph: "鱼", name: "水族箱", en: "Aquarium", tag: "云养鱼 · 造景", color: "#5fd6c4", deep: "#06201f",
+      desc: "一缸会呼吸的 3D 水草缸，昼夜跟着真实时间走。喂鱼、擦缸、换水、造景，关掉页面时间照样流逝——记得回来看看它们。",
+      stats: [["治愈", 99], ["陪伴", 96], ["创造", 90]], href: "worlds/aquarium/" },
     { id: "books", glyph: "书", name: "书房", en: "The Library", tag: "拟真书架 · 名家书单", color: "#d9b26a", deep: "#1c120a",
       desc: "一面像真的一样的书墙，六十多本好书，樊登读书与董宇辉推荐的书单。抽出一本，转一转，读一句。",
       stats: [["知识", 95], ["宁静", 90], ["温度", 86]], href: "worlds/books/" },
@@ -44,6 +47,8 @@
         return `<div class="sc sc-colors"><i class="ink k1"></i><i class="ink k2"></i><i class="ink k3"></i><i class="ink k4"></i></div>`;
       case "game":
         return `<div class="sc sc-game"><i class="grid"></i><i class="orb o1"></i><i class="orb o2"></i><i class="track"><i class="comet"></i></i></div>`;
+      case "aquarium":
+        return `<div class="sc sc-aquarium"><i class="weed w1"></i><i class="weed w2"></i><i class="weed w3"></i>${Array.from({ length: 7 }, (_, k) => `<i class="fishy" style="top:${20 + k * 9}%;animation-delay:${-k * 1.7}s;animation-duration:${9 + (k % 3) * 3}s;--h:${[195, 350, 20, 200, 300, 45, 185][k]}"></i>`).join("")}${Array.from({ length: 10 }, () => `<i class="bub" style="left:${rnd(10, 90)}%;animation-delay:${-rnd(0, 6)}s;animation-duration:${rnd(4, 8)}s"></i>`).join("")}</div>`;
       case "books":
         return `<div class="sc sc-books">${["#7a2a20", "#1d2b45", "#c9a46a", "#23412f", "#ece1c8", "#4a2a4f", "#2d5a63", "#9b3b3b", "#151515", "#8c5a2b"].map((c, i) =>
           `<i class="sp" style="background:${c};height:${58 + ((i * 37) % 30)}%;width:${9 + ((i * 13) % 6)}%"></i>`).join("")}<i class="shelf"></i></div>`;
