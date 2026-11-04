@@ -218,7 +218,7 @@ export class Fish {
     let tPitch = Math.atan2(D.y, Math.max(hd, 0.3)); tPitch = clamp(tPitch, -0.55, 0.55);
     const turnMax = (sp.beh === "school" ? 3.2 : 1.8) * (this.startle > 0 ? 2.2 : 1);
     const dy = clamp(angDiff(this.yaw, tYaw), -turnMax * dt, turnMax * dt);
-    this.yaw += dy; this.yawRate = lerp(this.yawRate, dy / Math.max(dt, 1e-4), 0.15);
+    this.yaw += dy; this.yawRate = clamp(lerp(this.yawRate, dy / Math.max(dt, 1e-4), 0.15), -3, 3);
     this.pitch = lerp(this.pitch, tPitch, 1 - Math.exp(-dt * 2.5));
     this.head.set(Math.cos(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), -Math.sin(this.yaw) * Math.cos(this.pitch));
     // 推进：爆发—滑行（小型脂鲤），持续划水（神仙、七彩、斗鱼、金鱼）
@@ -238,7 +238,7 @@ export class Fish {
     // 动画参数
     const rel = this.speed / Math.max(sp.speed, 0.01);
     let freq, amp;
-    if (glide) { freq = 1.6 + this.thrust * 4.5 + rel * 0.8; amp = 0.035 + this.thrust * 0.11; }
+    if (glide) { freq = 1.6 + this.thrust * 4.5 + rel * 0.8; amp = 0.03 + this.thrust * 0.07; }
     else { freq = 0.9 + rel * 1.6; amp = 0.035 + rel * 0.045; }
     if (night > 0.5) { freq *= 0.6; amp *= 0.6; }
     if (this.gulpT > 0) this.gulpT -= dt;
@@ -249,8 +249,8 @@ export class Fish {
   anim(dt, freq, amp, flutK) {
     const u = this.u;
     u.uPhase.value += dt * freq * Math.PI * 2;
-    u.uAmp.value = lerp(u.uAmp.value, amp, 1 - Math.exp(-dt * 6));
-    u.uTurn.value = lerp(u.uTurn.value, clamp(-this.yawRate * 0.05, -0.14, 0.14), 1 - Math.exp(-dt * 6));
+    u.uAmp.value = lerp(u.uAmp.value, Math.min(amp, 0.1), 1 - Math.exp(-dt * 6));
+    u.uTurn.value = lerp(u.uTurn.value, clamp(-this.yawRate * 0.03, -0.07, 0.07), 1 - Math.exp(-dt * 6));
     u.uFlutK.value = lerp(u.uFlutK.value, flutK, 1 - Math.exp(-dt * 3));
     u.uDroop.value = this.sp.id === "betta" || this.sp.id === "goldfish" ? 0.05 * clamp(1 - this.speed / 0.4, 0, 1) : 0;
   }
@@ -282,7 +282,7 @@ export class Fish {
     if (this.mode === "forage" && this.target) {
       const dx = this.target.x - p.x, dz = this.target.z - p.z, d = Math.hypot(dx, dz);
       if (d > 0.05) {
-        const tYaw = Math.atan2(-dz, dx); const dy = clamp(angDiff(this.yaw, tYaw), -2 * dt, 2 * dt); this.yaw += dy; this.yawRate = dy / dt;
+        const tYaw = Math.atan2(-dz, dx); const dy = clamp(angDiff(this.yaw, tYaw), -2 * dt, 2 * dt); this.yaw += dy; this.yawRate = clamp(dy / Math.max(dt, 1e-4), -2, 2);
         spd = (this.startle > 0 ? 1.4 : 0.22) * this.sp.speed / 0.28 * (night > 0.5 ? 0.4 : 1) * clamp(d * 2, 0.3, 1);
       } else this.mode = "rest";
     } else this.yawRate *= 0.9;

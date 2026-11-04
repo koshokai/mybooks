@@ -108,7 +108,7 @@ function fit() {
   const w = innerWidth, h = innerHeight, asp = w / h;
   camera.aspect = asp; camera.fov = asp < 0.8 ? 44 : 36; camera.updateProjectionMatrix();
   const t = Math.tan((camera.fov * Math.PI) / 360);
-  const vH = asp < 0.8 ? 5.4 : 6.2, vW = asp < 0.8 ? 4.4 : 8.6;
+  const vH = asp < 0.8 ? 5.0 : 6.0, vW = asp < 0.8 ? 3.9 : 8.2;
   baseDist = Math.max(vH / 2 / t, vW / 2 / (t * asp));
   if (!studioFish) { controls.minDistance = Math.max(4.5, baseDist * 0.32); controls.maxDistance = baseDist * 1.22; }
 }
