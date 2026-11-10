@@ -39,7 +39,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPrefer
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x03070b);
+scene.background = new THREE.Color(0x0a171c);
 scene.fog = new THREE.Fog(0x2b6a86, 10, 34);
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200);
 const target = new THREE.Vector3(0, 2.75, 0.4);
@@ -76,6 +76,12 @@ school.sync(state.fish);
 const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: (window.devicePixelRatio || 1) > 1.4 ? 2 : 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
+// 安全过滤：个别 GPU 上着色器偶尔算出 NaN/无穷大，泛光会把它扩散成大片黑块；在泛光之前把这些像素清掉
+composer.addPass(new ShaderPass({
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: "uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); bool bad = !(c.r == c.r) || !(c.g == c.g) || !(c.b == c.b) || !(c.a == c.a) || any(greaterThan(abs(c), vec4(1e4))); gl_FragColor = bad ? vec4(0.0, 0.0, 0.0, 1.0) * 0.0 + vec4(0.02, 0.06, 0.07, 1.0) : min(c, vec4(32.0)); }",
+}));
 const bokeh = new BokehPass(scene, camera, { focus: 15, aperture: 0.0016, maxblur: 0.006 });
 bokeh.enabled = false; composer.addPass(bokeh);
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.5, 0.93);
@@ -110,7 +116,7 @@ function fit() {
   const t = Math.tan((camera.fov * Math.PI) / 360);
   const vH = asp < 0.8 ? 5.0 : 6.0, vW = asp < 0.8 ? 3.9 : 8.2;
   baseDist = Math.max(vH / 2 / t, vW / 2 / (t * asp));
-  if (!studioFish) { controls.minDistance = Math.max(4.5, baseDist * 0.32); controls.maxDistance = baseDist * 1.22; }
+  if (!studioFish) { controls.minDistance = Math.max(4.5, baseDist * 0.32); controls.maxDistance = baseDist * 1.08; }
 }
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -151,8 +157,8 @@ addEventListener("pointercancel", () => { down = null; wiping = false; editorDra
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
-controls.minAzimuthAngle = -0.75; controls.maxAzimuthAngle = 0.75;
-controls.minPolarAngle = 1.05; controls.maxPolarAngle = 1.78;
+controls.minAzimuthAngle = -0.5; controls.maxAzimuthAngle = 0.5;
+controls.minPolarAngle = 1.2; controls.maxPolarAngle = 1.68;
 controls.rotateSpeed = 0.55; controls.zoomSpeed = 0.8;
 controls.target.copy(target);
 started = true;

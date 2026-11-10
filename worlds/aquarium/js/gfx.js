@@ -123,9 +123,9 @@ float aqCaust(vec2 p, float t){
   for (int n = 0; n < 3; n++) {
     float tt = t * (1.0 - (3.5 / float(n + 1)));
     i = p + vec2(cos(tt - i.x) + sin(tt + i.y), sin(tt - i.y) + cos(tt + i.x));
-    c += 1.0 / length(vec2(p.x / (sin(i.x + tt) / inten), p.y / (cos(i.y + tt) / inten)));
+    c += 1.0 / max(length(vec2(p.x / (sin(i.x + tt) / inten), p.y / (cos(i.y + tt) / inten))), 1e-3);
   }
-  c /= 3.0; c = 1.17 - pow(c, 1.4);
+  c /= 3.0; c = 1.17 - pow(max(c, 0.0), 1.4);
   return clamp(pow(abs(c), 8.0), 0.0, 1.6);
 }
 float aqH13(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }

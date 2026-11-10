@@ -87,7 +87,7 @@ export class Env {
       fragmentShader: /* glsl */ `uniform vec3 uTop; uniform vec3 uBot; uniform float uTime; varying vec2 vUv;
         void main(){ float y = vUv.y; vec3 c = mix(uBot, uTop, smoothstep(0.02, 1.0, y));
           float cx = 1.0 - pow(abs(vUv.x - 0.5) * 2.0, 2.4) * 0.35;
-          float glow = exp(-pow((y - 0.18) * 2.6, 2.0)) * 0.18;
+          float glow = exp(-pow(abs((y - 0.18) * 2.6), 2.0)) * 0.18;
           c = c * cx + uBot * glow;
           c *= 0.96 + 0.04 * sin(vUv.x * 9.0 + uTime * 0.2) * sin(y * 7.0 - uTime * 0.13);
           // 远处水草的朦胧剪影
@@ -137,13 +137,13 @@ export class Env {
         float streak = smoothstep(0.92, 1.0, sin((vUv.x * 1.6 + vUv.y * 0.9) * 6.28318 * 1.5)) * 0.06;
         float a = fr * 0.38 + 0.018 + streak * 0.5;
         vec3 c = uRefl * (fr * 0.55 + streak) * band * uLight;
-        float wl = exp(-pow((vUv.y - uWater) * 900.0, 2.0));
-        float wl2 = exp(-pow((vUv.y - uWater + 0.004) * 260.0, 2.0)) * 0.35;
+        float wl = exp(-pow(abs((vUv.y - uWater) * 900.0), 2.0));
+        float wl2 = exp(-pow(abs((vUv.y - uWater + 0.004) * 260.0), 2.0)) * 0.35;
         c += vec3(0.75, 0.9, 1.0) * (wl * 0.8 + wl2) * uLight; a += wl * 0.6 + wl2 * 0.4;
         ${front ? `vec4 al = texture2D(map, vUv);
         vec3 ac = al.rgb * (0.25 + 0.75 * uLight);
         c = mix(c, ac, al.a); a = max(a, al.a);
-        float sw = uTime - uWipe; float sweep = exp(-pow((vUv.x + vUv.y * 0.4 - sw * 0.9 + 0.3) * 6.0, 2.0)) * step(0.0, sw) * step(sw, 2.2);
+        float sw = uTime - uWipe; float sweep = exp(-pow(abs((vUv.x + vUv.y * 0.4 - sw * 0.9 + 0.3) * 6.0), 2.0)) * step(0.0, sw) * step(sw, 2.2);
         c += vec3(1.0) * sweep * 0.35 * uLight; a += sweep * 0.2;` : ""}
         gl_FragColor = vec4(c, clamp(a, 0.0, 1.0));
       }`;
@@ -249,7 +249,7 @@ export class Env {
             float s = smoothstep(0.1, 1.0, sin(x * 9.0 + uSeed + uTime * 0.13) * 0.5 + 0.5) * 0.6 + smoothstep(0.3, 1.0, sin(x * 23.0 + uSeed * 2.1 - uTime * 0.21) * 0.5 + 0.5) * 0.5;
             s *= smoothstep(0.0, 0.3, x) * smoothstep(1.0, 0.7, x);
             float breathe = 0.65 + 0.35 * sin(uTime * 0.31 + uSeed * 1.7);
-            float a = s * pow(vUv.y, 1.5) * uK * breathe * 0.16;
+            float a = s * pow(max(vUv.y, 0.0), 1.5) * uK * breathe * 0.16;
             gl_FragColor = vec4(uCol * a, 1.0); }`,
       });
       const p = new THREE.Mesh(geo, m);
