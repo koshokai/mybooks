@@ -4,6 +4,7 @@
  */
 window.WX_READY = {
   // 首页的世界
+  tide: true,
   gallery: true,
   cosmos: true,
   flora: true,

@@ -254,3 +254,10 @@ kbd { font-family: var(--latin); display: inline-block; min-width: 24px; padding
 @keyframes swimx { to { transform: translateX(140vw); } }
 .sc-aquarium .bub { bottom: 0; width: 6px; height: 6px; border-radius: 50%; border: 1px solid rgba(220,255,250,.6); animation: rise2 linear infinite; }
 @keyframes rise2 { to { transform: translateY(-90vh); opacity: 0; } }
+
+/* 潮：沉没之后卡面 */
+.sc-tide { background: linear-gradient(180deg, #1b2347 0%, #7a4a6e 38%, #f2a36b 49%, #2a8a96 50%, #062a3a 80%, #020c14); }
+.sc-tide .sun { left: 58%; top: 30%; width: 120px; height: 120px; margin-left: -60px; border-radius: 50%; background: radial-gradient(circle, #fff6d8, #ffd38a 40%, transparent 70%); }
+.sc-tide .roof { bottom: 50%; width: 9%; background: #4a3654; opacity: .85; }
+.sc-tide .rain { inset: 0; background: repeating-linear-gradient(105deg, transparent 0 14px, rgba(220,240,255,.12) 14px 15px); animation: rainfall .6s linear infinite; }
+@keyframes rainfall { to { background-position: -30px 60px; } }

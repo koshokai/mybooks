@@ -2,6 +2,9 @@
   "use strict";
 
   const WORLDS = [
+    { id: "tide", glyph: "潮", name: "沉没之后", en: "After the Tide · 序章", tag: "互动电影 · 序章 · 约 5 分钟", color: "#f2b86b", deep: "#0a1622",
+      desc: "一次普通的远行，一场突如其来的风暴。你从海上醒来，抱着一只写着陌生名字的旧箱子，游向远处的岛——却发现，那并不是一座岛。",
+      stats: [["剧情", 99], ["沉浸", 97], ["情感", 95]], href: "worlds/tide/" },
     { id: "gallery", glyph: "画", name: "画廊", en: "The Open Gallery", tag: "艺术 · 世界名画", color: "#e3b866", deep: "#2a1d0c",
       desc: "七个主题展厅，数百幅公有领域世界名画。在挂满画框的长廊里漫步，按颜色看画，把喜欢的挂进你的私人展厅。",
       stats: [["艺术", 98], ["宁静", 82], ["探索", 74]], href: "worlds/gallery/" },
@@ -30,6 +33,7 @@
   const roster = $("#roster");
   const store = { get() { try { return +localStorage.getItem("wx.sel") || 0; } catch { return 0; } }, set(v) { try { localStorage.setItem("wx.sel", v); } catch {} } };
   let sel = Math.min(store.get(), WORLDS.length - 1);
+  try { if (!localStorage.getItem("wx.tide.seen")) { sel = 0; localStorage.setItem("wx.tide.seen", "1"); } } catch {}
 
   /* ---------- 每个世界的卡面场景（纯 CSS 元素） ---------- */
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -47,6 +51,8 @@
         return `<div class="sc sc-colors"><i class="ink k1"></i><i class="ink k2"></i><i class="ink k3"></i><i class="ink k4"></i></div>`;
       case "game":
         return `<div class="sc sc-game"><i class="grid"></i><i class="orb o1"></i><i class="orb o2"></i><i class="track"><i class="comet"></i></i></div>`;
+      case "tide":
+        return `<div class="sc sc-tide"><i class="sun"></i><i class="roof" style="left:8%;height:14%"></i><i class="roof" style="left:20%;height:22%"></i><i class="roof" style="left:72%;height:18%"></i><i class="roof" style="left:84%;height:10%"></i><i class="rain"></i></div>`;
       case "aquarium":
         return `<div class="sc sc-aquarium"><i class="weed w1"></i><i class="weed w2"></i><i class="weed w3"></i>${Array.from({ length: 7 }, (_, k) => `<i class="fishy" style="top:${20 + k * 9}%;animation-delay:${-k * 1.7}s;animation-duration:${9 + (k % 3) * 3}s;--h:${[195, 350, 20, 200, 300, 45, 185][k]}"></i>`).join("")}${Array.from({ length: 10 }, () => `<i class="bub" style="left:${rnd(10, 90)}%;animation-delay:${-rnd(0, 6)}s;animation-duration:${rnd(4, 8)}s"></i>`).join("")}</div>`;
       case "books":

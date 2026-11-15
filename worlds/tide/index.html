@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#05070a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>沉没之后 · 序章 After the Tide</title>
+  <meta name="description" content="沉没之后 · 序章——一次清晨的航班，一场风暴，一只写着陌生名字的旧箱子。醒来时，海已经淹没了整个世界。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%2307131c%22/%3E%3Cpath d=%22M8 40c6-4 10-4 16 0s10 4 16 0 10-4 16 0%22 stroke=%22%23e8c58a%22 stroke-width=%224%22 fill=%22none%22/%3E%3Cpath d=%22M22 38V22h4v-6h4v6h4v16%22 fill=%22%23e8c58a%22/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="css/tide.css" />
+  <script type="importmap">{"imports":{"three":"../../shared/vendor/three/three.module.min.js","three/addons/":"../../shared/vendor/three/addons/"}}</script>
+</head>
+<body>
+  <canvas id="gl" aria-label="沉没之后序章的三维画面"></canvas>
+
+  <!-- 电影遮幅 -->
+  <div class="bar top" id="barTop"></div>
+  <div class="bar bot" id="barBot"></div>
+
+  <!-- 顶部控制 -->
+  <header class="hud" id="hud" hidden>
+    <a class="hbtn home" href="../../index.html" title="回到首页" aria-label="回到首页"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="spacer"></div>
+    <button class="hbtn" id="bSkip" title="跳过本幕"><span>跳过本幕</span><svg viewBox="0 0 24 24"><path d="M6 6l7 6-7 6zM15 6v12"/></svg></button>
+    <button class="hbtn" id="bSound" title="声音" aria-label="声音"><svg viewBox="0 0 24 24" id="icoSound"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9c1.5 1.5 1.5 4.5 0 6M18.5 6.5c3 3 3 8 0 11"/></svg></button>
+    <button class="hbtn" id="bPause" title="暂停" aria-label="暂停"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+  </header>
+  <div class="vol" id="vol" hidden>
+    <label><span>音量</span><input type="range" id="volR" min="0" max="100" value="80" /></label>
+    <button id="bMute">静音</button>
+  </div>
+
+  <!-- 幕间标题 -->
+  <div class="chapter" id="chapter"><b id="chZh"></b><em id="chEn"></em></div>
+
+  <!-- 互动提示 / 字幕 -->
+  <div class="hint" id="hint" aria-live="polite"></div>
+  <div class="sub" id="sub" aria-live="polite"><p class="zh" id="subZh"></p><p class="en" id="subEn"></p></div>
+
+  <!-- 机舱里的小动作 -->
+  <div class="acts" id="acts" hidden>
+    <button data-act="shade"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M6 10h12"/></svg><span id="actShade">遮光板</span></button>
+    <button data-act="phone"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/></svg><span>手机</span><i class="dot" id="phoneDot"></i></button>
+    <button data-act="girl"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c1-4 4-6 7-6s6 2 7 6"/></svg><span>小女孩</span></button>
+  </div>
+
+  <!-- 手机 -->
+  <div class="phone" id="phone" hidden>
+    <div class="ph">
+      <div class="ph-top"><span id="phTime">06:41</span><span class="air">飞行模式</span></div>
+      <div class="ph-head"><i>妈</i><div><b>妈妈</b><em>昨天 23:12</em></div></div>
+      <div class="ph-body" id="phBody">
+        <p class="in">明天几点的飞机？</p>
+        <p class="out">早上六点。别送了，我自己去。</p>
+        <p class="in">那你路上别光顾着看云，记得吃早饭。</p>
+        <p class="in">到了给我报个平安。</p>
+      </div>
+      <div class="ph-input" id="phInput">
+        <button id="phDraft">嗯，到了就告诉你。</button>
+      </div>
+      <button class="ph-close" id="phClose">收起手机</button>
+    </div>
+  </div>
+
+  <!-- 游泳界面 -->
+  <div class="swim" id="swim" hidden>
+    <div class="stam"><span>体力</span><i><b id="stamB"></b></i></div>
+    <div class="ring" id="ring"><i class="outer"></i><i class="inner" id="ringIn"></i><span id="ringT">划</span></div>
+    <div class="dir" id="dir"><svg viewBox="0 0 24 24"><path d="M12 3l7 12h-5v6h-4v-6H5z"/></svg></div>
+    <div class="swim-help" id="swimHelp"></div>
+  </div>
+  <div class="under" id="under"></div>
+
+  <!-- 片名 -->
+  <div class="title" id="title"><h1>沉没之后</h1><p>AFTER THE TIDE</p></div>
+
+  <!-- 结尾 -->
+  <div class="end" id="end" hidden>
+    <div class="end-in">
+      <p class="kick">序章 · 完</p>
+      <h2>第一章 · 即将到来</h2>
+      <p class="lede">一座沉没的城市，一只写着陌生名字的箱子，<br />和一条还没发出去的消息。</p>
+      <div class="end-btns">
+        <a class="btn gold" href="../../index.html">回到首页</a>
+        <button class="btn" id="bReplay">重新播放</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 暂停 -->
+  <div class="pause" id="pause" hidden>
+    <div class="pause-in">
+      <h3>暂停</h3>
+      <button class="btn gold" id="bResume">继续</button>
+      <button class="btn" id="bSkipAll">跳过序章</button>
+      <button class="btn" id="bRestart">从头开始</button>
+      <a class="btn ghost" href="../../index.html">回到首页</a>
+    </div>
+  </div>
+
+  <!-- 开始 -->
+  <div class="start" id="start">
+    <div class="start-in">
+      <p class="kick">序章</p>
+      <h1>沉没之后</h1>
+      <p class="en">AFTER THE TIDE · PROLOGUE</p>
+      <div class="start-btns" id="startBtns">
+        <button class="btn gold big" id="bStart">点击开始</button>
+      </div>
+      <p class="tip">建议戴上耳机 · 约 5 分钟</p>
+      <p class="load" id="load">正在准备……</p>
+    </div>
+  </div>
+
+  <script type="module">requestAnimationFrame(() => setTimeout(() => import("./js/main.js"), 30));</script>
+  <script>if ("serviceWorker" in navigator && (location.protocol === "https:" || /[?&]sw\b/.test(location.search))) addEventListener("load", () => navigator.serviceWorker.register("../../sw.js", { scope: "../../" }).catch(() => {}));</script>
+</body>
+</html>
