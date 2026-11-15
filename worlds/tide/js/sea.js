@@ -170,7 +170,7 @@ export function buildSea({ renderer, lowEnd }) {
   const SU = skyUniforms();
   const sky = makeSky(SU); scene.add(sky);
   const ocean = makeOcean(SU, { N: lowEnd ? 160 : 220 }); scene.add(ocean.mesh);
-  ocean.U.uAmp.value = 1;
+  ocean.U.uAmp.value = 1.25; ocean.U.uFoam.value = 1;
   const rain = makeRain(lowEnd ? 900 : 1600); scene.add(rain.mesh);
   const bolt = makeBolt(); scene.add(bolt.mesh);
 
@@ -222,6 +222,35 @@ export function buildSea({ renderer, lowEnd }) {
     }
   };
 
+  // 浪尖被风吹起的飞沫
+  const SPN = lowEnd ? 160 : 320;
+  const spG = new THREE.BufferGeometry(); const spP = new Float32Array(SPN * 3).fill(-99); spG.setAttribute("position", new THREE.BufferAttribute(spP, 3));
+  const spV = Array.from({ length: SPN }, () => ({ v: new THREE.Vector3(), life: 0 }));
+  const sprayPts = new THREE.Points(spG, new THREE.PointsMaterial({ color: 0x8796a6, size: 0.09, map: splash.material.map, transparent: true, opacity: 0.55, depthWrite: false }));
+  sprayPts.frustumCulled = false; scene.add(sprayPts);
+  let spI = 0;
+  const spTmp = { h: 0, gx: 0, gz: 0 };
+  function updateSpray(dt, t, cx, cz) {
+    const amp = ocean.U.uAmp.value;
+    for (let k = 0; k < 6; k++) {
+      const x = cx + (Math.random() - 0.5) * 30, z = cz - Math.random() * 26 + 4;
+      waveAt(x, z, t, amp, spTmp);
+      if (spTmp.h > amp * 1.25) {
+        for (let j = 0; j < 6; j++) {
+          const s = spV[spI]; s.life = 0.7 + Math.random() * 0.8;
+          s.v.set(1.5 + Math.random() * 2.5, 1.2 + Math.random() * 2.2, 1 + Math.random() * 2);
+          spP[spI * 3] = x + (Math.random() - 0.5) * 1.5; spP[spI * 3 + 1] = spTmp.h; spP[spI * 3 + 2] = z + (Math.random() - 0.5) * 1.5;
+          spI = (spI + 1) % SPN;
+        }
+      }
+    }
+    for (let i = 0; i < SPN; i++) {
+      const s = spV[i];
+      if (s.life > 0) { s.life -= dt; s.v.y -= 6 * dt; spP[i * 3] += s.v.x * dt; spP[i * 3 + 1] += s.v.y * dt; spP[i * 3 + 2] += s.v.z * dt; if (s.life <= 0) spP[i * 3 + 1] = -99; }
+    }
+    spG.attributes.position.needsUpdate = true;
+  }
+
   // 第一人称的手臂（扶着箱子 / 划水）
   const arms = new THREE.Group(); camera.add(arms); scene.add(camera);
   const sleeve = new THREE.MeshStandardMaterial({ color: 0x2f3a46, roughness: 0.9 });
@@ -239,7 +268,7 @@ export function buildSea({ renderer, lowEnd }) {
   const P = { x: 0, z: 0, heading: 0, vel: 0, stamina: 100, under: 0, hold: null, lastStroke: -9, stroke: 0, strokeSide: 1, steer: 0, swimT: 0, good: false, phase: 0, big: 0, bigT: 14, assist: 0, carried: 0, drift: 0 };
   const S = {
     mode: "wake", look: { yaw: 0.4, pitch: 0.1, uyaw: 0, upitch: 0, k: 1 }, target: { yaw: 0.4, pitch: 0.1 },
-    flash: 0, nextBolt: 4, autoBolt: false, rainK: 1, tagView: 0, tagT: 0, eye: 0.42, done: false, lastBoltT: -9, events: [],
+    dip: 0, dipNext: 9, sheet: 4, flash: 0, nextBolt: 4, autoBolt: false, rainK: 1, tagView: 0, tagT: 0, eye: 0.42, done: false, lastBoltT: -9, events: [],
   };
   const tmp = { h: 0, gx: 0, gz: 0 };
   let time = 0, portrait = false;
@@ -259,6 +288,9 @@ export function buildSea({ renderer, lowEnd }) {
   const api = {
     scene, camera, S, P, SU,
     get time() { return time; },
+    underwater: 0,
+    dip(d = 1) { S.dip = d; },
+    setEye(v) { S.eyeT = v; },
     islandDist: () => Math.hypot(ISLAND.x - P.x, ISLAND.z - P.z) - BEACH_R,
     strike, strikeIsland(near = 0.5) { strike(islandAz() + (Math.random() - 0.5) * 0.5, near); },
     setLook(yaw, pitch, k = 1) { S.target.yaw = yaw; S.target.pitch = pitch; S.look.k = k; },
@@ -271,7 +303,7 @@ export function buildSea({ renderer, lowEnd }) {
     grab() { suitS.held = true; },
     tagView(on) { S.tagT = on ? 1 : 0; },
     startSwim() {
-      S.mode = "swim"; P.heading = desired() + 0.25; P.swimT = 0; P.stamina = 100; arms.visible = true; S.nextBolt = 2.5;
+      S.mode = "swim"; S.eyeT = 0.42; P.heading = desired() + 0.25; P.swimT = 0; P.stamina = 100; arms.visible = true; S.nextBolt = 2.5;
     },
     stroke() {
       if (S.mode !== "swim" || P.under > 0) return null;
@@ -305,6 +337,9 @@ export function buildSea({ renderer, lowEnd }) {
           S.nextBolt = off > 0.5 ? 2.5 + Math.random() * 1.5 : 5 + Math.random() * 4;
         }
       }
+      // 云层里的片状闪光（没有闪电柱，只照亮整片天）
+      S.sheet -= dt;
+      if (S.sheet <= 0) { S.sheet = 5 + Math.random() * 6; if (S.flash < 0.2) { const a = Math.random() * 6.28; SU.uFlashDir.value.set(Math.sin(a), 0.5, -Math.cos(a)).normalize(); S.flash = 0.45 + Math.random() * 0.3; } }
       S.flash = Math.max(0, S.flash - dt * 2.6);
       const fl = S.flash * (0.7 + 0.3 * Math.sin(t * 60));
       SU.uFlash.value = fl;
@@ -327,10 +362,11 @@ export function buildSea({ renderer, lowEnd }) {
         if (P.swimT > 70 || Math.abs(err) > 1.0) P.heading += err * dt * (P.swimT > 70 ? 0.6 : 0.25);
         // 大浪
         P.bigT -= dt;
-        if (P.bigT <= 0) { P.big = 2.6; P.bigT = 15 + Math.random() * 6; S.events.push({ type: "big" }); }
+        if (P.bigT <= 0) { P.big = 2.6; P.bigT = 15 + Math.random() * 6; S.events.push({ type: "big" }); S.dip = 1.0; }
+        S.dipNext -= dt; if (S.dipNext <= 0) { S.dip = 0.9; S.dipNext = 11 + Math.random() * 7; }
         if (P.big > 0) P.big -= dt;
         const surge = P.big > 0 ? Math.sin((1 - P.big / 2.6) * Math.PI) : 0;
-        ocean.U.uAmp.value = damp(amp, 1 + surge * 0.6, 2, dt);
+        ocean.U.uAmp.value = damp(amp, 1.25 + surge * 0.7, 2, dt);
         // 速度
         P.vel *= Math.exp(-dt * 1.5);
         let back = 0.3 + surge * 1.1;
@@ -360,7 +396,10 @@ export function buildSea({ renderer, lowEnd }) {
       waveAt(P.x, P.z, t, ocean.U.uAmp.value, tmp);
       const h0 = tmp.h, gx = tmp.gx, gz = tmp.gz;
       const under = S.mode === "swim" && P.under > 0 ? Math.sin(clamp(1 - P.under / 3.6) * Math.PI) : 0;
-      const eye = lerp(S.eye, -0.05, under);
+      S.dip = Math.max(0, S.dip - dt);
+      if (S.eyeT !== undefined) S.eye = damp(S.eye, S.eyeT, 1.2, dt);
+      const dipC = S.dip > 0 ? Math.sin((1 - S.dip / 1.0) * Math.PI) : 0;
+      const eye = lerp(S.eye, -0.12, under) - dipC * 0.62 * (1 - S.tagView);
       // 视角
       const L = S.look;
       let yaw, pitch;
@@ -377,6 +416,7 @@ export function buildSea({ renderer, lowEnd }) {
       yaw = L.yaw; pitch = lerp(L.pitch, -1.22, S.tagView);
       const bob = noise1(t * 0.7) * 0.03;
       camera.position.set(P.x, h0 + eye + bob, P.z);
+      { waveAt(camera.position.x, camera.position.z, t, ocean.U.uAmp.value, tmp); api.underwater = clamp((tmp.h - camera.position.y + 0.02) * 10); }
       camera.rotation.set(pitch + gz * 0.18 * (1 - S.tagView), yaw, (-gx * 0.25 + noise1(t * 0.5 + 7) * 0.03) * (1 - S.tagView));
 
       // 箱子
@@ -437,9 +477,10 @@ export function buildSea({ renderer, lowEnd }) {
       }
       splG.attributes.position.needsUpdate = true;
       splash.material.color.setRGB(0.35 + fl, 0.4 + fl, 0.46 + fl);
+      updateSpray(dt, t, P.x, P.z); sprayPts.material.color.setRGB(0.4 + fl, 0.45 + fl, 0.52 + fl);
 
       // 雨、天空跟随
-      rain.U.uTime.value = t; rain.U.uCenter.value.copy(camera.position); rain.U.uFlash.value = fl; rain.U.uOpacity.value = 0.42 * S.rainK;
+      rain.U.uTime.value = t; rain.U.uCenter.value.copy(camera.position); rain.U.uFlash.value = fl; rain.U.uOpacity.value = 0.55 * S.rainK;
       rain.U.uWind.value.set(Math.sin(t * 0.1) * 3 + 2, 5);
       sky.position.copy(camera.position);
       ocean.mesh.position.set(Math.round(P.x / 4) * 4, 0, Math.round(P.z / 4) * 4);

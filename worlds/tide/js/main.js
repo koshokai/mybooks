@@ -54,28 +54,51 @@ const grade = new ShaderPass({
     tDiffuse: { value: null }, uRes: { value: new THREE.Vector2(innerWidth, innerHeight) }, uTime: { value: 0 },
     uFade: { value: 1 }, uFlash: { value: 0 }, uVig: { value: 0.9 }, uGrain: { value: 0.04 }, uLid: { value: 0 },
     uBlur: { value: 0 }, uAber: { value: 0 }, uSat: { value: 1 }, uTint: { value: new THREE.Color(1, 1, 1) },
+    uDof: { value: 0 }, uFocus: { value: new THREE.Vector2(0.5, 0.5) }, uUnder: { value: 0 }, uLens: { value: 0 },
+    uSplit: { value: 0 }, uWarm: { value: new THREE.Color(1.06, 0.98, 0.86) }, uCool: { value: new THREE.Color(0.86, 0.95, 1.08) },
   },
   vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
   fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uTime, uFade, uFlash, uVig, uGrain, uLid, uBlur, uAber, uSat; uniform vec3 uTint;
+    uniform sampler2D tDiffuse; uniform vec2 uRes, uFocus; uniform float uTime, uFade, uFlash, uVig, uGrain, uLid, uBlur, uAber, uSat, uDof, uUnder, uLens, uSplit;
+    uniform vec3 uTint, uWarm, uCool;
     varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    vec4 blur9(vec2 uv, float r){
+      vec2 px = r / max(uRes, vec2(1.0));
+      vec4 s = texture2D(tDiffuse, uv) * 0.2;
+      s += texture2D(tDiffuse, uv + vec2(px.x, 0.0)) * 0.1; s += texture2D(tDiffuse, uv - vec2(px.x, 0.0)) * 0.1;
+      s += texture2D(tDiffuse, uv + vec2(0.0, px.y)) * 0.1; s += texture2D(tDiffuse, uv - vec2(0.0, px.y)) * 0.1;
+      s += texture2D(tDiffuse, uv + px * 1.6) * 0.1; s += texture2D(tDiffuse, uv - px * 1.6) * 0.1;
+      s += texture2D(tDiffuse, uv + vec2(px.x, -px.y) * 1.6) * 0.1; s += texture2D(tDiffuse, uv + vec2(-px.x, px.y) * 1.6) * 0.1;
+      return s;
+    }
     void main(){
       vec2 uv = vUv;
-      vec4 c = texture2D(tDiffuse, uv);
-      if (uBlur > 0.01) {
-        vec2 px = uBlur / max(uRes, vec2(1.0));
-        vec4 s = c * 0.2;
-        s += texture2D(tDiffuse, uv + vec2(px.x, 0.0)) * 0.1; s += texture2D(tDiffuse, uv - vec2(px.x, 0.0)) * 0.1;
-        s += texture2D(tDiffuse, uv + vec2(0.0, px.y)) * 0.1; s += texture2D(tDiffuse, uv - vec2(0.0, px.y)) * 0.1;
-        s += texture2D(tDiffuse, uv + px * 1.6) * 0.1; s += texture2D(tDiffuse, uv - px * 1.6) * 0.1;
-        s += texture2D(tDiffuse, uv + vec2(px.x, -px.y) * 1.6) * 0.1; s += texture2D(tDiffuse, uv + vec2(-px.x, px.y) * 1.6) * 0.1;
-        c = s;
+      float asp = uRes.x / max(uRes.y, 1.0);
+      // 镜头上的雨滴：一格一格往下滑的水珠，折射一点背景
+      if (uLens > 0.01) {
+        vec2 g = vec2(uv.x * 14.0 * asp, uv.y * 5.0);
+        vec2 id = floor(g); float r = h(id);
+        vec2 f = fract(g) - 0.5;
+        float sp = 0.15 + r * 0.35;
+        float y = fract(-uTime * sp + r * 7.0) - 0.5;
+        vec2 dp = vec2(f.x + (h(id + 3.1) - 0.5) * 0.5, (f.y - y) * 0.45);
+        float drop = smoothstep(0.09, 0.03, length(dp)) * step(0.45, r);
+        float trail = smoothstep(0.03, 0.0, abs(dp.x)) * smoothstep(0.0, 0.25, f.y - y) * step(f.y, 0.5) * step(0.45, r) * 0.5;
+        uv += (dp * drop * 0.9 + vec2(0.0, trail * 0.004)) * uLens * 0.06;
       }
+      if (uUnder > 0.01) uv += vec2(sin(uv.y * 30.0 + uTime * 3.0), cos(uv.x * 24.0 + uTime * 2.4)) * 0.004 * uUnder;
+      float fd = length((uv - uFocus) * vec2(asp, 1.0));
+      float br = uBlur + uDof * smoothstep(0.08, 0.45, fd) + uUnder * 5.0;
+      vec4 c = br > 0.05 ? blur9(uv, br) : texture2D(tDiffuse, uv);
       if (uAber > 0.0005) { vec2 d = (uv - 0.5) * uAber; c.r = texture2D(tDiffuse, uv + d).r; c.b = texture2D(tDiffuse, uv - d).b; }
       float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
       c.rgb = mix(vec3(l), c.rgb, uSat) * uTint;
-      vec2 d = uv - 0.5; c.rgb *= 1.0 - dot(d, d) * uVig;
+      // 分离色调：暗部偏冷、亮部偏暖（黄金时刻）
+      c.rgb = mix(c.rgb, c.rgb * mix(uCool, uWarm, smoothstep(0.08, 0.7, l)), uSplit);
+      // 水下：青绿、发暗
+      c.rgb = mix(c.rgb, vec3(0.02, 0.09, 0.1) + c.rgb * vec3(0.18, 0.42, 0.42), clamp(uUnder, 0.0, 1.0));
+      vec2 d = uv - 0.5; c.rgb *= 1.0 - dot(d, d) * (uVig + uUnder * 1.5);
       float n = h(uv * uRes + fract(uTime * 7.3) * 100.0) - 0.5;
       c.rgb += n * uGrain * (1.0 - l * 0.6);
       if (uLid > 0.001) {
@@ -85,7 +108,7 @@ const grade = new ShaderPass({
       }
       c.rgb = mix(c.rgb, vec3(1.0, 0.98, 0.95), clamp(uFlash, 0.0, 1.0));
       c.rgb *= 1.0 - clamp(uFade, 0.0, 1.0);
-      gl_FragColor = vec4(c.rgb, 1.0);
+      gl_FragColor = vec4(max(c.rgb, vec3(0.0)), 1.0);
     }`,
 });
 composer.addPass(grade);
@@ -109,12 +132,13 @@ const ui = {
 const fx = {
   fade: 1, fadeT: 1, fadeK: 1.2, flash: 0, lid: 0, lidT: 0, lidK: 1.5, blur: 0, blurT: 0, sat: 1, satT: 1, vig: 0.9, vigT: 0.9,
   shake: 0, shakeT: 0, kick: 0, aber: 0, under: 0,
+  dof: 0, dofT: 0, zoom: 1, zoomT: 1, zoomK: 0.35, hand: 1, lens: 0, lensT: 0, split: 0, splitT: 0, focus: [0.5, 0.5],
 };
 const D = { i: -1, t: 0, ci: 0, gate: null, time: 0, paused: false, manual: false, started: false, pendingNext: -1, timers: [], tweens: [], flags: {}, subT: 0, hintT: 0, chT: 0 };
 const worlds = {};
 let W = null, worldName = "";
 
-const BLOOM = { cabin: [0.42, 0.55, 0.86], sea: [0.55, 0.6, 0.8], dawn: [0.32, 0.5, 0.9] };
+const BLOOM = { cabin: [0.3, 0.5, 0.92], sea: [0.55, 0.6, 0.8], dawn: [0.32, 0.5, 0.9] };
 const EXPOSURE = { cabin: 0.88, sea: 1.0, dawn: 0.86 };
 function getWorld(name) {
   if (!worlds[name]) {
@@ -162,12 +186,15 @@ const ctx = {
     fx.fadeT = 1; fx.fadeK = 3; D.pendingNext = opts.delay ?? 0.9;
   },
   save: writeSave,
+  zoom(z, k = 0.35) { fx.zoomT = z; fx.zoomK = k; },
+  dof(v, fx0 = 0.5, fy = 0.5) { fx.dofT = v; fx.focus = [fx0, fy]; },
   replay() { writeSave({ scene: 0, done: false }); goto(0); },
 };
 
 function clearScene() {
   D.timers = []; D.tweens = []; D.gate = null; D.pendingNext = -1;
   ctx.sub(null); ctx.hint(null);
+  fx.dofT = 0; fx.zoomT = 1; fx.lensT = 0; fx.splitT = 0; fx.focus = [0.5, 0.5]; D.wasUnder = false;
   ui.acts.hidden = true; ui.phone.hidden = true; ui.swim.hidden = true; ui.under.classList.remove("on");
   ui.title.classList.remove("on", "up"); ui.end.classList.remove("on"); ui.end.hidden = true;
   fx.shakeT = 0; fx.blurT = 0; fx.satT = 1; fx.vigT = 0.9; fx.lidT = 0; fx.aber = 0; fx.under = 0;
@@ -213,6 +240,8 @@ function step(dt) {
   if (D.chT > 0) { D.chT -= dt; if (D.chT <= 0) ui.chapter.classList.remove("on"); }
   // 画面效果
   fx.fade = damp(fx.fade, fx.fadeT, fx.fadeK, dt);
+  fx.dof = damp(fx.dof, fx.dofT, 1.4, dt); fx.zoom = damp(fx.zoom, fx.zoomT, fx.zoomK, dt);
+  fx.lens = damp(fx.lens, fx.lensT, 1, dt); fx.split = damp(fx.split, fx.splitT, 0.6, dt);
   fx.lid = damp(fx.lid, fx.lidT, fx.lidK, dt);
   fx.blur = damp(fx.blur, fx.blurT, 1.5, dt);
   fx.sat = damp(fx.sat, fx.satT, 1.5, dt);
@@ -221,20 +250,34 @@ function step(dt) {
   fx.flash = Math.max(0, fx.flash - dt * 1.2);
   fx.kick = Math.max(0, fx.kick - dt * 2.5);
   W.update(dt, D.time);
+  const uw = W.underwater || 0;
+  if ((uw > 0.5) !== D.wasUnder) { D.wasUnder = uw > 0.5; snd.muffle(D.wasUnder ? 0.92 : 0, 0.12); if (D.wasUnder) snd.bubbles(); else snd.breath(0.3); }
   snd.tick();
 }
 
 function render() {
   if (!W) return;
   const s = fx.shake + fx.kick, t = D.time;
+  const cam = W.camera;
+  // 手持感：很轻的呼吸起伏
+  if (fx.hand > 0) {
+    cam.rotation.x += (noise1(t * 0.31 + 11) * 0.006 + Math.sin(t * 1.1) * 0.0025) * fx.hand;
+    cam.rotation.y += noise1(t * 0.23 + 3) * 0.006 * fx.hand;
+    cam.rotation.z += noise1(t * 0.19 + 8) * 0.004 * fx.hand;
+  }
+  const fov0 = cam.fov;
+  if (Math.abs(fx.zoom - 1) > 0.001) { cam.fov = fov0 * fx.zoom; cam.updateProjectionMatrix(); }
+  const und = W.underwater || 0;
   if (s > 0.001) {
-    const cam = W.camera;
     cam.position.x += noise1(t * 13) * 0.02 * s; cam.position.y += noise1(t * 17 + 5) * 0.025 * s;
     cam.rotation.x += noise1(t * 11 + 9) * 0.02 * s; cam.rotation.z += noise1(t * 9 + 2) * 0.03 * s; cam.rotation.y += noise1(t * 7 + 4) * 0.012 * s;
   }
   G.uTime.value = t; G.uFade.value = fx.fade; G.uFlash.value = fx.flash; G.uLid.value = fx.lid; G.uBlur.value = fx.blur * curPR;
   G.uSat.value = fx.sat; G.uVig.value = fx.vig; G.uAber.value = fx.aber + s * 0.004;
+  G.uDof.value = fx.dof * 4 * curPR; G.uFocus.value.set(fx.focus[0], fx.focus[1]); G.uUnder.value = Math.max(und, fx.under); G.uLens.value = fx.lens; G.uSplit.value = fx.split;
+  if (W.preRender) W.preRender(renderer, q.level);
   composer.render();
+  if (cam.fov !== fov0) { cam.fov = fov0; cam.updateProjectionMatrix(); }
 }
 
 /* ---------------- 尺寸 ---------------- */

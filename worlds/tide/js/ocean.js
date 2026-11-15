@@ -71,7 +71,7 @@ vec3 skyBase(vec3 d){
   float s2 = sd * sd, s4 = s2 * s2, s8 = s4 * s4, s16 = s8 * s8, s64 = s16 * s16 * s16 * s16;
   c += uSunCol * (s4 * 0.12 + s16 * 0.3 + s64 * 0.6);
   float fd = max(dot(d, uFlashDir), 0.0);
-  c += uFlash * vec3(0.55, 0.6, 0.78) * (0.35 + fd * fd * 1.2);
+  c += uFlash * vec3(0.55, 0.6, 0.78) * (0.55 + fd * fd * 1.4);
   return c;
 }
 vec3 skyFull(vec3 d){
@@ -88,7 +88,8 @@ vec3 skyFull(vec3 d){
   float s2 = max(sd, 0.0); s2 *= s2; s2 *= s2;
   cc += uSunCol * s2 * 0.25 * (1.0 - dens * 0.5);
   float fd = max(dot(d, uFlashDir), 0.0);
-  cc += uFlash * vec3(0.7, 0.75, 0.95) * (0.25 + fd * fd * 2.2) * (0.6 + n);
+  float fd4 = fd * fd; fd4 *= fd4;
+  cc += uFlash * vec3(0.72, 0.78, 1.0) * (0.45 + fd * fd * 1.6 + fd4 * 2.0) * (0.4 + n * n * 1.6);
   c += uSunCol * 7.0 * disc * (1.0 - dens * 0.85);
   return mix(c, cc, dens);
 }
@@ -136,6 +137,8 @@ export function makeOcean(skyU, { N = 220, R = 700 } = {}) {
     uScatter: { value: new THREE.Color(0.02, 0.05, 0.055) },
     uFoam: { value: 0.8 },
     uFogCol: { value: new THREE.Color(0.03, 0.036, 0.045) },
+    uFogWarm: { value: new THREE.Color(0.03, 0.036, 0.045) },
+    tRefl: { value: null }, uReflMat: { value: new THREE.Matrix4() }, uRefl: { value: 0 },
     uFogD: { value: 0.006 },
     uGlint: { value: 0 },
     uDetail: { value: 1 },
@@ -160,18 +163,21 @@ export function makeOcean(skyU, { N = 220, R = 700 } = {}) {
     vertexShader: /* glsl */ `
       uniform float uTime;
       ${waveFn}
-      varying vec3 vW; varying float vH;
+      uniform mat4 uReflMat;
+      varying vec3 vW; varying float vH; varying vec4 vRP;
       void main(){
         vec4 w = modelMatrix * vec4(position, 1.0);
         float h; vec2 g; waves(w.xz, h, g);
         w.y += h; vH = h; vW = w.xyz;
+        vRP = uReflMat * vec4(w.x, 0.0, w.z, 1.0);
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */ `
       ${SKY_GLSL}
       ${waveFn}
-      uniform vec3 uDeep, uScatter, uFogCol; uniform float uFoam, uFogD, uGlint, uDetail, uLight;
-      varying vec3 vW; varying float vH;
+      uniform vec3 uDeep, uScatter, uFogCol, uFogWarm; uniform float uFoam, uFogD, uGlint, uDetail, uLight, uRefl;
+      uniform sampler2D tRefl;
+      varying vec3 vW; varying float vH; varying vec4 vRP;
       void main(){
         float h; vec2 g; waves(vW.xz, h, g);
         float dist = length(vW - cameraPosition);
@@ -188,6 +194,11 @@ export function makeOcean(skyU, { N = 220, R = 700 } = {}) {
         float fr = 0.02 + 0.98 * pow5(1.0 - ndv);
         vec3 r = reflect(-v, n); r.y = max(abs(r.y), 0.02); r = normalize(r);
         vec3 refl = skyBase(r);
+        if (uRefl > 0.001 && vRP.w > 0.01) {
+          vec4 rp = vRP; rp.xy += n.xz * 0.35 * rp.w * (0.08 + 0.02 * det);
+          refl = mix(refl, texture2DProj(tRefl, rp).rgb, uRefl);
+          fr = max(fr, 0.3 * uRefl);
+        }
         float crest = clamp(h / (2.4 * uAmp + 0.05) * 0.5 + 0.5, 0.0, 1.0);
         vec3 water = uDeep + uScatter * crest * (0.4 + uLight);
         vec3 col = mix(water, refl, fr);
@@ -195,16 +206,21 @@ export function makeOcean(skyU, { N = 220, R = 700 } = {}) {
         float s2 = sp * sp, s4 = s2 * s2, s8 = s4 * s4, s16 = s8 * s8, s64 = s16 * s16 * s16 * s16;
         col += uSunCol * (s64 * s64 * 6.0 + s16 * 0.08) * uGlint;
         float fn = fbm3(vW.xz * 0.8 + vec2(uTime * 0.2, uTime * 0.5));
-        float foam = smoothstep(0.8, 1.0, crest + fn * 0.3 - 0.12 + length(g) * 0.05) * uFoam;
-        foam += smoothstep(0.72, 0.9, fn) * smoothstep(0.55, 0.8, crest) * 0.25 * uFoam;
-        vec3 foamCol = vec3(0.55, 0.6, 0.65) * (0.12 + uLight) + uFlash * vec3(0.5, 0.55, 0.7);
-        col = mix(col, foamCol, foam * 0.75);
-        col += uFlash * vec3(0.25, 0.28, 0.36) * (0.25 + fr);
+        // 白浪：浪尖成片的泡沫 + 顺着风向拉长的泡沫纹
+        float streak = fbm3(vec2(vW.x * 0.25, vW.z * 1.4) + vec2(0.0, uTime * 0.6));
+        float foam = smoothstep(0.7, 0.95, crest + fn * 0.35 - 0.1 + length(g) * 0.06) * uFoam;
+        foam += smoothstep(0.6, 0.85, streak) * smoothstep(0.45, 0.75, crest) * 0.35 * uFoam;
+        foam = clamp(foam, 0.0, 1.0);
+        vec3 foamCol = vec3(0.62, 0.68, 0.74) * (0.2 + uLight) + uFlash * vec3(0.6, 0.65, 0.8);
+        col = mix(col, foamCol, foam * 0.85);
+        col += uFlash * vec3(0.18, 0.2, 0.27) * (0.25 + fr);
         float fog = 1.0 - exp(-dist * uFogD);
-        col = mix(col, uFogCol + uFlash * vec3(0.3, 0.33, 0.42), fog);
+        float sa = max(dot(-v, uSunDir), 0.0); sa *= sa;
+        col = mix(col, mix(uFogCol, uFogWarm, sa) + uFlash * vec3(0.3, 0.33, 0.42), fog);
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
+  mat.side = THREE.DoubleSide; // 镜头偶尔没入水下时也能看到海面
   const mesh = new THREE.Mesh(oceanGeometry(N, R), mat);
   mesh.frustumCulled = false;
   return { mesh, U };

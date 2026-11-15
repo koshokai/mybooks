@@ -31,8 +31,8 @@ function makeCabinSky() {
         d.yz = vec2(cp * d.y - sp * d.z, sp * d.y + cp * d.z);
         float y = d.y;
         vec3 zen = mix(vec3(0.16, 0.34, 0.72), vec3(0.13, 0.15, 0.19), uStorm);
-        vec3 hor = mix(vec3(1.0, 0.72, 0.5), vec3(0.36, 0.39, 0.44), uStorm);
-        vec3 col = mix(hor, zen, smoothstep(0.0, 0.32, y));
+        vec3 hor = mix(vec3(1.0, 0.64, 0.36), vec3(0.36, 0.39, 0.44), uStorm);
+        vec3 col = mix(hor, zen, smoothstep(0.0, 0.26, y));
         float sd = max(dot(d, uSun), 0.0);
         float s2 = sd * sd, s4 = s2 * s2, s8 = s4 * s4, s32 = s8 * s8 * s8 * s8;
         col += (1.0 - uStorm) * (vec3(1.0, 0.62, 0.32) * (s32 * 0.7 + s8 * 0.18) + vec3(7.0, 5.6, 3.8) * smoothstep(0.9988, 0.9995, sd));
@@ -52,7 +52,7 @@ function makeCabinSky() {
         float lit = clamp(0.5 + (n - n2) * 3.0, 0.0, 1.0);
         vec3 cl = mix(vec3(0.30, 0.40, 0.58), mix(vec3(0.78, 0.74, 0.78), vec3(1.25, 1.02, 0.82), lit), smoothstep(0.42, 0.62, n));
         cl = mix(cl, vec3(0.26, 0.29, 0.34) * (0.55 + 0.7 * n), uStorm);
-        cl = mix(cl, hor * 0.9, 1.0 - exp(-t * 0.035));
+        cl = mix(cl, hor * 0.85, 1.0 - exp(-t * 0.022));
         vec2 ps = (p + flow * 3.0) * vec2(0.9, 0.35);
         float w = fbm(ps);
         vec3 sea = mix(vec3(0.02, 0.05, 0.07), vec3(0.14, 0.19, 0.23), w);
@@ -62,7 +62,7 @@ function makeCabinSky() {
         col = mix(below, col, smoothstep(-0.015, 0.012, y));
         float st = fbm(vec2(d.x * 3.0 + d.z * 2.0, d.y * 9.0) + vec2(uTime * 2.6, 0.0));
         col = mix(col, vec3(0.46, 0.49, 0.54) * (0.6 + 0.5 * st), uInCloud);
-        col *= 0.72;
+        col *= 0.78;
         col += uFlash * vec3(0.85, 0.9, 1.05) * (0.5 + 0.7 * n);
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -88,13 +88,66 @@ function seatTex() {
     for (let i = 0; i < 1800; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? "255,255,255" : "0,0,0"},${Math.random() * 0.07})`; g.fillRect(Math.random() * w, Math.random() * h, 1, 2); }
   }, { repeat: true });
 }
+function fabricTex() {
+  const N = 128, hgt = new Float32Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const wx = Math.sin((x / N) * Math.PI * 32), wy = Math.sin((y / N) * Math.PI * 32);
+    hgt[y * N + x] = ((x >> 2) + (y >> 2)) % 2 ? wx * 0.5 + 0.5 : wy * 0.5 + 0.5;
+    hgt[y * N + x] += (Math.random() - 0.5) * 0.25;
+  }
+  const map = canvasTex(N, N, (g) => {
+    const id = g.createImageData(N, N);
+    for (let i = 0; i < N * N; i++) { const v = 200 + hgt[i] * 40 + (Math.random() - 0.5) * 18; id.data[i * 4] = id.data[i * 4 + 1] = id.data[i * 4 + 2] = Math.max(0, Math.min(255, v)); id.data[i * 4 + 3] = 255; }
+    g.putImageData(id, 0, 0);
+  }, { repeat: true });
+  const normal = canvasTex(N, N, (g) => {
+    const id = g.createImageData(N, N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const hx = hgt[y * N + ((x + 1) % N)] - hgt[y * N + ((x + N - 1) % N)], hy = hgt[((y + 1) % N) * N + x] - hgt[((y + N - 1) % N) * N + x];
+      const nx = -hx * 1.5, ny = -hy * 1.5, l = Math.hypot(nx, ny, 1), i = (y * N + x) * 4;
+      id.data[i] = (nx / l * 0.5 + 0.5) * 255; id.data[i + 1] = (ny / l * 0.5 + 0.5) * 255; id.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; id.data[i + 3] = 255;
+    }
+    g.putImageData(id, 0, 0);
+  }, { repeat: true, srgb: false });
+  map.repeat.set(10, 10); normal.repeat.set(10, 10);
+  return { map, normal };
+}
+function screenTex() {
+  return canvasTex(128, 96, (g, w, h) => {
+    g.fillStyle = "#06090d"; g.fillRect(0, 0, w, h);
+    const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, "rgba(40,80,120,0.55)"); gr.addColorStop(1, "rgba(10,20,40,0.2)");
+    g.fillStyle = gr; g.fillRect(4, 4, w - 8, h - 8);
+    g.strokeStyle = "rgba(240,200,120,0.8)"; g.lineWidth = 1.5; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(18, 70); g.quadraticCurveTo(60, 20, 108, 34); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "#f0c878"; g.beginPath(); g.arc(62, 38, 3, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "rgba(220,230,240,0.7)"; g.font = "9px sans-serif"; g.fillText("剩余 3:52", 10, 88);
+  });
+}
+function paneTex() {
+  return canvasTex(256, 360, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    const gr = g.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w * 0.62);
+    gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(1, "rgba(235,242,250,0.45)");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 70; i++) { // 细小划痕
+      g.strokeStyle = `rgba(255,255,255,${0.04 + Math.random() * 0.1})`; g.lineWidth = 0.6 + Math.random();
+      const x = Math.random() * w, y = Math.random() * h, a = Math.random() * Math.PI, l = 8 + Math.random() * 50;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+    for (let i = 0; i < 260; i++) { const x = Math.random() * w, y = Math.random() * h, d = Math.hypot(x - w / 2, (y - h / 2) * 0.7) / (w * 0.5); if (d > 0.75) { g.fillStyle = `rgba(250,252,255,${0.15 + Math.random() * 0.25})`; g.fillRect(x, y, 1.5, 1.5); } }
+    g.fillStyle = "rgba(30,30,30,0.6)"; g.beginPath(); g.arc(w / 2, h * 0.86, 3, 0, Math.PI * 2); g.fill(); // 透气小孔
+  }, { srgb: true });
+}
 function binTex() {
   return canvasTex(512, 128, (g, w, h) => {
     g.fillStyle = "#e8e4dc"; g.fillRect(0, 0, w, h);
     g.strokeStyle = "rgba(60,60,70,0.35)"; g.lineWidth = 2;
     for (let x = 0; x <= w; x += w / 4) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
-    g.fillStyle = "rgba(60,60,70,0.25)";
-    for (let x = w / 8; x < w; x += w / 4) g.fillRect(x - 14, h * 0.18, 28, 6);
+    for (let x = w / 8; x < w; x += w / 4) {
+      g.fillStyle = "rgba(40,40,48,0.45)"; g.fillRect(x - 18, h * 0.78, 36, 10);
+      g.fillStyle = "rgba(255,255,255,0.5)"; g.fillRect(x - 16, h * 0.78, 32, 2);
+    }
+    g.fillStyle = "rgba(0,0,0,0.12)"; g.fillRect(0, h * 0.92, w, h * 0.08);
   }, { repeat: true });
 }
 function exitTex() {
@@ -163,9 +216,9 @@ export function buildCabin({ renderer }) {
   scene.add(sky.mesh);
 
   // 灯光
-  const hemi = new THREE.HemisphereLight(0xe6ecf6, 0x8a7f72, 0.95);
+  const hemi = new THREE.HemisphereLight(0xfff1e2, 0x6e6258, 0.85);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xffc28a, 1.6);
+  const sun = new THREE.DirectionalLight(0xffb36e, 2.1);
   sun.position.set(-6, 2.2, -3.5); scene.add(sun); scene.add(sun.target);
   const lamp = new THREE.PointLight(0xffe6c4, 1.2, 6, 1.6);
   lamp.position.set(-0.9, 2.0, -0.4); scene.add(lamp);
@@ -173,6 +226,7 @@ export function buildCabin({ renderer }) {
   red.position.set(0, 2.0, -1.5); scene.add(red);
 
   // 材质
+  const fab = fabricTex();
   const M = {
     wall: new THREE.MeshStandardMaterial({ color: 0xffffff, map: canvasTex(512, 256, (g, w, h) => {
       g.fillStyle = "#ebe6dc"; g.fillRect(0, 0, w, h);
@@ -184,7 +238,7 @@ export function buildCabin({ renderer }) {
     trim: new THREE.MeshStandardMaterial({ color: 0xcfc9be, roughness: 0.6 }),
     tunnel: new THREE.MeshStandardMaterial({ color: 0xdcd6cb, roughness: 0.7, side: THREE.BackSide }),
     shade: new THREE.MeshStandardMaterial({ color: 0xd8d2c6, roughness: 0.85, side: THREE.DoubleSide }),
-    seat: new THREE.MeshStandardMaterial({ color: 0xffffff, map: seatTex(), roughness: 0.9 }),
+    seat: new THREE.MeshStandardMaterial({ color: 0x3a5f86, roughness: 0.95 }),
     cover: new THREE.MeshStandardMaterial({ color: 0xeef0f2, roughness: 0.9 }),
     plastic: new THREE.MeshStandardMaterial({ color: 0x5b5f68, roughness: 0.55 }),
     tray: new THREE.MeshStandardMaterial({ color: 0x8b8f97, roughness: 0.5 }),
@@ -197,6 +251,8 @@ export function buildCabin({ renderer }) {
     skin: new THREE.MeshStandardMaterial({ color: 0xe6b897, roughness: 0.7 }),
   };
   M.floor.map.repeat.set(3, 18);
+  M.seat.map = fab.map; M.seat.normalMap = fab.normal; M.seat.normalScale = new THREE.Vector2(0.6, 0.6);
+  M.cover.map = fab.map;
   M.wall.map.repeat.set(1 / (2 * ROW), 1 / 1.86); M.wall.map.offset.x = 0.3;
   M.bin.map.repeat.set(1, 1);
 
@@ -205,6 +261,7 @@ export function buildCabin({ renderer }) {
   // --- 侧壁（带舷窗洞）---
   const zFront = -12.8, zBack = 3.2;
   const winRows = [];
+  const paneTx = paneTex();
   for (let r = ROW_MIN; r <= ROW_MAX; r++) winRows.push(r);
   for (const side of [-1, 1]) {
     const s = new THREE.Shape();
@@ -238,7 +295,17 @@ export function buildCabin({ renderer }) {
       const down = isOurs ? -1 : R() < 0.45 ? R() * 0.8 : 0;
       m4.compose(p.set(side * (WALL_X + 0.085), WIN_Y + (1 - down) * WIN_RY * 2.2 * (isOurs ? 5 : 1), z), q.identity(), sc.set(1, 1, 1)); shades.setMatrixAt(i, m4);
     });
-    root.add(tunnels, rings, shades);
+    const paneM = new THREE.MeshStandardMaterial({ map: paneTx, transparent: true, depthWrite: false, roughness: 0.05, metalness: 0.0, color: 0xffffff, side: THREE.DoubleSide, envMapIntensity: 0 });
+    const paneG = new THREE.PlaneGeometry(WIN_RX * 2, WIN_RY * 2).rotateY(Math.PI / 2);
+    const inner = new THREE.InstancedMesh(paneG, paneM, winRows.length);
+    const outerM = new THREE.MeshBasicMaterial({ color: 0x9fb4c8, transparent: true, opacity: 0.08, depthWrite: false, side: THREE.DoubleSide });
+    const outer = new THREE.InstancedMesh(paneG, outerM, winRows.length);
+    winRows.forEach((r, i) => {
+      m4.compose(p.set(side * (WALL_X + 0.012), WIN_Y, winZ(r)), q.identity(), sc.set(1, 0.98, 0.98)); inner.setMatrixAt(i, m4);
+      m4.compose(p.set(side * (WALL_X + 0.07), WIN_Y, winZ(r)), q.identity(), sc.set(1, 1.04, 1.04)); outer.setMatrixAt(i, m4);
+    });
+    inner.renderOrder = outer.renderOrder = 12;
+    root.add(tunnels, rings, shades, inner, outer);
   }
   // 我们的遮光板（单独控制）
   const myShade = new THREE.Mesh(new THREE.PlaneGeometry(WIN_RX * 2.4, WIN_RY * 2.2).rotateY(Math.PI / 2), M.shade);
@@ -294,7 +361,7 @@ export function buildCabin({ renderer }) {
   const geo = {
     cushion: new RoundedBoxGeometry(0.46, 0.12, 0.48, 2, 0.04),
     back: new RoundedBoxGeometry(0.46, 0.7, 0.1, 2, 0.04),
-    cover: new THREE.BoxGeometry(0.38, 0.16, 0.012),
+    cover: new RoundedBoxGeometry(0.4, 0.2, 0.02, 1, 0.008),
     arm: new THREE.BoxGeometry(0.05, 0.05, 0.4),
     stow: new THREE.BoxGeometry(0.36, 0.3, 0.012),
     base: new THREE.BoxGeometry(0.44, 0.38, 0.3),
@@ -304,6 +371,7 @@ export function buildCabin({ renderer }) {
     cushion: inst(geo.cushion, M.seat, seats.length), back: inst(geo.back, M.seat, seats.length),
     cover: inst(geo.cover, M.cover, seats.length), arm: inst(geo.arm, M.plastic, seats.length * 2),
     stow: inst(geo.stow, M.tray, seats.length), base: inst(geo.base, M.plastic, seats.length),
+    screen: inst(new THREE.PlaneGeometry(0.17, 0.115), new THREE.MeshBasicMaterial({ map: screenTex(), color: 0xb8c4d0 }), seats.length),
   };
   {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
@@ -314,13 +382,14 @@ export function buildCabin({ renderer }) {
       m4.compose(p.set(s.x, 0.18, s.z + 0.02), q.identity(), one); I.base.setMatrixAt(i, m4);
       q.setFromEuler(e.set(lean, 0, 0));
       m4.compose(p.set(s.x, 0.84, s.z + 0.27), q, one); I.back.setMatrixAt(i, m4);
-      m4.compose(p.set(s.x, 1.08, s.z + 0.248), q, one); I.cover.setMatrixAt(i, m4);
+      m4.compose(p.set(s.x, 1.08, s.z + 0.212), q, one); I.cover.setMatrixAt(i, m4);
       // 前排两个座位的小桌板放下了（我们和小女孩的）
       const down = s.r === -1 && (s.x === -1.42 || s.x === -0.92);
       if (down) m4.compose(p.set(s.x, 0.7, s.z + 0.5), q.identity(), new THREE.Vector3(1.15, 1, 1.0)), m4.multiply(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
       else m4.compose(p.set(s.x, 0.82, s.z + 0.33), q, one);
       I.stow.setMatrixAt(i, m4);
       for (const k of [0, 1]) { m4.compose(p.set(s.x + (k ? 0.245 : -0.245), 0.62, s.z + 0.02), q.identity(), one); I.arm.setMatrixAt(i * 2 + k, m4); }
+      q.setFromEuler(e.set(lean, 0, 0)); m4.compose(p.set(s.x, 1.04, s.z + 0.346), q, one); I.screen.setMatrixAt(i, m4);
     });
   }
 
@@ -331,12 +400,23 @@ export function buildCabin({ renderer }) {
       if (r === -1 && x < -0.5) continue;
       if (R() < 0.55) heads.push([x + (R() - 0.5) * 0.06, 1.13 + R() * 0.09, r * ROW + 0.16, R()]);
     }
-    const hg = new THREE.SphereGeometry(0.1, 16, 12); hg.scale(1, 1.12, 1.05);
-    const hm = new THREE.InstancedMesh(hg, M.hair, heads.length);
-    const pal = [0x15110f, 0x2a1d16, 0x3b2b20, 0x6c6560, 0x111111];
+    // 头（真实比例）、脖子、露出椅背的肩膀轮廓，统一偏暗
+    const hg = new THREE.SphereGeometry(0.083, 16, 12); hg.scale(0.92, 1.15, 1.05);
+    const ng = new THREE.CylinderGeometry(0.04, 0.05, 0.1, 10);
+    const sg = new THREE.SphereGeometry(0.1, 14, 10); sg.scale(2.0, 0.75, 1.1);
+    const hm = new THREE.InstancedMesh(hg, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 }), heads.length);
+    const nm = new THREE.InstancedMesh(ng, new THREE.MeshStandardMaterial({ color: 0x6b5446, roughness: 0.8 }), heads.length);
+    const smsh = new THREE.InstancedMesh(sg, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 }), heads.length);
+    const pal = [0x120e0c, 0x21170f, 0x2e2219, 0x58524c, 0x0d0d0d, 0x3a2a1c];
+    const cloth = [0x1d2129, 0x2a2622, 0x3a3f46, 0x23303d, 0x4a3b32, 0x1a1a1a];
     const m4 = new THREE.Matrix4(), c = new THREE.Color();
-    heads.forEach(([x, y, z, k], i) => { m4.makeTranslation(x, y, z); hm.setMatrixAt(i, m4); hm.setColorAt(i, c.setHex(pal[Math.floor(k * pal.length)])); });
-    root.add(hm);
+    heads.forEach(([x, y, z, k], i) => {
+      const yy = y + 0.07;
+      m4.makeTranslation(x, yy, z); hm.setMatrixAt(i, m4); hm.setColorAt(i, c.setHex(pal[Math.floor(k * pal.length)]));
+      m4.makeTranslation(x, yy - 0.11, z + 0.01); nm.setMatrixAt(i, m4);
+      m4.makeTranslation(x, yy - 0.2, z + 0.02); smsh.setMatrixAt(i, m4); smsh.setColorAt(i, c.setHex(cloth[Math.floor(((k * 7.3) % 1) * cloth.length)]));
+    });
+    root.add(hm, nm, smsh);
   }
 
   // --- 小桌板上的水杯 ---
@@ -373,25 +453,50 @@ export function buildCabin({ renderer }) {
   const girl = new THREE.Group();
   const G = {};
   {
-    const sweater = new THREE.MeshStandardMaterial({ color: 0xf0c04a, roughness: 0.95 });
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.34, 16), sweater); torso.position.set(0, 0.68, 0.08);
-    const head = new THREE.Group(); head.position.set(0, 0.95, 0.04);
-    const face = new THREE.Mesh(new THREE.SphereGeometry(0.095, 24, 18), M.skin);
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.102, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.62), M.hair);
-    hair.rotation.x = 0.42; hair.position.z = 0.01;
-    const back = new THREE.Mesh(new THREE.SphereGeometry(0.1, 20, 14), M.hair); back.position.set(0, -0.01, 0.03); back.scale.set(1, 1, 0.9);
-    const tails = [-1, 1].map((s) => { const t = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 10), M.hair); t.position.set(s * 0.1, -0.02, 0.05); t.scale.set(0.8, 1.4, 0.8); return t; });
-    const bowM = new THREE.MeshStandardMaterial({ color: 0xd8424f, roughness: 0.6 });
-    const bows = [-1, 1].map((s) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), bowM); b.position.set(s * 0.095, 0.03, 0.05); b.scale.set(1.4, 0.8, 0.8); return b; });
-    const eyeM = new THREE.MeshBasicMaterial({ color: 0x1a1210 });
-    const eyes = [-1, 1].map((s) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 6), eyeM); e.position.set(s * 0.033, 0.0, -0.088); return e; });
-    head.add(back, face, hair, ...tails, ...bows, ...eyes);
+    // 写实一些的孩子比例：头不大，肩窄，穿一件连帽卫衣
+    const hoodie = new THREE.MeshStandardMaterial({ color: 0xb85a4c, roughness: 0.92, map: fab.map, normalMap: fab.normal, normalScale: new THREE.Vector2(0.4, 0.4) });
+    const denim = new THREE.MeshStandardMaterial({ color: 0x2f3b52, roughness: 0.9 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc89a82, roughness: 0.6 });
+    const hairM = new THREE.MeshStandardMaterial({ color: 0x1b1310, roughness: 0.55 });
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.095, 0.2, 6, 14), hoodie);
+    torso.scale.set(1.2, 1, 0.82); torso.position.set(0, 0.73, 0.07); torso.rotation.x = 0.06;
+    const hood = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.032, 8, 16), hoodie);
+    hood.position.set(0, 0.88, 0.12); hood.rotation.x = 1.0; hood.scale.set(1.15, 1, 0.8);
+    const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 0.01), new THREE.MeshStandardMaterial({ color: 0x9c4a3f, roughness: 0.95 }));
+    pocket.position.set(0, 0.66, -0.008);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.03, 0.06, 10), skin); neck.position.set(0, 0.9, 0.05);
+    const head = new THREE.Group(); head.position.set(0, 0.99, 0.045);
+    const face = new THREE.Mesh(new THREE.SphereGeometry(0.075, 24, 18), skin); face.scale.set(0.9, 1.12, 1.0);
+    const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), skin); jaw.position.set(0, -0.045, -0.02); jaw.scale.set(1, 0.8, 1);
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), skin); nose.position.set(0, -0.005, -0.076); nose.scale.set(0.9, 1.1, 1);
+    const ears = [-1, 1].map((k) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), skin); e.position.set(k * 0.068, -0.004, 0.006); e.scale.set(0.5, 1, 0.8); return e; });
+    const eyeM = new THREE.MeshStandardMaterial({ color: 0x120c0a, roughness: 0.25 });
+    const eyes = [-1, 1].map((k) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.0042, 8, 6), eyeM); e.position.set(k * 0.025, 0.012, -0.069); return e; });
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.081, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.56), hairM);
+    cap.scale.set(0.95, 1.12, 1.04); cap.rotation.x = 0.55; cap.position.set(0, 0.006, 0.004);
+    const backHair = new THREE.Mesh(new THREE.SphereGeometry(0.079, 20, 14), hairM); backHair.scale.set(0.95, 1.1, 0.9); backHair.position.set(0, 0.0, 0.022);
+    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.024, 0.11, 4, 10), hairM); tail.position.set(0, -0.06, 0.095); tail.rotation.x = 0.35;
+    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.007, 6, 12), new THREE.MeshStandardMaterial({ color: 0xe6c44d, roughness: 0.5 })); tie.position.set(0, 0.005, 0.088); tie.rotation.x = 1.2;
+    const fringe = new THREE.Mesh(new THREE.SphereGeometry(0.078, 16, 8, -1.1, 2.2, 0.35, 0.5), hairM); fringe.rotation.y = Math.PI; fringe.scale.set(0.96, 1.12, 1.04);
+    head.add(face, nose, ...ears, ...eyes, backHair, cap, fringe, tail, tie); void jaw;
     G.head = head;
-    const armG = new THREE.CylinderGeometry(0.03, 0.026, 0.24, 10); armG.translate(0, -0.12, 0);
-    const mkArm = (s) => { const a = new THREE.Group(); a.position.set(s * 0.12, 0.8, 0.06); const m = new THREE.Mesh(armG, sweater); a.add(m); const hand = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), M.skin); hand.position.y = -0.25; a.add(hand); a.rotation.x = -1.05; a.rotation.z = s * 0.25; return a; };
+    const mkArm = (k) => {
+      const a = new THREE.Group(); a.position.set(k * 0.115, 0.86, 0.06);
+      const up = new THREE.Mesh(new THREE.CapsuleGeometry(0.027, 0.13, 4, 10).translate(0, -0.09, 0), hoodie); a.add(up);
+      const el = new THREE.Group(); el.position.y = -0.18; el.rotation.x = 1.15; a.add(el);
+      const fo = new THREE.Mesh(new THREE.CapsuleGeometry(0.023, 0.15, 4, 10).translate(0, -0.095, 0), hoodie); el.add(fo);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), skin); hand.position.y = -0.2; hand.scale.set(0.9, 1.2, 0.7); el.add(hand);
+      a.userData.hand = el;
+      a.rotation.x = 0.45; a.rotation.z = -k * 0.1; return a;
+    };
     G.armR = mkArm(1); G.armL = mkArm(-1);
-    const legs = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.3), new THREE.MeshStandardMaterial({ color: 0x3b4f7a, roughness: 0.9 }));
-    legs.position.set(0, 0.54, -0.08);
+    const legs = new THREE.Group();
+    for (const k of [-1, 1]) {
+      const th = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.24, 4, 10), denim); th.rotation.x = Math.PI / 2; th.position.set(k * 0.055, 0.55, -0.08); legs.add(th);
+      const sh = new THREE.Mesh(new THREE.CapsuleGeometry(0.036, 0.22, 4, 10), denim); sh.position.set(k * 0.055, 0.42, -0.23); legs.add(sh);
+      const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.13), new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.7 })); shoe.position.set(k * 0.055, 0.29, -0.26); legs.add(shoe);
+    }
+    girl.add(hood, pocket, neck);
     // 速写本
     const book = new THREE.Group(), inner = new THREE.Group();
     const cover = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.008, 0.2), new THREE.MeshStandardMaterial({ color: 0x3b6f5c, roughness: 0.8 }));
@@ -402,8 +507,8 @@ export function buildCabin({ renderer }) {
     book.position.set(0, 0.712, -0.3);
     G.qBase = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, Math.PI, "XYZ"));
     G.qShow = new THREE.Quaternion();
-    const crayon = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 6), new THREE.MeshStandardMaterial({ color: 0x3a78c9 }));
-    crayon.rotation.x = 1.2; crayon.position.y = -0.27; G.armR.add(crayon);
+    const crayon = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.07, 6), new THREE.MeshStandardMaterial({ color: 0x3a78c9 }));
+    crayon.rotation.x = 1.2; crayon.position.y = -0.21; G.armR.userData.hand.add(crayon);
     girl.add(torso, head, G.armR, G.armL, legs);
     girl.position.set(-0.84, 0, 0.02);
     root.add(girl);
@@ -482,8 +587,8 @@ export function buildCabin({ renderer }) {
     cart: { yaw: -0.38, pyaw: -0.42, pitch: -0.04, fov: 0 },
     wide: { yaw: 0.55, pitch: -0.05, fov: 0 },
     forward: { yaw: 0.12, pitch: -0.1, fov: 0 },
-    girl: { yaw: -1.2, pitch: -0.36, fov: 0 },
-    drawing: { yaw: -0.72, pitch: -0.4, fov: -10 },
+    girl: { yaw: -0.85, pyaw: -1.05, pitch: -0.42, fov: 4, off: [-0.07, 0.07, 0.02] },
+    drawing: { yaw: -0.62, pitch: -0.42, fov: -6, off: [-0.05, 0.05, 0.02] },
     cup: { yaw: 0.06, pitch: -0.78, fov: -10 },
     aisle: { yaw: -0.25, pitch: -0.06, fov: 0 },
     up: { yaw: 0.3, pitch: 0.5, fov: 0 },
@@ -522,7 +627,9 @@ export function buildCabin({ renderer }) {
       look.fovOff = damp(look.fovOff, T.fov, 2, dt);
       camera.fov = (portrait ? 66 : 58) + look.fovOff;
       camera.updateProjectionMatrix();
-      camera.position.copy(camBase);
+      const off = T.off || [0, 0, 0];
+      look.ox = damp(look.ox || 0, off[0], 1.5, dt); look.oy = damp(look.oy || 0, off[1], 1.5, dt); look.oz = damp(look.oz || 0, off[2], 1.5, dt);
+      camera.position.set(camBase.x + look.ox, camBase.y + look.oy, camBase.z + look.oz);
       camera.rotation.set(look.pitch, look.yaw, 0);
       look.uyaw *= Math.exp(-dt * 0.08); look.upitch *= Math.exp(-dt * 0.08);
 
@@ -546,7 +653,7 @@ export function buildCabin({ renderer }) {
       // 灯光：平静 → 闪烁 → 红色应急
       const flick = S.flicker > 0 ? (noise1(time * 23) > 0.35 - S.flicker * 0.5 ? 0.15 : 1) : 1;
       const on = (1 - S.lightsOff) * flick;
-      sun.intensity = 1.6 * open * (1 - S.storm) + S.flash * 3;
+      sun.intensity = 2.1 * open * (1 - S.storm) + S.flash * 3;
       hemi.intensity = (0.95 - S.storm * 0.35) * (0.35 + 0.65 * on) + S.flash * 1.2;
       hemi.color.setRGB(1, 0.94 - S.emergency * 0.5, 0.86 - S.emergency * 0.6);
       lamp.intensity = 1.2 * on * (1 - S.emergency);
@@ -558,11 +665,11 @@ export function buildCabin({ renderer }) {
 
       // 小女孩：画画的手、偶尔看看你
       const g = time;
-      G.armR.rotation.x = -1.05 + Math.sin(g * 5.2) * 0.06 * (1 - S.storm);
-      G.armR.rotation.z = 0.25 + Math.sin(g * 3.1) * 0.08 * (1 - S.storm);
-      const lookAtYou = clamp((look.yaw < -0.5 ? 1 : 0) + S.showDrawing, 0, 1);
-      G.head.rotation.y = damp(G.head.rotation.y, lookAtYou * 0.95 + Math.sin(g * 0.4) * 0.08, 3, dt);
-      G.head.rotation.x = damp(G.head.rotation.x, (1 - lookAtYou) * 0.38 - S.storm * 0.2, 3, dt);
+      G.armR.rotation.x = 0.45 + Math.sin(g * 5.2) * 0.05 * (1 - S.storm);
+      G.armR.rotation.z = -0.12 + Math.sin(g * 3.1) * 0.07 * (1 - S.storm);
+      const lookAtYou = clamp(S.showDrawing, 0, 1);
+      G.head.rotation.y = damp(G.head.rotation.y, lookAtYou * 0.3 + Math.sin(g * 0.4) * 0.06, 3, dt);
+      G.head.rotation.x = damp(G.head.rotation.x, -(1 - lookAtYou) * 0.42 - S.storm * 0.25, 3, dt);
       S.showDrawing = damp(S.showDrawing, S.showT, 3, dt);
       const sd = S.showDrawing;
       G.book.position.set(G.bookBase.x - 0.12 * sd, G.bookBase.y + 0.24 * sd, G.bookBase.z + 0.1 * sd);
@@ -570,7 +677,7 @@ export function buildCabin({ renderer }) {
         const o = new THREE.Object3D(); o.position.copy(G.book.position); o.lookAt(camera.position); o.rotateZ(Math.PI); G.qShow.copy(o.quaternion);
         G.book.quaternion.copy(G.qBase).slerp(G.qShow, sd);
       } else G.book.quaternion.copy(G.qBase);
-      G.armL.rotation.x = -1.05 - S.showDrawing * 0.5;
+      G.armL.rotation.x = 0.45 + S.showDrawing * 0.45;
 
       // 餐车
       S.cartZ = damp(S.cartZ, S.cartT, 0.35, dt);
