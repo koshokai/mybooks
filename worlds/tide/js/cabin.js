@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { clamp, lerp, damp, noise1, rng, canvasTex, jitterLine, FONT, HAND, GLSL_NOISE, disposeTree } from "./util.js";
+import { loadPBR } from "./assets.js";
 
 const ROW = 0.82;
 const WALL_X = 1.75;
@@ -270,6 +271,9 @@ export function buildCabin({ renderer }) {
   M.floor.map.repeat.set(3, 18);
   M.seat.map = fab.map; M.seat.normalMap = fab.normal; M.seat.normalScale = new THREE.Vector2(0.6, 0.6);
   M.cover.map = fab.map;
+  // 真实的面料与地毯（Poly Haven），到了就换上
+  loadPBR("fabric_pattern_05", [5, 5], { diff: false }).then((t) => { if (t.normalMap) { M.seat.normalMap = t.normalMap; M.seat.roughnessMap = t.roughnessMap; M.seat.normalScale.set(1, 1); M.seat.roughness = 1; M.seat.needsUpdate = true; } });
+  loadPBR("dirty_carpet", [3, 16]).then((t) => { if (t.map) { Object.assign(M.floor, t); M.floor.color.set(0x7d8aa6); M.floor.needsUpdate = true; } });
   M.wall.map.repeat.set(1 / (2 * ROW), 1 / 1.86); M.wall.map.offset.x = 0.3;
   M.bin.map.repeat.set(1, 1);
 

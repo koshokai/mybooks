@@ -58,12 +58,19 @@ export function skyUniforms() {
     uFlash: { value: 0 },
     uFlashDir: { value: new THREE.Vector3(0, 0.2, -1).normalize() },
     uWind: { value: 0.05 },
+    tSky: { value: null }, uSkyMix: { value: 0 }, uSkyRot: { value: 0 }, uSkyGain: { value: 1 },
   };
 }
 const SKY_GLSL = /* glsl */ `
-uniform float uTime, uSunSize, uCloud, uFlash, uWind;
+uniform float uTime, uSunSize, uCloud, uFlash, uWind, uSkyMix, uSkyRot, uSkyGain;
 uniform vec3 uZen, uHor, uSunDir, uSunCol, uCloudLit, uCloudDark, uFlashDir;
+uniform sampler2D tSky;
 ${GLSL_NOISE}
+vec3 photoSky(vec3 d){
+  float u = atan(d.z, d.x + 1e-5) * 0.1591549 + 0.5 + uSkyRot * 0.1591549;
+  float v = asin(clamp(max(d.y, 0.004), -1.0, 1.0)) * 0.3183099 + 0.5;
+  return texture2D(tSky, vec2(fract(u), v)).rgb * uSkyGain;
+}
 vec3 skyBase(vec3 d){
   float y = d.y;
   vec3 c = mix(uHor, uZen, smoothstep(-0.02, 0.6, y));
@@ -72,6 +79,7 @@ vec3 skyBase(vec3 d){
   c += uSunCol * (s4 * 0.12 + s16 * 0.3 + s64 * 0.6);
   float fd = max(dot(d, uFlashDir), 0.0);
   c += uFlash * vec3(0.55, 0.6, 0.78) * (0.55 + fd * fd * 1.4);
+  if (uSkyMix > 0.001) c = mix(c, photoSky(d), uSkyMix);
   return c;
 }
 vec3 skyFull(vec3 d){
@@ -91,7 +99,9 @@ vec3 skyFull(vec3 d){
   float fd4 = fd * fd; fd4 *= fd4;
   cc += uFlash * vec3(0.72, 0.78, 1.0) * (0.45 + fd * fd * 1.6 + fd4 * 2.0) * (0.4 + n * n * 1.6);
   c += uSunCol * 7.0 * disc * (1.0 - dens * 0.85);
-  return mix(c, cc, dens);
+  vec3 res = mix(c, cc, dens);
+  if (uSkyMix > 0.001) res = mix(res, photoSky(d) + uSunCol * 4.0 * disc, uSkyMix);
+  return res;
 }
 `;
 

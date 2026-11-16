@@ -305,7 +305,7 @@ export const SCENES = [
       const want = Math.atan2(-(ISLAND.x - P.x), -(ISLAND.z - P.z));
       let err = want - P.heading; while (err > Math.PI) err -= Math.PI * 2; while (err < -Math.PI) err += Math.PI * 2;
       swimState.offT = Math.abs(err) > 0.55 ? swimState.offT + dt : 0;
-      if (swimState.offT > 3 && ctx.time - swimState.lastSub > 9) { swimState.lastSub = ctx.time; ctx.hint("方向偏了……等下一道闪电，看清陆地在哪儿", 4); }
+      if (swimState.offT > 3 && ctx.time - swimState.lastSub > 9) { swimState.lastSub = ctx.time; ctx.hint("方向偏了……盯住那点红光，等下一道闪电", 4); }
       // 体力
       const st = P.stamina;
       ui.stamB.style.transform = `scaleX(${clamp(st / 100, 0.001, 1)})`;

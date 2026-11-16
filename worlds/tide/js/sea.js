@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { clamp, lerp, damp, noise1, rng, canvasTex, FONT, HAND, disposeTree } from "./util.js";
 import { skyUniforms, makeSky, makeOcean, makeRain, makeBolt, waveAt, rhythmPhase, RHYTHM_PERIOD } from "./ocean.js";
+import { loadModel, modelInstance, loadHDR, envFromHDR } from "./assets.js";
 
 export const ISLAND = new THREE.Vector3(0, 0, -96);
 export const BEACH_R = 9;
@@ -54,8 +55,28 @@ export function makeSuitcase() {
   tag.position.set(0.09, 0.118, 0.12); tag.rotation.y = -0.35; grp.add(tag);
   const str = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.14, 4), new THREE.MeshStandardMaterial({ color: 0xa0342c }));
   str.position.set(0.05, 0.116, 0.2); str.rotation.set(Math.PI / 2, 0, 0.9); grp.add(str);
-  grp.userData.tag = tag;
+  grp.userData.tag = tag; grp.userData.keep = [tag, str];
   return grp;
+}
+
+// 换上 Poly Haven 的复古皮箱模型（保留我们手写的行李牌）
+export function upgradeSuitcase(grp) {
+  loadModel("vintage_suitcase").then((m0) => {
+    if (!m0) return;
+    const m = m0.clone(true);
+    const drop = []; m.traverse((o) => { if (o.isMesh && /_02_/.test(o.name)) drop.push(o); });
+    drop.forEach((o) => o.parent.remove(o));
+    const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+    const inner = new THREE.Group(); m.position.sub(ctr); inner.add(m);
+    inner.rotation.x = -Math.PI / 2;
+    const sc = 0.72 / Math.max(size.x, size.y, 0.01); inner.scale.setScalar(sc);
+    grp.children.forEach((c) => { if (!grp.userData.keep.includes(c)) c.visible = false; });
+    grp.add(inner);
+    const topY = (size.z * sc) / 2;
+    const [tag, str] = grp.userData.keep;
+    tag.position.y = topY + 0.006; str.position.y = topY + 0.004;
+    tag.position.x = 0.05; tag.position.z = 0.04; str.position.z = 0.1;
+  });
 }
 
 /* ---------- 漂浮残骸 ---------- */
@@ -215,7 +236,18 @@ export function buildSea({ renderer, lowEnd }) {
   }
 
   // 那只箱子
-  const suit = makeSuitcase(); scene.add(suit);
+  const suit = makeSuitcase(); scene.add(suit); upgradeSuitcase(suit);
+  loadHDR("storm_1k.hdr").then((h) => { if (h) { scene.environment = envFromHDR(renderer, h, 0, 0.12); h.dispose(); } });
+  // 真实模型的残骸：救生圈、救生衣、塑料箱、油桶
+  for (const [id, n, sc, off, tilt] of [["lifebuoy", 2, 1, 0.0, Math.PI / 2], ["life_jacket", 3, 1, 0.02, Math.PI / 2], ["plastic_crate_01", 2, 1.2, -0.05, 0], ["plastic_jerrycan", 2, 1.2, -0.06, 0.3], ["cardboard_box_01", 2, 1.2, -0.08, 0]]) {
+    modelInstance(id).then((m0) => {
+      if (!m0) return;
+      for (let i = 0; i < n; i++) {
+        const g = new THREE.Group(); const m = i ? m0.clone(true) : m0; m.scale.setScalar(sc); m.rotation.x = tilt; g.add(m);
+        addDeb(g, (R() - 0.5) * 14, 1 + R() * 12, off, 0.8, 0.1);
+      }
+    });
+  }
   const suitS = { x: -3.4, z: 5.2, held: false, yaw: 0.6 };
 
   // 水花

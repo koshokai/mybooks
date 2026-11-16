@@ -12,6 +12,7 @@ import { buildCabin } from "./cabin.js";
 import { buildSea } from "./sea.js";
 import { buildDawn } from "./dawn.js";
 import { SCENES } from "./story.js";
+import { tier } from "./assets.js";
 
 const $ = (s) => document.querySelector(s);
 const loadEl = $("#load");
@@ -26,10 +27,14 @@ function writeSave(patch) { save = { ...save, ...patch, v: 1, at: Date.now() }; 
 /* ---------------- 渲染器与后期 ---------------- */
 const canvas = $("#gl");
 const lowEnd = Math.min(screen.width, screen.height) < 500 || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+tier.low = !!(navigator.deviceMemory && navigator.deviceMemory <= 3);
+tier.mid = lowEnd;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(innerWidth, innerHeight, false);
 
 const dpr = Math.min(2, window.devicePixelRatio || 1);
