@@ -4,8 +4,8 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { clamp, lerp, damp, noise1, rng, canvasTex, FONT, HAND, disposeTree } from "./util.js";
 import { skyUniforms, makeSky, makeOcean, makeRain, makeBolt, waveAt, rhythmPhase, RHYTHM_PERIOD } from "./ocean.js";
 
-export const ISLAND = new THREE.Vector3(0, 0, -112);
-export const BEACH_R = 33;
+export const ISLAND = new THREE.Vector3(0, 0, -96);
+export const BEACH_R = 9;
 
 /* ---------- 那只旧箱子（海上与沙滩共用）---------- */
 export function tagTex() {
@@ -123,40 +123,52 @@ function makeFire() {
   return g;
 }
 
-/* ---------- 远处那座“岛”的剪影（其实是一座城市的最高处）---------- */
+/* ---------- 远处那片“黑影”：其实是一片露出水面的楼顶（与天亮后的城市一致）---------- */
+export const ROOFTOP = { w: 14, d: 12, h: 6 }; // 我们最后爬上去的那栋楼（以 ISLAND 为中心）
+export const CITY_LANDMARKS = [
+  // [x, z, w, d, h]  相对 ISLAND：周围的高楼
+  [-2, -24, 20, 10, 4.6], [22, -8, 10, 12, 4], [-20, -6, 12, 10, 13], [17, -32, 12, 12, 22], [-27, -36, 14, 12, 30], [30, -70, 14, 14, 30], [-12, 14, 8, 8, 2.5], [18, 12, 9, 8, 1.6],
+];
 function makeIsland(mat) {
   const g = new THREE.Group();
-  const prof = [[0.01, 15.5], [5, 14.6], [10, 12], [15, 8.4], [20, 5.0], [25, 2.2], [30, 0.4], [36, -2]].map(([r, y]) => new THREE.Vector2(r, y));
-  const hill = new THREE.Mesh(new THREE.LatheGeometry(prof, 40), mat); g.add(hill);
-  // 山顶的亭子
-  const pav = new THREE.Group();
-  for (const [x, z] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.6, 0.25), mat); c.position.set(x, 1.3, z); pav.add(c); }
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(3.4, 1.8, 4), mat); roof.position.y = 3.3; roof.rotation.y = Math.PI / 4; pav.add(roof);
-  pav.position.y = 15.2; g.add(pav);
-  // 树
-  const R = rng(3);
-  for (let i = 0; i < 18; i++) { const a = R() * Math.PI * 2, r = 6 + R() * 16, y = 15.5 * Math.exp(-(r / 19) * (r / 19) * 1.3); const t = new THREE.Mesh(new THREE.ConeGeometry(1.4 + R(), 4 + R() * 3, 6), mat); t.position.set(Math.cos(a) * r, y + 1.5, Math.sin(a) * r); g.add(t); }
-  // 远方的轮廓：钟楼、电视塔、摩天轮、楼顶
+  const box = (x, z, w, d, h, y0 = -2) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h - y0, d), mat); m.position.set(x, (h + y0) / 2, z); g.add(m); return m; };
+  box(0, 0, ROOFTOP.w, ROOFTOP.d, ROOFTOP.h);
+  box(-3, -2, 3.2, 2.6, ROOFTOP.h + 2.4); // 楼梯间
+  // 楼顶水塔（支架 + 罐体）
+  for (const [x, z] of [[3.2, -3.2], [5.2, -3.2], [3.2, -1.2], [5.2, -1.2]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.2, 0.2), mat); l.position.set(x, ROOFTOP.h + 1.1, z); g.add(l); }
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 2.2, 14), mat); tank.position.set(4.2, ROOFTOP.h + 3.3, -2.2); g.add(tank);
+  // 航标灯杆
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 7, 6), mat); mast.position.set(-4.5, ROOFTOP.h + 3.5, 3.5); g.add(mast);
+  // 周围的楼与楼顶上的广告牌框架
+  for (const [x, z, w, d, h] of CITY_LANDMARKS) box(x, z, w, d, h);
+  const frame = new THREE.Group();
+  for (const x of [-4, 0, 4]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.25, 6, 0.25), mat); p.position.set(x, 3, 0); frame.add(p); }
+  const bd = new THREE.Mesh(new THREE.BoxGeometry(9.5, 3.4, 0.3), mat); bd.position.y = 4.6; frame.add(bd);
+  frame.position.set(-20, 13, -6); g.add(frame);
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.2, 9, 6), mat); ant.position.set(30, 34.5, -70); g.add(ant);
+  // 远方：钟楼、电视塔、摩天轮、更多楼顶
   const clock = new THREE.Group();
-  const cb = new THREE.Mesh(new THREE.BoxGeometry(7, 26, 7), mat); cb.position.y = 11; clock.add(cb);
+  const cb = new THREE.Mesh(new THREE.BoxGeometry(7, 34, 7), mat); cb.position.y = 7; clock.add(cb);
   const cr = new THREE.Mesh(new THREE.ConeGeometry(5.4, 8, 4), mat); cr.position.y = 28; cr.rotation.y = Math.PI / 4; clock.add(cr);
   clock.position.set(-38, 0, -55); g.add(clock);
   const tv = new THREE.Group();
-  const sh = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 3, 120, 10), mat); sh.position.y = 60; tv.add(sh);
+  const sh = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 3, 120, 10), mat); sh.position.y = 50; tv.add(sh);
   const pod = new THREE.Mesh(new THREE.SphereGeometry(7, 16, 12), mat); pod.position.y = 86; pod.scale.y = 0.7; tv.add(pod);
-  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 40, 6), mat); ant.position.y = 135; tv.add(ant);
+  const ant2 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 40, 6), mat); ant2.position.y = 128; tv.add(ant2);
   tv.position.set(90, 0, -230); g.add(tv);
-  const wheel = new THREE.Mesh(new THREE.TorusGeometry(26, 0.8, 6, 48), mat); wheel.position.set(-120, 8, -150); wheel.rotation.y = 0.5; g.add(wheel);
-  for (let i = 0; i < 26; i++) {
-    const x = (R() - 0.5) * 340, z = -60 - R() * 260;
-    if (Math.abs(x) < 40 && z > -80) continue;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(8 + R() * 14, 2 + R() * 18, 8 + R() * 14), mat); b.position.set(x, 0, z); g.add(b);
+  const wheel = new THREE.Mesh(new THREE.TorusGeometry(26, 0.8, 6, 48), mat); wheel.position.set(-120, 6, -150); wheel.rotation.y = 0.5; g.add(wheel);
+  const R = rng(3);
+  for (let i = 0; i < 34; i++) {
+    const x = (R() - 0.5) * 360, z = -40 - R() * 280;
+    if (Math.abs(x) < 34 && z > -70) continue;
+    box(x, z, 8 + R() * 14, 8 + R() * 14, 1 + Math.pow(R(), 2) * 22);
   }
-  // 靠近游泳路线的几处楼顶（夜里被闪电照亮时会让人起疑）
-  for (const [x, z, w, hgt, d] of [[16, 46, 7, 1.6, 9], [-22, 58, 5, 2.4, 6], [26, 70, 9, 0.9, 7], [-14, 36, 4, 3.2, 4]]) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(w, hgt * 2, d), mat); b.position.set(x, 0, z); g.add(b);
-    const tank = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1.8, 10), mat); tank.position.set(x + w * 0.25, hgt + 0.9, z); g.add(tank);
-  }
+  // 红色航标灯：一直在闪，引着你游过去
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(8, 0.5, 0.25), toneMapped: false, fog: false }));
+  lamp.position.set(-4.5, ROOFTOP.h + 7.1, 3.5); g.add(lamp);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(64, 64, (c) => { const r = c.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,80,50,1)"); r.addColorStop(0.3, "rgba(255,40,20,0.35)"); r.addColorStop(1, "rgba(255,30,10,0)"); c.fillStyle = r; c.fillRect(0, 0, 64, 64); }), color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  glow.scale.setScalar(9); glow.position.copy(lamp.position); g.add(glow);
+  g.userData.lamp = lamp; g.userData.glow = glow;
   return g;
 }
 
@@ -347,6 +359,7 @@ export function buildSea({ renderer, lowEnd }) {
       flashL.intensity = fl * 2.5;
       flashL.position.set(P.x + SU.uFlashDir.value.x * 80, 60, P.z + SU.uFlashDir.value.z * 80); flashL.target.position.set(P.x, 0, P.z);
       silM.color.setRGB(0.008 + fl * 0.01, 0.01 + fl * 0.012, 0.014 + fl * 0.018);
+      { const on = (t % 1.6) < 0.55 ? 1 : 0.06; island.userData.lamp.material.color.setRGB(8 * on, 0.5 * on, 0.25 * on); island.userData.glow.material.opacity = on; }
 
       // 游泳物理
       if (S.mode === "swim") {

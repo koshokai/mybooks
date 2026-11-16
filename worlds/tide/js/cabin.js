@@ -14,14 +14,14 @@ const winZ = (r) => r * ROW - 0.12;
 function makeCabinSky() {
   const uniforms = {
     uTime: { value: 0 }, uStorm: { value: 0 }, uSea: { value: 0 }, uFlash: { value: 0 },
-    uRoll: { value: 0 }, uPitch: { value: 0 }, uInCloud: { value: 0 },
-    uSun: { value: new THREE.Vector3(-1, 0.17, -0.55).normalize() },
+    uRoll: { value: 0 }, uPitch: { value: 0 }, uInCloud: { value: 0 }, uCity: { value: 0 }, uFlood: { value: 0 }, uDusk: { value: 0 },
+    uSun: { value: new THREE.Vector3(-1, 0.09, -0.55).normalize() },
   };
   const mat = new THREE.ShaderMaterial({
     uniforms, side: THREE.BackSide, depthWrite: false,
     vertexShader: /* glsl */ `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: /* glsl */ `
-      uniform float uTime, uStorm, uSea, uFlash, uRoll, uPitch, uInCloud; uniform vec3 uSun; varying vec3 vP;
+      uniform float uTime, uStorm, uSea, uFlash, uRoll, uPitch, uInCloud, uCity, uFlood, uDusk; uniform vec3 uSun; varying vec3 vP;
       ${GLSL_NOISE}
       void main(){
         vec3 d = normalize(vP);
@@ -35,7 +35,7 @@ function makeCabinSky() {
         vec3 col = mix(hor, zen, smoothstep(0.0, 0.26, y));
         float sd = max(dot(d, uSun), 0.0);
         float s2 = sd * sd, s4 = s2 * s2, s8 = s4 * s4, s32 = s8 * s8 * s8 * s8;
-        col += (1.0 - uStorm) * (vec3(1.0, 0.62, 0.32) * (s32 * 0.7 + s8 * 0.18) + vec3(7.0, 5.6, 3.8) * smoothstep(0.9988, 0.9995, sd));
+        col += (1.0 - uStorm) * (1.0 - uDusk) * (vec3(1.0, 0.62, 0.32) * (s32 * 0.7 + s8 * 0.18) + vec3(7.0, 5.6, 3.8) * smoothstep(0.9988, 0.9995, sd));
         if (y > 0.0) {
           vec2 p = d.xz / (y + 0.15);
           float n = fbm(p * 0.8 + vec2(0.0, -uTime * 0.04));
@@ -58,11 +58,28 @@ function makeCabinSky() {
         vec3 sea = mix(vec3(0.02, 0.05, 0.07), vec3(0.14, 0.19, 0.23), w);
         sea += vec3(0.55) * smoothstep(0.7, 0.86, fbm(ps * 2.3 + 3.0));
         sea = mix(sea, hor * 0.55, 1.0 - exp(-t * 0.04));
-        vec3 below = mix(cl, sea, uSea);
+        // 云层下面：海潮市的街道与灯光，被翻涌的水一片片吞没
+        vec2 gp = (p + flow * 3.0) * 0.9;
+        vec2 cc = fract(gp), ci = floor(gp);
+        float edge = min(min(cc.x, 1.0 - cc.x), min(cc.y, 1.0 - cc.y));
+        float street = 1.0 - smoothstep(0.0, 0.07, edge);
+        vec2 sub = fract(gp * 4.0);
+        float alley = (1.0 - smoothstep(0.0, 0.05, min(min(sub.x, 1.0 - sub.x), min(sub.y, 1.0 - sub.y)))) * 0.35;
+        float win = step(0.86, hash12(floor(gp * 16.0))) * (1.0 - street);
+        float lights = street * (0.55 + 0.45 * hash12(ci)) + alley * hash12(floor(gp * 4.0)) + win * 0.8;
+        lights *= 0.75 + 0.25 * sin(uTime * 3.0 + hash12(floor(gp * 16.0)) * 30.0);
+        vec3 city = vec3(0.02, 0.025, 0.035) + vec3(1.9, 1.15, 0.5) * lights;
+        float fl = fbm(gp * 0.35 + vec2(3.1, 7.7)) + (gp.x * 0.04);
+        float water = smoothstep(fl - 0.05, fl + 0.05, uFlood * 1.25);
+        vec3 flooded = mix(vec3(0.02, 0.025, 0.035), sea * 0.9, water);
+        vec3 glow = vec3(2.2, 1.3, 0.55) * lights * (1.0 - water) * exp(-t * 0.03) * uCity * uSea * (1.0 - smoothstep(-0.015, 0.012, y));
+        flooded = mix(flooded, hor * 0.5, 1.0 - exp(-t * 0.05));
+        vec3 below = mix(cl, mix(sea, flooded, uCity), uSea);
         col = mix(below, col, smoothstep(-0.015, 0.012, y));
         float st = fbm(vec2(d.x * 3.0 + d.z * 2.0, d.y * 9.0) + vec2(uTime * 2.6, 0.0));
         col = mix(col, vec3(0.46, 0.49, 0.54) * (0.6 + 0.5 * st), uInCloud);
-        col *= 0.78;
+        col *= 0.78 * (1.0 - uDusk * 0.75);
+        col += glow;
         col += uFlash * vec3(0.85, 0.9, 1.05) * (0.5 + 0.7 * n);
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -393,6 +410,46 @@ export function buildCabin({ renderer }) {
     });
   }
 
+  // --- 我们面前这块屏幕：航线图（南屿 → 远川，途经海潮市上空）---
+  const mapCan = document.createElement("canvas"); mapCan.width = 512; mapCan.height = 340;
+  const mapTex = new THREE.CanvasTexture(mapCan); mapTex.colorSpace = THREE.SRGBColorSpace; mapTex.anisotropy = 8;
+  function drawMap(stage, prog) {
+    const g = mapCan.getContext("2d"), w = 512, h = 340;
+    g.fillStyle = "#07121c"; g.fillRect(0, 0, w, h);
+    // 海与陆地
+    g.fillStyle = "#0d2a40"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#1c3a2c"; g.beginPath(); g.moveTo(150, 0); g.bezierCurveTo(200, 80, 160, 150, 230, 210); g.bezierCurveTo(280, 250, 250, 300, 300, 340); g.lineTo(512, 340); g.lineTo(512, 0); g.closePath(); g.fill();
+    g.strokeStyle = "rgba(140,190,170,0.5)"; g.lineWidth = 2; g.beginPath(); g.moveTo(150, 0); g.bezierCurveTo(200, 80, 160, 150, 230, 210); g.bezierCurveTo(280, 250, 250, 300, 300, 340); g.stroke();
+    g.fillStyle = "#1c3a2c"; g.beginPath(); g.ellipse(70, 280, 34, 22, -0.4, 0, Math.PI * 2); g.fill();
+    // 风暴
+    if (stage >= 1) {
+      for (let i = 0; i < 5; i++) { g.strokeStyle = `rgba(240,120,90,${0.25 + i * 0.1})`; g.lineWidth = 3; g.beginPath(); g.arc(205, 175, 70 - i * 12, 0.4 + i * 0.3, 4.6 + i * 0.3); g.stroke(); }
+    }
+    // 航线
+    const A = [70, 280], B = [460, 50], C = [330, 120];
+    g.setLineDash([7, 6]); g.strokeStyle = "rgba(240,210,140,0.85)"; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(A[0], A[1]); g.quadraticCurveTo(C[0], C[1], B[0], B[1]); g.stroke(); g.setLineDash([]);
+    const qp = (t) => [(1 - t) * (1 - t) * A[0] + 2 * (1 - t) * t * C[0] + t * t * B[0], (1 - t) * (1 - t) * A[1] + 2 * (1 - t) * t * C[1] + t * t * B[1]];
+    // 城市
+    const city = (x, y, name, big) => { g.fillStyle = big ? "#ffd27a" : "#cfd8e0"; g.beginPath(); g.arc(x, y, big ? 7 : 5, 0, Math.PI * 2); g.fill(); g.fillStyle = "#e8eef4"; g.font = `${big ? "bold 24" : "20"}px ${FONT}`; g.fillText(name, x + 10, y - 8); };
+    city(A[0], A[1], "南屿"); city(B[0] - 4, B[1], "远川");
+    const hc = qp(0.38); city(hc[0] + 2, hc[1] + 16, "海潮市", true);
+    // 飞机
+    const pp = qp(prog), pn = qp(Math.min(1, prog + 0.01));
+    g.save(); g.translate(pp[0], pp[1]); g.rotate(Math.atan2(pn[1] - pp[1], pn[0] - pp[0]));
+    g.fillStyle = "#ffffff"; g.beginPath(); g.moveTo(14, 0); g.lineTo(-10, -11); g.lineTo(-5, 0); g.lineTo(-10, 11); g.closePath(); g.fill(); g.restore();
+    // 信息栏
+    g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(0, h - 58, w, 58);
+    g.fillStyle = stage >= 1 ? "#ffb08a" : "#f0d9a0"; g.font = `bold 26px ${FONT}`;
+    g.fillText(stage >= 1 ? "下方：海潮市　·　风暴潮预警" : "下方：海潮市", 16, h - 22);
+    g.fillStyle = "#cfd8e0"; g.font = `20px ${FONT}`; g.fillText(stage >= 1 ? "剩余 3:31" : "剩余 3:52", w - 110, h - 22);
+    g.fillStyle = "#cfd8e0"; g.font = `18px ${FONT}`; g.fillText("南屿 → 远川　CA·7175", 16, 30);
+    mapTex.needsUpdate = true;
+  }
+  drawMap(0, 0.34);
+  const myScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.126), new THREE.MeshBasicMaterial({ map: mapTex, color: 0xd8dde4 }));
+  myScreen.position.set(-1.42, 1.04, -0.82 + 0.348); myScreen.rotation.x = 0.12; root.add(myScreen);
+
   // --- 乘客的后脑勺 ---
   {
     const heads = [];
@@ -579,7 +636,7 @@ export function buildCabin({ renderer }) {
 
   // ---------- 状态与视角 ----------
   const S = {
-    storm: 0, sea: 0, inCloud: 0, roll: 0, pitch: 0, flash: 0, flicker: 0, emergency: 0,
+    city: 0, flood: 0, dusk: 0, storm: 0, sea: 0, inCloud: 0, roll: 0, pitch: 0, flash: 0, flicker: 0, emergency: 0,
     shade: 0, shadeT: 0, showDrawing: 0, showT: 0, cartZ: -9, cartT: -9, cupRip: 0, lightsOff: 0,
   };
   const VIEWS = {
@@ -590,6 +647,7 @@ export function buildCabin({ renderer }) {
     girl: { yaw: -0.85, pyaw: -1.05, pitch: -0.42, fov: 4, off: [-0.07, 0.07, 0.02] },
     drawing: { yaw: -0.62, pitch: -0.42, fov: -6, off: [-0.05, 0.05, 0.02] },
     cup: { yaw: 0.06, pitch: -0.78, fov: -10 },
+    screen: { yaw: 0.17, pitch: -0.2, fov: -26, pfov: -14 },
     aisle: { yaw: -0.25, pitch: -0.06, fov: 0 },
     up: { yaw: 0.3, pitch: 0.5, fov: 0 },
   };
@@ -606,6 +664,7 @@ export function buildCabin({ renderer }) {
     },
     resetLook() { look.uyaw = 0; look.upitch = 0; },
     setShade(down) { S.shadeT = down ? 1 : 0; },
+    setMap(stage, prog) { drawMap(stage, prog); },
     toggleShade() { S.shadeT = S.shadeT > 0.5 ? 0 : 1; return S.shadeT > 0.5; },
     showDrawing(on) { S.showT = on ? 1 : 0; },
     dropMasks() { masks.t = 0; masks.cups.visible = masks.tubes.visible = true; },
@@ -624,7 +683,7 @@ export function buildCabin({ renderer }) {
       const pY = portrait ? (T.pyaw ?? (T === VIEWS.wide ? 0.85 : T === VIEWS.forward ? 0.25 : T.yaw)) : T.yaw;
       look.yaw = damp(look.yaw, pY + look.uyaw, look.k, dt);
       look.pitch = damp(look.pitch, T.pitch + look.upitch, look.k, dt);
-      look.fovOff = damp(look.fovOff, T.fov, 2, dt);
+      look.fovOff = damp(look.fovOff, portrait && T.pfov !== undefined ? T.pfov : T.fov, 2, dt);
       camera.fov = (portrait ? 66 : 58) + look.fovOff;
       camera.updateProjectionMatrix();
       const off = T.off || [0, 0, 0];
@@ -635,7 +694,7 @@ export function buildCabin({ renderer }) {
 
       // 天空
       const u = sky.uniforms;
-      u.uTime.value = time; u.uStorm.value = S.storm; u.uSea.value = S.sea; u.uInCloud.value = S.inCloud;
+      u.uTime.value = time; u.uStorm.value = S.storm; u.uSea.value = S.sea; u.uInCloud.value = S.inCloud; u.uCity.value = S.city; u.uFlood.value = S.flood; u.uDusk.value = S.dusk;
       u.uFlash.value = S.flash; u.uRoll.value = S.roll; u.uPitch.value = S.pitch;
       sky.mesh.position.copy(camera.position);
       S.flash = Math.max(0, S.flash - dt * 3.5);

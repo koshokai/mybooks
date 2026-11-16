@@ -305,6 +305,27 @@ export class Sound {
       o.start(at); o.stop(at + 0.35);
     }
   }
+  bark(n = 3) { // 小狗叫：短促的带通锯齿
+    if (!this.ctx) return;
+    for (let i = 0; i < n; i++) {
+      const ctx = this.ctx, at = ctx.currentTime + i * 0.32 + Math.random() * 0.05;
+      const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.setValueAtTime(520, at); o.frequency.exponentialRampToValueAtTime(330, at + 0.12);
+      const bp = this.filt("bandpass", 900, 2), g = this.gain(0); this.env(g, at, 0.01, 0.06, 0.13);
+      o.connect(bp); bp.connect(g); g.connect(this.master); const r = this.gain(0.5); g.connect(r); r.connect(this.rev);
+      o.start(at); o.stop(at + 0.2);
+    }
+  }
+  heli(sec = 14) { // 远处的直升机：低频的旋翼拍打声，慢慢来，又慢慢远去
+    if (!this.ctx) return;
+    const ctx = this.ctx, at = ctx.currentTime;
+    const n = this.src(this.brown, true), lp = this.filt("lowpass", 260, 0.8), am = this.gain(0.5);
+    const lfo = ctx.createOscillator(); lfo.type = "square"; lfo.frequency.value = 13; const lg = this.gain(0.5); lfo.connect(lg); lg.connect(am.gain);
+    const out = this.gain(0);
+    n.connect(lp); lp.connect(am); am.connect(out); out.connect(this.master); const r = this.gain(0.6); out.connect(r); r.connect(this.rev);
+    out.gain.setValueAtTime(0, at); out.gain.linearRampToValueAtTime(0.22, at + sec * 0.4); out.gain.linearRampToValueAtTime(0, at + sec);
+    lfo.frequency.linearRampToValueAtTime(11, at + sec);
+    n.start(at); lfo.start(at); n.stop(at + sec + 0.2); lfo.stop(at + sec + 0.2);
+  }
   softPad(on) { this.set("breeze", on ? 0.5 : 0, 2); }
 
   // 每帧调度：心跳、警报
