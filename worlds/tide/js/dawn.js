@@ -1,9 +1,10 @@
 // 沉没之后 · 序章：上岸、黎明、沉没的城市（第六幕 + 结尾）
 import * as THREE from "three";
 import { clamp, lerp, damp, smooth, noise1, rng, canvasTex, FONT, GLSL_NOISE, disposeTree } from "./util.js";
-import { skyUniforms, makeSky, makeOcean, makeRain, makeBolt, waveAt } from "./ocean.js";
+import { skyUniforms, makeSky, makeOcean, makeRain, makeBolt, waveAt, applyPalette } from "./ocean.js";
 import { makeSuitcase, upgradeSuitcase, ROOFTOP, CITY_LANDMARKS } from "./sea.js";
 import { loadTex, loadPBR, loadHDR, modelInstance, envFromHDR, tier } from "./assets.js";
+import { toonUniforms, toonify, outlineUniforms, addOutlines } from "./anime.js";
 
 
 /* ---------- 城市建筑的着色器：窗格、湿痕、雾、黎明光 ---------- */
@@ -91,9 +92,10 @@ function cityMaterial(CU) {
           vec3 T = abs(n.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
           n = normalize(T * nm.x * 0.7 + vec3(0.0, 1.0, 0.0) * nm.y * 0.7 + n * max(nm.z, 0.2));
         }
-        float dif = max(dot(n, uSunDir), 0.0);
-        vec3 hemi = mix(uGround, uSky, n.y * 0.5 + 0.5);
-        vec3 lit = col * (hemi + uSunCol * dif * 1.35);
+        float dif0 = max(dot(n, uSunDir), 0.0);
+        float dif = smoothstep(0.04, 0.1, dif0) * 0.8 + smoothstep(0.45, 0.55, dif0) * 0.2;
+        vec3 hemi = mix(uGround, uSky, n.y * 0.5 + 0.5) * mix(vec3(0.62, 0.62, 1.0), vec3(1.0), dif);
+        vec3 lit = col * (hemi + uSunCol * dif * 1.45);
         vec3 v = normalize(cameraPosition - vW);
         vec3 r = reflect(-v, n);
         float sp = max(dot(r, uSunDir), 0.0); sp *= sp; sp *= sp; sp *= sp; sp *= sp;
@@ -101,7 +103,7 @@ function cityMaterial(CU) {
         // 少数窗户还亮着应急灯
         float emer = inWin * side * step(0.975, rnd) * step(0.4, vW.y);
         lit += vec3(1.5, 1.0, 0.55) * emer * (0.6 + 0.4 * sin(uTime * 1.3 + rnd * 40.0));
-        lit = mix(lit, col * 0.09 + uFlash * col * 0.6 + vec3(1.2, 0.8, 0.4) * emer, uNight);
+        lit = mix(lit, col * vec3(0.1, 0.12, 0.2) * (0.7 + 0.6 * max(dot(n, normalize(vec3(-0.5, 0.6, 0.6))), 0.0)) + uFlash * col * 0.6 + vec3(1.4, 0.9, 0.45) * emer * 1.3, uNight);
         // 空气透视：逆光方向的雾偏暖，侧面偏冷；贴近水面更浓
         float dist = length(vW - cameraPosition);
         float d = dist * uFogD;
@@ -158,7 +160,7 @@ export function buildDawn({ renderer, lowEnd }) {
     uFogCol: { value: new THREE.Color() }, uFogWarm: { value: new THREE.Color() }, uFogD: { value: 0.0022 }, uNight: { value: 0 }, uFlash: { value: 0 }, uTime: { value: 0 }, uPlain: { value: 0 }, uTex: { value: 0 },
     tFacA: { value: null }, tFacAN: { value: null }, tFacB: { value: null }, tFacBN: { value: null }, tPla: { value: null }, tPlaN: { value: null }, tRoof: { value: null },
   };
-  CU.tSky = SU.tSky; CU.uSkyMix = SU.uSkyMix; CU.uSkyRot = SU.uSkyRot;
+  CU.tSky = { value: null }; CU.uSkyMix = { value: 0 }; CU.uSkyRot = { value: 0 };
   const cityM = cityMaterial(CU);
 
   // ---------- 我们爬上来的这栋楼：只剩最上面两层露出水面 ----------
@@ -392,7 +394,7 @@ export function buildDawn({ renderer, lowEnd }) {
   // 低空薄雾层（远处更浓，营造空气透视）
   const mists = [];
   {
-    for (const [y, a, sc] of [[1.6, 0.32, 0.006], [4.5, 0.22, 0.004], [9, 0.12, 0.003]]) {
+    for (const [y, a, sc] of [[1.2, 0.3, 0.006], [3.2, 0.18, 0.004]]) {
       const mu = { uTime: CU.uTime, uCol: CU.uFogCol, uWarm: CU.uFogWarm, uSun: CU.uSunDir, uA: { value: a }, uS: { value: sc }, uK: { value: 1 } };
       const m = new THREE.Mesh(new THREE.PlaneGeometry(1800, 1800).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
         uniforms: mu, transparent: true, depthWrite: false, fog: false,
@@ -558,10 +560,10 @@ export function buildDawn({ renderer, lowEnd }) {
   // 太阳方向与 HDRI 里的太阳对齐（HDRI 绕竖轴转 SKY_ROT）
   const sunDir = new THREE.Vector3(0.288, 0.331, -0.899).normalize();
   const SKY_ROT = 0.902 - Math.atan2(sunDir.z, sunDir.x);
-  SU.uSkyRot.value = SKY_ROT;
+
   let skyReady = 0;
-  loadTex(tier.low ? "hdri/dawn_sky_1k.jpg" : tier.mid ? "hdri/dawn_sky_2k.jpg" : "hdri/dawn_sky_4k.jpg").then((t) => { if (!t) return; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; SU.tSky.value = t; skyReady = 1; });
-  loadHDR("dawn_1k.hdr").then((h) => { if (h) { envTex = envFromHDR(renderer, h, SKY_ROT, 1.0); h.dispose(); } });
+  // 画风改为手绘天空：HDRI 只作为很淡的环境反射
+  loadHDR("dawn_1k.hdr").then((h) => { if (h) { envTex = envFromHDR(renderer, h, SKY_ROT, 0.35); h.dispose(); } });
   Promise.all([loadTex("tex/rectangular_facade_tiles_diff.jpg", { repeat: [1, 1] }), loadTex("tex/rectangular_facade_tiles_nor.jpg", { srgb: false, repeat: [1, 1] }),
     loadTex("tex/concrete_tile_facade_diff.jpg", { repeat: [1, 1] }), loadTex("tex/concrete_tile_facade_nor.jpg", { srgb: false, repeat: [1, 1] }),
     loadTex("tex/white_plaster_02_diff.jpg", { repeat: [1, 1] }), loadTex("tex/white_plaster_02_nor.jpg", { srgb: false, repeat: [1, 1] }),
@@ -573,16 +575,13 @@ export function buildDawn({ renderer, lowEnd }) {
   const mixc = (a, b, k, out) => out.setRGB(lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k));
   function applyLight(k, flash) {
     const A = P.night, B = P.dawn;
-    mixc(A.zen, B.zen, k, SU.uZen.value); mixc(A.hor, B.hor, k, SU.uHor.value); mixc(A.sun, B.sun, k, SU.uSunCol.value);
-    mixc(A.cl, B.cl, k, SU.uCloudLit.value); mixc(A.cd, B.cd, k, SU.uCloudDark.value);
-    SU.uCloud.value = lerp(A.cloud, B.cloud, k); SU.uSunDir.value.copy(sunDir); SU.uSunSize.value = 0.0009; SU.uWind.value = lerp(0.05, 0.008, k);
+    applyPalette(SU, "stormNight", "dawn", k); SU.uSunDir.value.copy(sunDir); SU.uSunSize.value = 0.0009; SU.uWind.value = lerp(0.05, 0.008, k);
     const O = ocean.U;
     mixc(A.deep, B.deep, k, O.uDeep.value); mixc(A.sc, B.sc, k, O.uScatter.value); mixc(A.fog, B.fog, k, O.uFogCol.value);
     O.uFoam.value = lerp(A.foam, B.foam, k); O.uGlint.value = lerp(A.glint, B.glint, k); O.uLight.value = lerp(A.light, B.light, k); O.uFogD.value = lerp(0.006, 0.0016, k);
     O.uAmp.value = lerp(A.amp, B.amp, k);
     hemi.intensity = lerp(A.hemi, B.hemi, k) + flash * 0.8; sun.intensity = lerp(A.sunI, B.sunI, k);
     sun.position.copy(sunDir).multiplyScalar(60).add(new THREE.Vector3(0, RY, 0)); sun.target.position.set(0, RY, 0);
-    SU.uSkyMix.value = k * skyReady;
     scene.environment = k > 0.5 ? envTex : null;
     scene.fog.color.copy(O.uFogCol.value); scene.fog.density = lerp(A.fogD, B.fogD, k);
     CU.uSunDir.value.copy(sunDir); CU.uSunCol.value.copy(SU.uSunCol.value).multiplyScalar(0.8);
@@ -600,8 +599,13 @@ export function buildDawn({ renderer, lowEnd }) {
   const tmp = { h: 0, gx: 0, gz: 0 };
   const LADDER_Z = RT.d / 2 + 0.95;
 
+  const TU = toonUniforms({ key: 0.7, shade: [0.5, 0.5, 0.85], rim: [0.45, 0.35, 0.25], post: 0.55 });
+  const OU = outlineUniforms({ px: 1.3, col: [0.06, 0.05, 0.1], far0: 6, far1: 30 });
+  const moon = new THREE.DirectionalLight(0x9ab4ff, 0); moon.position.set(-20, 30, 30); scene.add(moon);
+  let toonTick = 0;
+
   const api = {
-    scene, camera, S,
+    scene, camera, S, TU, OU, sunDir, get sunVis() { return S.light * 0.55; },
     setMode(m) { S.mode = m; S.t = 0; },
     focusSign(on) { S.focusName = "sign"; S.focusT = on ? 1 : 0; },
     focusOn(name) { if (name) { S.focusName = name; S.focusT = 1; } else S.focusT = 0; },
@@ -614,11 +618,14 @@ export function buildDawn({ renderer, lowEnd }) {
     strike() { const dir = bolt.strike(new THREE.Vector3(cam.pos.x, 0, cam.pos.z), (Math.random() - 0.5) * 1.2, 170); SU.uFlashDir.value.copy(dir); S.flash = 1; },
     look: { uyaw: 0, upitch: 0 },
     lookDrag(dx, dy) { api.look.uyaw = clamp(api.look.uyaw + dx * 0.004, -1.2, 1.2); api.look.upitch = clamp(api.look.upitch + dy * 0.003, -0.5, 0.5); },
-    resize(w, h) { S.portrait = w / h < 0.8; camera.aspect = w / h; camera.fov = S.portrait ? 70 : 55; camera.updateProjectionMatrix(); },
+    resize(w, h) { OU.uRes.value.set(w, h); S.portrait = w / h < 0.8; camera.aspect = w / h; camera.fov = S.portrait ? 70 : 55; camera.updateProjectionMatrix(); },
     update(dt, t) {
       time = t; S.t += dt;
       SU.uTime.value = t; CU.uTime.value = t;
       S.light = damp(S.light, S.lightT, 0.8, dt);
+      if ((toonTick -= dt) <= 0) { toonTick = 1; toonify(scene, TU); addOutlines(roofG, OU); addOutlines(suit, OU); addOutlines(dog, OU); for (const f of floaters) addOutlines(f.m, OU); }
+      TU.uKey.value = lerp(0.14, 0.75, S.light) + S.flash * 0.2;
+      moon.intensity = 1.1 * (1 - S.light);
       if (S.mode === "climb" && S.light < 0.5) {
         S.nextBolt -= dt;
         if (S.nextBolt <= 0) { api.strike(); S.nextBolt = 3 + Math.random() * 3; }

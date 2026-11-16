@@ -3,6 +3,9 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { clamp, lerp, damp, noise1, rng, canvasTex, jitterLine, FONT, HAND, GLSL_NOISE, disposeTree } from "./util.js";
 import { loadPBR } from "./assets.js";
+import { loadVRM, seatedVRM } from "./characters.js";
+import { skyUniforms, applyPalette } from "./ocean.js";
+import { ANIME_SKY_GLSL, toonUniforms, toonify, outlineUniforms, addOutlines } from "./anime.js";
 
 const ROW = 0.82;
 const WALL_X = 1.75;
@@ -14,16 +17,22 @@ const winZ = (r) => r * ROW - 0.12;
 /* ---------- 窗外的天空：清晨云海 → 风暴 → 过近的海面 ---------- */
 function makeCabinSky() {
   const uniforms = {
-    uTime: { value: 0 }, uStorm: { value: 0 }, uSea: { value: 0 }, uFlash: { value: 0 },
-    uRoll: { value: 0 }, uPitch: { value: 0 }, uInCloud: { value: 0 }, uCity: { value: 0 }, uFlood: { value: 0 }, uDusk: { value: 0 },
-    uSun: { value: new THREE.Vector3(-1, 0.09, -0.55).normalize() },
+    ...skyUniforms(),
+    uStorm: { value: 0 }, uSea: { value: 0 }, uRoll: { value: 0 }, uPitch: { value: 0 }, uInCloud: { value: 0 }, uCity: { value: 0 }, uFlood: { value: 0 }, uDusk: { value: 0 },
   };
+  uniforms.uSunDir.value.set(-1, 0.09, -0.55).normalize();
+  uniforms.uFlashDir.value.set(-0.8, 0.2, -0.6).normalize();
+  applyPalette(uniforms, "sunset");
   const mat = new THREE.ShaderMaterial({
     uniforms, side: THREE.BackSide, depthWrite: false,
     vertexShader: /* glsl */ `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: /* glsl */ `
-      uniform float uTime, uStorm, uSea, uFlash, uRoll, uPitch, uInCloud, uCity, uFlood, uDusk; uniform vec3 uSun; varying vec3 vP;
+      uniform float uTime, uSunSize, uCloud, uFlash, uWind, uCb, uStars;
+      uniform vec3 uZen, uMid, uHor, uSunDir, uSunCol, uCloudLit, uCloudDark, uCloudRim, uFlashDir;
+      uniform float uStorm, uSea, uRoll, uPitch, uInCloud, uCity, uFlood, uDusk;
+      varying vec3 vP;
       ${GLSL_NOISE}
+      ${ANIME_SKY_GLSL}
       void main(){
         vec3 d = normalize(vP);
         float cr = cos(uRoll), sr = sin(uRoll);
@@ -31,35 +40,31 @@ function makeCabinSky() {
         float cp = cos(uPitch), sp = sin(uPitch);
         d.yz = vec2(cp * d.y - sp * d.z, sp * d.y + cp * d.z);
         float y = d.y;
-        vec3 zen = mix(vec3(0.16, 0.34, 0.72), vec3(0.13, 0.15, 0.19), uStorm);
-        vec3 hor = mix(vec3(1.0, 0.64, 0.36), vec3(0.36, 0.39, 0.44), uStorm);
-        vec3 col = mix(hor, zen, smoothstep(0.0, 0.26, y));
-        float sd = max(dot(d, uSun), 0.0);
-        float s2 = sd * sd, s4 = s2 * s2, s8 = s4 * s4, s32 = s8 * s8 * s8 * s8;
-        col += (1.0 - uStorm) * (1.0 - uDusk) * (vec3(1.0, 0.62, 0.32) * (s32 * 0.7 + s8 * 0.18) + vec3(7.0, 5.6, 3.8) * smoothstep(0.9988, 0.9995, sd));
-        if (y > 0.0) {
-          vec2 p = d.xz / (y + 0.15);
-          float n = fbm(p * 0.8 + vec2(0.0, -uTime * 0.04));
-          float cov = smoothstep(0.62 - uStorm * 0.4, 0.85, n) * mix(0.35, 1.0, uStorm);
-          vec3 cc = mix(vec3(1.05, 0.9, 0.8), vec3(0.2, 0.22, 0.26), uStorm) * (0.75 + 0.35 * n);
-          col = mix(col, cc, cov * smoothstep(0.0, 0.12, y));
-        }
+        vec3 col = animeSky(d);
+        // 脚下的云海：手绘分层（亮面 / 中间调 / 蓝紫阴影 + 金色描边）
         float H = mix(1.0, 0.18, uSea);
         float t = H / max(0.03 - y, 0.03);
         vec2 p = d.xz * t;
         vec2 flow = vec2(0.0, -uTime * mix(0.22, 2.4, uSea));
-        float n = fbm((p + flow) * 0.8);
-        float n2 = fbm((p + flow) * 0.8 + vec2(0.12, -0.08));
-        float lit = clamp(0.5 + (n - n2) * 3.0, 0.0, 1.0);
-        vec3 cl = mix(vec3(0.30, 0.40, 0.58), mix(vec3(0.78, 0.74, 0.78), vec3(1.25, 1.02, 0.82), lit), smoothstep(0.42, 0.62, n));
-        cl = mix(cl, vec3(0.26, 0.29, 0.34) * (0.55 + 0.7 * n), uStorm);
-        cl = mix(cl, hor * 0.85, 1.0 - exp(-t * 0.022));
+        float n = fbm((p + flow) * 0.75);
+        float n2 = fbm((p + flow) * 0.75 + uSunDir.xz * 0.1);
+        float lit = clamp(0.5 + (n - n2) * 5.0, 0.0, 1.0);
+        float band = smoothstep(0.34, 0.42, lit) * 0.55 + smoothstep(0.66, 0.74, lit) * 0.45;
+        float th = 0.5 - uStorm * 0.15;
+        float dens = smoothstep(th - 0.02, th + 0.02, n);
+        vec3 cl = mix(uCloudDark, uCloudLit, band);
+        float rim = smoothstep(th - 0.02, th + 0.015, n) - smoothstep(th + 0.02, th + 0.09, n);
+        float sunF = max(dot(normalize(vec3(d.x, 0.0, d.z) + 1e-4), normalize(vec3(uSunDir.x, 0.0, uSunDir.z))), 0.0);
+        cl += uCloudRim * rim * (0.25 + sunF * sunF * 1.5);
+        vec3 gap = mix(uMid * 0.45, uCloudDark * 0.8, 0.5);
+        cl = mix(gap, cl, dens);
+        cl = mix(cl, uHor * 0.9, 1.0 - exp(-t * 0.03));
         vec2 ps = (p + flow * 3.0) * vec2(0.9, 0.35);
         float w = fbm(ps);
-        vec3 sea = mix(vec3(0.02, 0.05, 0.07), vec3(0.14, 0.19, 0.23), w);
-        sea += vec3(0.55) * smoothstep(0.7, 0.86, fbm(ps * 2.3 + 3.0));
-        sea = mix(sea, hor * 0.55, 1.0 - exp(-t * 0.04));
-        // 云层下面：海潮市的街道与灯光，被翻涌的水一片片吞没
+        vec3 sea = mix(vec3(0.02, 0.05, 0.1), vec3(0.08, 0.2, 0.3), smoothstep(0.4, 0.6, w));
+        sea += vec3(0.75, 0.85, 1.0) * smoothstep(0.74, 0.76, fbm(ps * 2.3 + 3.0));
+        sea = mix(sea, uHor * 0.55, 1.0 - exp(-t * 0.04));
+        // 海潮市的灯火与淹没它的水
         vec2 gp = (p + flow * 3.0) * 0.9;
         vec2 cc = fract(gp), ci = floor(gp);
         float edge = min(min(cc.x, 1.0 - cc.x), min(cc.y, 1.0 - cc.y));
@@ -69,24 +74,24 @@ function makeCabinSky() {
         float win = step(0.86, hash12(floor(gp * 16.0))) * (1.0 - street);
         float lights = street * (0.55 + 0.45 * hash12(ci)) + alley * hash12(floor(gp * 4.0)) + win * 0.8;
         lights *= 0.75 + 0.25 * sin(uTime * 3.0 + hash12(floor(gp * 16.0)) * 30.0);
-        vec3 city = vec3(0.02, 0.025, 0.035) + vec3(1.9, 1.15, 0.5) * lights;
         float fl = fbm(gp * 0.35 + vec2(3.1, 7.7)) + (gp.x * 0.04);
         float water = smoothstep(fl - 0.05, fl + 0.05, uFlood * 1.25);
-        vec3 flooded = mix(vec3(0.02, 0.025, 0.035), sea * 0.9, water);
-        vec3 glow = vec3(2.2, 1.3, 0.55) * lights * (1.0 - water) * exp(-t * 0.03) * uCity * uSea * (1.0 - smoothstep(-0.015, 0.012, y));
-        flooded = mix(flooded, hor * 0.5, 1.0 - exp(-t * 0.05));
-        vec3 below = mix(cl, mix(sea, flooded, uCity), uSea);
-        col = mix(below, col, smoothstep(-0.015, 0.012, y));
+        vec3 flooded = mix(vec3(0.03, 0.03, 0.07), sea * 0.9, water);
+        flooded = mix(flooded, uHor * 0.5, 1.0 - exp(-t * 0.05));
+        float below = 1.0 - smoothstep(-0.015, 0.012, y);
+        vec3 glow = vec3(2.4, 1.3, 0.5) * lights * (1.0 - water) * exp(-t * 0.03) * uCity * uSea * below;
+        vec3 lower = mix(cl, mix(sea, flooded, uCity), uSea);
+        col = mix(col, lower, below);
         float st = fbm(vec2(d.x * 3.0 + d.z * 2.0, d.y * 9.0) + vec2(uTime * 2.6, 0.0));
-        col = mix(col, vec3(0.46, 0.49, 0.54) * (0.6 + 0.5 * st), uInCloud);
-        col *= 0.78 * (1.0 - uDusk * 0.75);
+        col = mix(col, mix(uCloudDark, uCloudLit, 0.5) * (0.7 + 0.5 * st), uInCloud);
+        col *= 0.82 * (1.0 - uDusk * 0.72);
         col += glow;
-        col += uFlash * vec3(0.85, 0.9, 1.05) * (0.5 + 0.7 * n);
+        col += uFlash * vec3(0.8, 0.72, 1.1) * (0.45 + 0.6 * n);
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(40, 32, 16), mat);
-  mesh.renderOrder = 10; // 画在机舱之后，靠深度测试只在窗口里计算
+  mesh.renderOrder = 10;
   mesh.frustumCulled = false;
   return { mesh, uniforms };
 }
@@ -526,20 +531,47 @@ export function buildCabin({ renderer }) {
     const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 0.01), new THREE.MeshStandardMaterial({ color: 0x9c4a3f, roughness: 0.95 }));
     pocket.position.set(0, 0.66, -0.008);
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.03, 0.06, 10), skin); neck.position.set(0, 0.9, 0.05);
-    const head = new THREE.Group(); head.position.set(0, 0.99, 0.045);
-    const face = new THREE.Mesh(new THREE.SphereGeometry(0.075, 24, 18), skin); face.scale.set(0.9, 1.12, 1.0);
-    const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), skin); jaw.position.set(0, -0.045, -0.02); jaw.scale.set(1, 0.8, 1);
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), skin); nose.position.set(0, -0.005, -0.076); nose.scale.set(0.9, 1.1, 1);
-    const ears = [-1, 1].map((k) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), skin); e.position.set(k * 0.068, -0.004, 0.006); e.scale.set(0.5, 1, 0.8); return e; });
-    const eyeM = new THREE.MeshStandardMaterial({ color: 0x120c0a, roughness: 0.25 });
-    const eyes = [-1, 1].map((k) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.0042, 8, 6), eyeM); e.position.set(k * 0.025, 0.012, -0.069); return e; });
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.081, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.56), hairM);
-    cap.scale.set(0.95, 1.12, 1.04); cap.rotation.x = 0.55; cap.position.set(0, 0.006, 0.004);
-    const backHair = new THREE.Mesh(new THREE.SphereGeometry(0.079, 20, 14), hairM); backHair.scale.set(0.95, 1.1, 0.9); backHair.position.set(0, 0.0, 0.022);
-    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.024, 0.11, 4, 10), hairM); tail.position.set(0, -0.06, 0.095); tail.rotation.x = 0.35;
-    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.007, 6, 12), new THREE.MeshStandardMaterial({ color: 0xe6c44d, roughness: 0.5 })); tie.position.set(0, 0.005, 0.088); tie.rotation.x = 1.2;
-    const fringe = new THREE.Mesh(new THREE.SphereGeometry(0.078, 16, 8, -1.1, 2.2, 0.35, 0.5), hairM); fringe.rotation.y = Math.PI; fringe.scale.set(0.96, 1.12, 1.04);
-    head.add(face, nose, ...ears, ...eyes, backHair, cap, fringe, tail, tie); void jaw;
+    // 动画风格的头部：比写实略大的头、分层的发片（带天使环高光）、大眼睛贴片
+    const head = new THREE.Group(); head.position.set(0, 1.0, 0.045);
+    const face = new THREE.Mesh(new THREE.SphereGeometry(0.084, 28, 20), skin); face.scale.set(0.92, 1.08, 0.98);
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), skin); chin.position.set(0, -0.05, -0.028); chin.scale.set(1.05, 0.75, 0.9);
+    const ears = [-1, 1].map((k) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), skin); e.position.set(k * 0.077, -0.006, 0.006); e.scale.set(0.5, 1, 0.8); return e; });
+    const eyeTex = canvasTex(128, 128, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      g.fillStyle = "#fff"; g.beginPath(); g.ellipse(64, 70, 40, 46, 0, 0, Math.PI * 2); g.fill();
+      const gr = g.createLinearGradient(0, 30, 0, 110); gr.addColorStop(0, "#1b0f0c"); gr.addColorStop(0.6, "#6a3a24"); gr.addColorStop(1, "#c98a52");
+      g.fillStyle = gr; g.beginPath(); g.ellipse(64, 74, 30, 40, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#120806"; g.beginPath(); g.ellipse(64, 76, 14, 20, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff"; g.beginPath(); g.ellipse(52, 56, 10, 12, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(76, 96, 5, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#1a0e0a"; g.lineWidth = 9; g.lineCap = "round"; g.beginPath(); g.ellipse(64, 70, 42, 48, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+    }, { srgb: true });
+    const eyeM = new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true, depthWrite: false });
+    const eyes = [-1, 1].map((k) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(0.034, 0.036), eyeM); e.position.set(k * 0.03, 0.006, -0.077); e.rotation.y = Math.PI + k * 0.28; e.userData.noOutline = true; return e; });
+    const brows = [-1, 1].map((k) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.003, 0.004), new THREE.MeshBasicMaterial({ color: 0x2a1610 })); b.position.set(k * 0.03, 0.034, -0.078); b.rotation.z = k * 0.12; return b; });
+    const blush = new THREE.MeshBasicMaterial({ color: 0xff8f8a, transparent: true, opacity: 0.35, depthWrite: false });
+    const cheeks = [-1, 1].map((k) => { const c = new THREE.Mesh(new THREE.CircleGeometry(0.011, 12), blush); c.position.set(k * 0.042, -0.02, -0.071); c.rotation.y = Math.PI + k * 0.5; return c; });
+    // 发色：深栗色 + 天使环高光
+    const hairTex = canvasTex(64, 256, (g, w, h) => {
+      const gr = g.createLinearGradient(0, 0, 0, h);
+      gr.addColorStop(0, "#2a1a14"); gr.addColorStop(0.3, "#3b2419"); gr.addColorStop(0.36, "#9c6a4c"); gr.addColorStop(0.42, "#3b2419"); gr.addColorStop(1, "#1e120e");
+      g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 30; i++) { g.strokeStyle = `rgba(0,0,0,${0.1 + Math.random() * 0.15})`; g.beginPath(); const x = Math.random() * w; g.moveTo(x, 0); g.lineTo(x + (Math.random() - 0.5) * 6, h); g.stroke(); }
+    });
+    const hairM2 = new THREE.MeshStandardMaterial({ map: hairTex, roughness: 0.5, side: THREE.DoubleSide });
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.091, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.6), hairM2);
+    cap.scale.set(0.95, 1.08, 1.02); cap.rotation.x = 0.5; cap.position.set(0, 0.008, 0.006);
+    const backHair = new THREE.Mesh(new THREE.SphereGeometry(0.088, 22, 16), hairM2); backHair.scale.set(0.96, 1.08, 0.92); backHair.position.set(0, 0.0, 0.02);
+    // 发片：刘海、鬓角、后脑的尖角
+    const strand = (len, wid) => { const g = new THREE.CapsuleGeometry(wid * 0.6, len, 3, 8); g.translate(0, -len / 2, 0); g.scale(1, 1, 0.38); return g; };
+    const cards = [];
+    const addCard = (x, y, z, len, wid, rx, rz, ry = 0) => { const c = new THREE.Mesh(strand(len, wid), hairM2); c.position.set(x, y, z); c.rotation.set(rx, ry, rz); cards.push(c); };
+    for (let i = -3; i <= 3; i++) addCard(i * 0.022, 0.065, -0.07 + Math.abs(i) * 0.006, 0.045 + (i % 2 ? 0.01 : 0), 0.02, -0.3, i * 0.07);
+    for (const k of [-1, 1]) { addCard(k * 0.078, 0.03, -0.035, 0.11, 0.02, -0.12, k * 0.12); addCard(k * 0.08, 0.02, 0.0, 0.1, 0.022, 0.05, k * 0.18); }
+    for (let i = -2; i <= 2; i++) addCard(i * 0.03, 0.02, 0.085, 0.1, 0.024, 0.35, i * 0.12);
+    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.026, 0.12, 4, 10), hairM2); tail.position.set(0, -0.06, 0.1); tail.rotation.x = 0.4;
+    const tie = new THREE.Mesh(new THREE.TorusGeometry(0.021, 0.007, 6, 12), new THREE.MeshStandardMaterial({ color: 0xe6c44d, roughness: 0.5 })); tie.position.set(0, 0.0, 0.095); tie.rotation.x = 1.2;
+    head.add(face, chin, ...ears, ...eyes, ...brows, ...cheeks, backHair, cap, ...cards, tail, tie);
+    G.hairCards = cards;
     G.head = head;
     const mkArm = (k) => {
       const a = new THREE.Group(); a.position.set(k * 0.115, 0.86, 0.06);
@@ -659,8 +691,27 @@ export function buildCabin({ renderer }) {
   const camBase = new THREE.Vector3(-1.3, 1.17, 0.2);
   let portrait = false;
 
+  // 动画画风：赛璐璐着色 + 描边（小女孩、空乘、座椅）
+  const TU = toonUniforms({ key: 0.42, shade: [0.52, 0.46, 0.78], rim: [0.55, 0.38, 0.25], post: 0.5 });
+  const OU = outlineUniforms({ px: 1.4, col: [0.09, 0.06, 0.12], far0: 2.5, far1: 10 });
+  toonify(root, TU);
+  addOutlines(girl, OU); addOutlines(crew, OU);
+  for (const k of ["cushion", "back", "cover"]) addOutlines(I[k], OU);
+  let toonTick = 0;
+  // 可替换的 VRM 小满（manifest 里登记了才会加载）
+  let girlVRM = null;
+  loadVRM("xiaoman").then((vrm) => {
+    if (!vrm) return;
+    vrm.scene.position.set(-0.84, 0.42, 0.06); vrm.scene.rotation.y = Math.PI;
+    const box = new THREE.Box3().setFromObject(vrm.scene), hgt = box.max.y - box.min.y;
+    if (hgt > 0.2) vrm.scene.scale.setScalar(1.2 / hgt);
+    root.add(vrm.scene); girl.visible = false; girlVRM = { vrm, ctl: seatedVRM(vrm) };
+  });
+
   const api = {
-    scene, camera, S,
+    scene, camera, S, TU, OU,
+    get sunDir() { return sky.uniforms.uSunDir.value; },
+    get sunVis() { return (1 - S.storm) * (1 - S.shade) * (1 - S.dusk); },
     setView(name, k = 1.6) { look.target = VIEWS[name] || VIEWS.window; look.k = k; },
     lookDrag(dx, dy) {
       look.uyaw = clamp(look.uyaw + dx * 0.0042, -1.6, 1.6);
@@ -678,6 +729,7 @@ export function buildCabin({ renderer }) {
       return hits.length ? hits[0].object.name : null;
     },
     resize(w, h) {
+      OU.uRes.value.set(w, h);
       portrait = w / h < 0.8;
       camera.aspect = w / h; camera.updateProjectionMatrix();
     },
@@ -696,9 +748,13 @@ export function buildCabin({ renderer }) {
       camera.rotation.set(look.pitch, look.yaw, 0);
       look.uyaw *= Math.exp(-dt * 0.08); look.upitch *= Math.exp(-dt * 0.08);
 
+      if (girlVRM) girlVRM.ctl.update(dt, time, -S.showDrawing * 0.3, 0.35 - S.showDrawing * 0.3);
+      // 新加载的贴图 / 材质也要赛璐璐化
+      if ((toonTick -= dt) <= 0) { toonTick = 1; toonify(root, TU); }
+      TU.uKey.value = 0.42 * (1 - S.lightsOff * 0.6) + S.flash * 0.3;
       // 天空
       const u = sky.uniforms;
-      u.uTime.value = time; u.uStorm.value = S.storm; u.uSea.value = S.sea; u.uInCloud.value = S.inCloud; u.uCity.value = S.city; u.uFlood.value = S.flood; u.uDusk.value = S.dusk;
+      applyPalette(u, "sunset", "stormDusk", S.storm); u.uTime.value = time; u.uStorm.value = S.storm; u.uSea.value = S.sea; u.uInCloud.value = S.inCloud; u.uCity.value = S.city; u.uFlood.value = S.flood; u.uDusk.value = S.dusk;
       u.uFlash.value = S.flash; u.uRoll.value = S.roll; u.uPitch.value = S.pitch;
       sky.mesh.position.copy(camera.position);
       S.flash = Math.max(0, S.flash - dt * 3.5);

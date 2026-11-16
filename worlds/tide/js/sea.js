@@ -2,8 +2,9 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { clamp, lerp, damp, noise1, rng, canvasTex, FONT, HAND, disposeTree } from "./util.js";
-import { skyUniforms, makeSky, makeOcean, makeRain, makeBolt, waveAt, rhythmPhase, RHYTHM_PERIOD } from "./ocean.js";
+import { stormSkyUniforms as skyUniforms, makeSky, makeOcean, makeRain, makeBolt, waveAt, rhythmPhase, RHYTHM_PERIOD } from "./ocean.js";
 import { loadModel, modelInstance, loadHDR, envFromHDR } from "./assets.js";
+import { toonUniforms, toonify, outlineUniforms, addOutlines } from "./anime.js";
 
 export const ISLAND = new THREE.Vector3(0, 0, -96);
 export const BEACH_R = 9;
@@ -329,8 +330,14 @@ export function buildSea({ renderer, lowEnd }) {
     S.events.push({ type: "bolt", near });
   }
 
+  const TU = toonUniforms({ key: 0.13, shade: [0.42, 0.42, 0.8], rim: [0.3, 0.36, 0.6], post: 0.55 });
+  const OU = outlineUniforms({ px: 1.3, col: [0.02, 0.03, 0.06], far0: 4, far1: 18 });
+  const moon2 = new THREE.DirectionalLight(0x8fa8ff, 0.5); moon2.position.set(-30, 40, 40); scene.add(moon2);
+  let toonTick = 0;
+
   const api = {
-    scene, camera, S, P, SU,
+    scene, camera, S, P, SU, TU, OU,
+    sunDir: null, sunVis: 0,
     get time() { return time; },
     underwater: 0,
     dip(d = 1) { S.dip = d; },
@@ -367,9 +374,11 @@ export function buildSea({ renderer, lowEnd }) {
       return { good };
     },
     setSteer(v) { P.steer = clamp(v, -1, 1); },
-    resize(w, h) { portrait = w / h < 0.8; camera.aspect = w / h; camera.fov = portrait ? 74 : 62; camera.updateProjectionMatrix(); },
+    resize(w, h) { OU.uRes.value.set(w, h); portrait = w / h < 0.8; camera.aspect = w / h; camera.fov = portrait ? 74 : 62; camera.updateProjectionMatrix(); },
     update(dt, t) {
       time = t;
+      if ((toonTick -= dt) <= 0) { toonTick = 1; toonify(scene, TU); addOutlines(suit, OU); for (const d of debris) addOutlines(d.mesh, OU); }
+      TU.uKey.value = 0.13 + S.flash * 0.25;
       const amp = ocean.U.uAmp.value;
       SU.uTime.value = t;
       // 闪电

@@ -1,6 +1,7 @@
 // 沉没之后 · 序章：海面、天空、雨与闪电（海上 / 求生 / 上岸 共用）
 import * as THREE from "three";
 import { GLSL_NOISE } from "./util.js";
+import { ANIME_SKY_GLSL, SKY_PALETTES } from "./anime.js";
 
 /* ---------- 波浪：GPU 与 CPU 用同一套公式（浮力、玩家起伏都靠它）---------- */
 // [方向角, 波长, 振幅, 尖锐度]；波浪整体朝 +Z 方向推进（从岛那边朝你涌来）
@@ -44,6 +45,14 @@ const wU = WD.map((W) => new THREE.Vector4(W.dx, W.dz, W.k, W.A));
 const wB = WD.map((W) => new THREE.Vector3(W.w, W.s, W.ph));
 
 /* ---------- 天空（共用 uniforms）---------- */
+// 套用天空调色板（可在两个调色板间插值）
+export function applyPalette(SU, a, b = null, k = 0) {
+  const A = SKY_PALETTES[a], B = b ? SKY_PALETTES[b] : A;
+  const mc = (key, out) => out.setRGB(A[key][0] + (B[key][0] - A[key][0]) * k, A[key][1] + (B[key][1] - A[key][1]) * k, A[key][2] + (B[key][2] - A[key][2]) * k);
+  mc("zen", SU.uZen.value); mc("mid", SU.uMid.value); mc("hor", SU.uHor.value); mc("sun", SU.uSunCol.value);
+  mc("lit", SU.uCloudLit.value); mc("dark", SU.uCloudDark.value); mc("rim", SU.uCloudRim.value);
+  SU.uCloud.value = A.cloud + (B.cloud - A.cloud) * k; SU.uCb.value = A.cb + (B.cb - A.cb) * k; SU.uStars.value = A.stars + (B.stars - A.stars) * k;
+}
 export function skyUniforms() {
   return {
     uTime: { value: 0 },
@@ -58,51 +67,24 @@ export function skyUniforms() {
     uFlash: { value: 0 },
     uFlashDir: { value: new THREE.Vector3(0, 0.2, -1).normalize() },
     uWind: { value: 0.05 },
-    tSky: { value: null }, uSkyMix: { value: 0 }, uSkyRot: { value: 0 }, uSkyGain: { value: 1 },
+    uMid: { value: new THREE.Color(0.03, 0.05, 0.09) }, uCloudRim: { value: new THREE.Color(0.14, 0.18, 0.32) }, uCb: { value: 0.85 }, uStars: { value: 0 },
   };
 }
+export function stormSkyUniforms() { const U = skyUniforms(); applyPalette(U, "stormNight"); return U; }
 const SKY_GLSL = /* glsl */ `
-uniform float uTime, uSunSize, uCloud, uFlash, uWind, uSkyMix, uSkyRot, uSkyGain;
-uniform vec3 uZen, uHor, uSunDir, uSunCol, uCloudLit, uCloudDark, uFlashDir;
-uniform sampler2D tSky;
+uniform float uTime, uSunSize, uCloud, uFlash, uWind, uCb, uStars;
+uniform vec3 uZen, uMid, uHor, uSunDir, uSunCol, uCloudLit, uCloudDark, uCloudRim, uFlashDir;
 ${GLSL_NOISE}
-vec3 photoSky(vec3 d){
-  float u = atan(d.z, d.x + 1e-5) * 0.1591549 + 0.5 + uSkyRot * 0.1591549;
-  float v = asin(clamp(max(d.y, 0.004), -1.0, 1.0)) * 0.3183099 + 0.5;
-  return texture2D(tSky, vec2(fract(u), v)).rgb * uSkyGain;
-}
+${ANIME_SKY_GLSL}
 vec3 skyBase(vec3 d){
-  float y = d.y;
-  vec3 c = mix(uHor, uZen, smoothstep(-0.02, 0.6, y));
-  float sd = max(dot(d, uSunDir), 0.0);
-  float s2 = sd * sd, s4 = s2 * s2, s8 = s4 * s4, s16 = s8 * s8, s64 = s16 * s16 * s16 * s16;
-  c += uSunCol * (s4 * 0.12 + s16 * 0.3 + s64 * 0.6);
+  vec3 c = animeSkyBase(d);
+  vec4 tw = animeTowers(d, 0.0);
+  c = mix(c, tw.rgb, tw.a);
   float fd = max(dot(d, uFlashDir), 0.0);
-  c += uFlash * vec3(0.55, 0.6, 0.78) * (0.55 + fd * fd * 1.4);
-  if (uSkyMix > 0.001) c = mix(c, photoSky(d), uSkyMix);
+  c += uFlash * vec3(0.55, 0.5, 0.85) * (0.18 + fd * fd * 0.9);
   return c;
 }
-vec3 skyFull(vec3 d){
-  vec3 c = skyBase(d);
-  float sd = dot(d, uSunDir);
-  float disc = smoothstep(1.0 - uSunSize, 1.0 - uSunSize * 0.5, sd);
-  vec2 p = d.xz / (max(d.y, 0.0) + 0.1);
-  vec2 wind = vec2(uTime * uWind * 0.3, uTime * uWind);
-  float n = fbm(p * 0.55 + wind);
-  float n2 = fbm(p * 0.55 + wind + uSunDir.xz * 0.12);
-  float dens = smoothstep(0.75 - uCloud * 0.55, 1.0 - uCloud * 0.35, n) * smoothstep(-0.02, 0.18, d.y);
-  float lit = clamp(0.55 + (n - n2) * 4.0, 0.0, 1.0);
-  vec3 cc = mix(uCloudDark, uCloudLit, lit);
-  float s2 = max(sd, 0.0); s2 *= s2; s2 *= s2;
-  cc += uSunCol * s2 * 0.25 * (1.0 - dens * 0.5);
-  float fd = max(dot(d, uFlashDir), 0.0);
-  float fd4 = fd * fd; fd4 *= fd4;
-  cc += uFlash * vec3(0.72, 0.78, 1.0) * (0.45 + fd * fd * 1.6 + fd4 * 2.0) * (0.4 + n * n * 1.6);
-  c += uSunCol * 7.0 * disc * (1.0 - dens * 0.85);
-  vec3 res = mix(c, cc, dens);
-  if (uSkyMix > 0.001) res = mix(res, photoSky(d) + uSunCol * 4.0 * disc, uSkyMix);
-  return res;
-}
+vec3 skyFull(vec3 d){ return animeSky(d); }
 `;
 
 export function makeSky(U) {
@@ -211,19 +193,27 @@ export function makeOcean(skyU, { N = 220, R = 700 } = {}) {
         }
         float crest = clamp(h / (2.4 * uAmp + 0.05) * 0.5 + 0.5, 0.0, 1.0);
         vec3 water = uDeep + uScatter * crest * (0.4 + uLight);
+        // 动画风格：水色分档、波峰透光更饱和
+        water = mix(water, uDeep * 1.15 + uScatter * (0.25 + uLight) * (smoothstep(0.42, 0.5, crest) * 0.5 + smoothstep(0.7, 0.78, crest) * 0.7), 0.75);
         vec3 col = mix(water, refl, fr);
         float sp = max(dot(r, uSunDir), 0.0);
         float s2 = sp * sp, s4 = s2 * s2, s8 = s4 * s4, s16 = s8 * s8, s64 = s16 * s16 * s16 * s16;
         col += uSunCol * (s64 * s64 * 6.0 + s16 * 0.08) * uGlint;
+        // 水面的闪光颗粒（太阳方向更多，闪电时到处都有）
+        vec2 gc = floor(vW.xz * 2.6 + n.xz * 3.0);
+        float tw = hash12(gc + floor(uTime * 5.0 + hash12(gc) * 5.0));
+        float glintZone = clamp(s16 * 2.5 * uGlint + uFlash * 0.6 + uLight * 0.05, 0.0, 1.0);
+        col += (uSunCol + uFlash * vec3(0.8, 0.8, 1.1) + vec3(0.2)) * step(0.982, tw) * glintZone * 2.4 * exp(-dist * 0.02);
         float fn = fbm3(vW.xz * 0.8 + vec2(uTime * 0.2, uTime * 0.5));
         // 白浪：浪尖成片的泡沫 + 顺着风向拉长的泡沫纹
         float streak = fbm3(vec2(vW.x * 0.25, vW.z * 1.4) + vec2(0.0, uTime * 0.6));
-        float foam = smoothstep(0.7, 0.95, crest + fn * 0.35 - 0.1 + length(g) * 0.06) * uFoam;
-        foam += smoothstep(0.6, 0.85, streak) * smoothstep(0.45, 0.75, crest) * 0.35 * uFoam;
+        float fv = crest + fn * 0.35 - 0.1 + length(g) * 0.06;
+        float foam = (smoothstep(0.8, 0.83, fv) * 0.9 + smoothstep(0.86, 0.88, fv) * 0.1) * uFoam;
+        foam += smoothstep(0.7, 0.72, streak) * smoothstep(0.5, 0.6, crest) * 0.45 * uFoam;
         foam = clamp(foam, 0.0, 1.0);
-        vec3 foamCol = vec3(0.62, 0.68, 0.74) * (0.2 + uLight) + uFlash * vec3(0.6, 0.65, 0.8);
+        vec3 foamCol = vec3(0.78, 0.86, 0.95) * (0.25 + uLight) + uFlash * vec3(0.7, 0.7, 1.0);
         col = mix(col, foamCol, foam * 0.85);
-        col += uFlash * vec3(0.18, 0.2, 0.27) * (0.25 + fr);
+        col += uFlash * vec3(0.12, 0.13, 0.2) * (0.2 + fr);
         float fog = 1.0 - exp(-dist * uFogD);
         float sa = max(dot(-v, uSunDir), 0.0); sa *= sa;
         col = mix(col, mix(uFogCol, uFogWarm, sa) + uFlash * vec3(0.3, 0.33, 0.42), fog);

@@ -51,6 +51,47 @@ composer.addPass(new ShaderPass({
       bool bad = !(c.r == c.r) || !(c.g == c.g) || !(c.b == c.b) || !(c.a == c.a) || any(greaterThan(abs(c), vec4(1e4)));
       gl_FragColor = bad ? vec4(0.0, 0.0, 0.0, 1.0) : clamp(c, vec4(0.0), vec4(32.0)); }`,
 }));
+// 动画电影式的光：太阳光束（屏幕空间径向散射）、变形宽银幕横向光条、镜头光斑
+const animeFX = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uSun: { value: new THREE.Vector2(0.5, 0.5) }, uSunVis: { value: 0 }, uRays: { value: 1 }, uStreak: { value: 1 }, uAspect: { value: 1 } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse; uniform vec2 uSun; uniform float uSunVis, uRays, uStreak, uAspect; varying vec2 vUv;
+    const vec3 LW = vec3(0.299, 0.587, 0.114);
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      vec3 add = vec3(0.0);
+      if (uRays > 0.001 && uSunVis > 0.001) {
+        vec2 dlt = (vUv - uSun) * (0.85 / 24.0);
+        float jit = fract(sin(dot(vUv * 913.7, vec2(12.9898, 78.233))) * 43758.5453);
+        vec2 uv = vUv - dlt * jit; float decay = 1.0; vec3 acc = vec3(0.0);
+        for (int i = 0; i < 24; i++) { uv -= dlt; vec3 s = texture2D(tDiffuse, clamp(uv, 0.0, 1.0)).rgb; float b = clamp(dot(s, LW) - 1.5, 0.0, 3.0); acc += s * b * decay; decay *= 0.93; }
+        add += acc * (0.032 * uRays * uSunVis) * vec3(1.05, 0.95, 0.8);
+        // 镜头光斑：沿太阳—画面中心的连线排几个淡淡的光圈
+        vec2 axis = vec2(0.5) - uSun;
+        for (int k = 0; k < 4; k++) {
+          float fk = float(k);
+          vec2 gp = uSun + axis * (0.7 + fk * 0.45);
+          float r = 0.025 + fk * 0.018;
+          float dd = length((vUv - gp) * vec2(uAspect, 1.0));
+          float ring = smoothstep(r, r * 0.6, dd);
+          add += mix(vec3(0.5, 0.8, 1.0), vec3(1.0, 0.6, 0.9), fk / 3.0) * ring * 0.05 * uSunVis * uRays;
+        }
+      }
+      if (uStreak > 0.001) {
+        vec3 st = vec3(0.0);
+        for (int i = -7; i <= 7; i++) {
+          float fi = float(i);
+          vec3 s = texture2D(tDiffuse, vUv + vec2(fi * 0.018, 0.0)).rgb;
+          float b = clamp(dot(s, LW) - 2.8, 0.0, 6.0);
+          st += s * b * (1.0 - abs(fi) / 8.0);
+        }
+        add += st * vec3(0.55, 0.75, 1.25) * 0.018 * uStreak;
+      }
+      gl_FragColor = vec4(c.rgb + min(add, vec3(8.0)), c.a);
+    }`,
+});
+composer.addPass(animeFX);
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.45, 0.5, 0.85);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
@@ -60,7 +101,7 @@ const grade = new ShaderPass({
     uFade: { value: 1 }, uFlash: { value: 0 }, uVig: { value: 0.9 }, uGrain: { value: 0.04 }, uLid: { value: 0 },
     uBlur: { value: 0 }, uAber: { value: 0 }, uSat: { value: 1 }, uTint: { value: new THREE.Color(1, 1, 1) },
     uDof: { value: 0 }, uFocus: { value: new THREE.Vector2(0.5, 0.5) }, uUnder: { value: 0 }, uLens: { value: 0 },
-    uSplit: { value: 0 }, uWarm: { value: new THREE.Color(1.06, 0.98, 0.86) }, uCool: { value: new THREE.Color(0.86, 0.95, 1.08) },
+    uSplit: { value: 0 }, uWarm: { value: new THREE.Color(1.07, 0.98, 0.86) }, uCool: { value: new THREE.Color(0.84, 0.98, 1.1) },
   },
   vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
   fragmentShader: /* glsl */ `
@@ -98,9 +139,10 @@ const grade = new ShaderPass({
       vec4 c = br > 0.05 ? blur9(uv, br) : texture2D(tDiffuse, uv);
       if (uAber > 0.0005) { vec2 d = (uv - 0.5) * uAber; c.r = texture2D(tDiffuse, uv + d).r; c.b = texture2D(tDiffuse, uv - d).b; }
       float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
-      c.rgb = mix(vec3(l), c.rgb, uSat) * uTint;
+      c.rgb = mix(vec3(l), c.rgb, uSat * 1.2) * uTint;
+      c.rgb = (c.rgb - 0.5) * 1.06 + 0.5;
       // 分离色调：暗部偏冷、亮部偏暖（黄金时刻）
-      c.rgb = mix(c.rgb, c.rgb * mix(uCool, uWarm, smoothstep(0.08, 0.7, l)), uSplit);
+      c.rgb = mix(c.rgb, c.rgb * mix(uCool, uWarm, smoothstep(0.08, 0.7, l)), clamp(uSplit + 0.55, 0.0, 1.0));
       // 水下：青绿、发暗
       c.rgb = mix(c.rgb, vec3(0.02, 0.09, 0.1) + c.rgb * vec3(0.18, 0.42, 0.42), clamp(uUnder, 0.0, 1.0));
       vec2 d = uv - 0.5; c.rgb *= 1.0 - dot(d, d) * (uVig + uUnder * 1.5);
@@ -143,7 +185,7 @@ const D = { i: -1, t: 0, ci: 0, gate: null, time: 0, paused: false, manual: fals
 const worlds = {};
 let W = null, worldName = "";
 
-const BLOOM = { cabin: [0.3, 0.5, 0.92], sea: [0.55, 0.6, 0.8], dawn: [0.32, 0.5, 0.9] };
+const BLOOM = { cabin: [0.42, 0.55, 0.9], sea: [0.6, 0.6, 0.8], dawn: [0.32, 0.55, 1.05] };
 const EXPOSURE = { cabin: 0.88, sea: 1.0, dawn: 0.86 };
 function getWorld(name) {
   if (!worlds[name]) {
@@ -278,9 +320,17 @@ function render() {
     cam.rotation.x += noise1(t * 11 + 9) * 0.02 * s; cam.rotation.z += noise1(t * 9 + 2) * 0.03 * s; cam.rotation.y += noise1(t * 7 + 4) * 0.012 * s;
   }
   G.uTime.value = t; G.uFade.value = fx.fade; G.uFlash.value = fx.flash; G.uLid.value = fx.lid; G.uBlur.value = fx.blur * curPR;
-  G.uSat.value = fx.sat; G.uVig.value = fx.vig; G.uAber.value = fx.aber + s * 0.004;
+  G.uSat.value = fx.sat; G.uVig.value = fx.vig; G.uAber.value = fx.aber + s * 0.004 + 0.003;
   G.uDof.value = fx.dof * 4 * curPR; G.uFocus.value.set(fx.focus[0], fx.focus[1]); G.uUnder.value = Math.max(und, fx.under); G.uLens.value = fx.lens; G.uSplit.value = fx.split;
   if (W.preRender) W.preRender(renderer, q.level);
+  {
+    const A = animeFX.uniforms; let vis = 0;
+    if (W.sunDir && W.sunVis > 0.01) {
+      const p = cam.position.clone().addScaledVector(W.sunDir, 500).project(cam);
+      if (p.z < 1 && Math.abs(p.x) < 1.6 && Math.abs(p.y) < 1.6) { vis = W.sunVis * (1 - Math.max(0, Math.max(Math.abs(p.x), Math.abs(p.y)) - 0.9) / 0.7); A.uSun.value.set(p.x * 0.5 + 0.5, p.y * 0.5 + 0.5); }
+    }
+    A.uSunVis.value = Math.max(0, vis) * (1 - fx.fade); A.uRays.value = q.level < 4 ? 1 : 0; A.uStreak.value = q.level < 5 ? 1 : 0; A.uAspect.value = innerWidth / innerHeight;
+  }
   composer.render();
   if (cam.fov !== fov0) { cam.fov = fov0; cam.updateProjectionMatrix(); }
 }

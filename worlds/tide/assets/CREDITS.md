@@ -24,3 +24,4 @@ HDRIs:
 
 ## Code
 - three.js r160 GLTFLoader / RGBELoader / BufferGeometryUtils (MIT) — js/lib/
+- @pixiv/three-vrm 3.5.5 (MIT) — js/lib/three-vrm.module.min.js，许可证见 js/lib/three-vrm.LICENSE.txt；用于加载 assets/characters/ 里登记的 VRM 角色
