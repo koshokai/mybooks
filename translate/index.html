@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>实时翻译</title>
+<meta name="description" content="对方说外语，实时识别并翻译成中文字幕和语音。">
+<meta name="theme-color" content="#0e1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="翻译">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <label class="lang">
+    <span class="lang-label">对方说</span>
+    <select id="srcLang" aria-label="对方的语言"></select>
+  </label>
+  <span class="arrow" aria-hidden="true">→</span>
+  <span class="target">中文</span>
+  <button id="settingsBtn" class="icon-btn" aria-label="设置">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+
+<main id="log" class="log" aria-live="polite">
+  <div id="empty" class="empty">
+    <p class="empty-big">戴上耳机，点下面的按钮</p>
+    <p>对方说的话会变成中文字幕，<br>并朗读到你的耳机里。</p>
+  </div>
+</main>
+
+<section class="live" aria-live="polite">
+  <p id="interim" class="interim"></p>
+  <p id="status" class="status"></p>
+</section>
+
+<footer class="bottom">
+  <button id="speakToggle" class="side-btn" aria-label="朗读开关" aria-pressed="true">
+    <span class="side-icon">🔊</span><span class="side-text">朗读</span>
+  </button>
+  <button id="micBtn" class="mic" aria-label="开始收听">
+    <span class="ring"></span>
+    <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+  </button>
+  <button id="bigBtn" class="side-btn" aria-label="大字幕">
+    <span class="side-icon">⛶</span><span class="side-text">大字</span>
+  </button>
+</footer>
+
+<div id="bigView" class="big-view" hidden>
+  <p id="bigOrig" class="big-orig"></p>
+  <p id="bigText" class="big-text"></p>
+  <p class="big-hint">点一下退出</p>
+</div>
+
+<dialog id="settings" class="sheet">
+  <form method="dialog">
+    <h2>设置</h2>
+
+    <fieldset>
+      <legend>翻译引擎</legend>
+      <label class="radio"><input type="radio" name="engine" value="free" checked>
+        <span><b>免费</b>（MyMemory，无需注册，每天约 5000 字符额度）</span></label>
+      <label class="radio"><input type="radio" name="engine" value="claude">
+        <span><b>高质量</b>（Claude，结合上下文、更口语化，需要你自己的 API Key，按用量付费）</span></label>
+      <div id="claudeBox" class="claude-box">
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-..." aria-label="Anthropic API Key">
+        <p class="note">Key 只保存在这台手机的浏览器里，直接发给 Anthropic，不经过其他服务器。</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>朗读</legend>
+      <label class="row"><span>语速</span><input id="rate" type="range" min="0.7" max="1.6" step="0.1" value="1.1"><output id="rateOut">1.1</output></label>
+      <label class="row check"><input id="pauseWhileSpeaking" type="checkbox">
+        <span>朗读时暂停收音<br><small>没戴耳机、用手机外放时打开，避免把自己的中文录进去</small></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>记录</legend>
+      <div class="btn-row">
+        <button type="button" id="copyBtn">复制全部</button>
+        <button type="button" id="clearBtn" class="danger">清空</button>
+      </div>
+    </fieldset>
+
+    <p class="note">提示：请在 Safari 中使用，并在「设置 → Siri」中开启听写，否则 iPhone 无法识别语音。</p>
+    <button class="done" value="done">完成</button>
+  </form>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
